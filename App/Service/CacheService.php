@@ -6,7 +6,7 @@ class CacheService
     private string $cacheDir;
     private int $defaultTtl;
 
-    public function __construct(string $cacheDir = null, int $defaultTtl = 3600)
+    public function __construct(?string $cacheDir = null, int $defaultTtl = 3600)
     {
         // Use sys_get_temp_dir() if no cache directory specified
         $this->cacheDir = $cacheDir ?? sys_get_temp_dir() . '/viteetgourmand_cache';
@@ -58,7 +58,7 @@ class CacheService
      * @param int $ttl Time to live in seconds (null uses default)
      * @return bool True on success
      */
-    public function set(string $key, $value, int $ttl = null): bool
+    public function set(string $key, $value, ?int $ttl = null): bool
     {
         if ($ttl === null) {
             $ttl = $this->defaultTtl;
