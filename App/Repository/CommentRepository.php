@@ -137,7 +137,7 @@ class CommentRepository
         $collection = Database::getMongoDatabase()->selectCollection('comments');
 
         $collection->updateOne(
-            ['_id' => new \\MongoDB\\BSON\\ObjectId($id)],
+            ['_id' => new \MongoDB\BSON\ObjectId($id)],
             ['$set' => [
                 'isValidated' => $isValidated,
                 'updatedAt' => new \\MongoDB\\BSON\\UTCDateTime(new \\DateTimeImmutable()),
@@ -149,6 +149,6 @@ class CommentRepository
     {
         Database::getMongoDatabase()
             ->selectCollection('comments')
-            ->deleteOne(['_id' => new \\MongoDB\\BSON\\ObjectId($id)]);
+            ->deleteOne(['_id' => new \MongoDB\BSON\ObjectId($id)]);
     }
 }
