@@ -94,7 +94,7 @@ class RedisCacheService extends CacheService
      * @param int $ttl Time to live in seconds (null uses default)
      * @return bool True on success
      */
-    public function set(string $key, $value, int $ttl = null): bool
+    public function set(string $key, $value, ?int $ttl = null): bool
     {
         if ($ttl === null) {
             $ttl = $this->defaultTtl;
