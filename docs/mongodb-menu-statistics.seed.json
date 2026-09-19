@@ -7,7 +7,7 @@
     "periodIdentifier": "all_time",
     "orderCount": 0,
     "revenue": 0,
-    "updatedAt": {"$date": "2026-09-19T00:00:00.000Z"}
+    "updatedAt": { "$date": "2026-09-19T00:00:00.000Z" }
   },
   {
     "menuId": 2,
@@ -17,7 +17,7 @@
     "periodIdentifier": "all_time",
     "orderCount": 0,
     "revenue": 0,
-    "updatedAt": {"$date": "2026-09-19T00:00:00.000Z"}
+    "updatedAt": { "$date": "2026-09-19T00:00:00.000Z" }
   },
   {
     "menuId": 3,
@@ -27,6 +27,6 @@
     "periodIdentifier": "all_time",
     "orderCount": 0,
     "revenue": 0,
-    "updatedAt": {"$date": "2026-09-19T00:00:00.000Z"}
+    "updatedAt": { "$date": "2026-09-19T00:00:00.000Z" }
   }
 ]
