@@ -140,7 +140,7 @@ class CommentRepository
             ['_id' => new \MongoDB\BSON\ObjectId($id)],
             ['$set' => [
                 'isValidated' => $isValidated,
-                'updatedAt' => new \\MongoDB\\BSON\\UTCDateTime(new \\DateTimeImmutable()),
+                'updatedAt' => new \MongoDB\BSON\UTCDateTime(new \DateTimeImmutable()),
             ]]
         );
     }
