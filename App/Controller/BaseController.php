@@ -30,6 +30,7 @@ class BaseController
 
         // Extract data to variables
         $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $csrfToken = $_SESSION['csrf_token'];
         extract($data);
 
         // Start output buffering
