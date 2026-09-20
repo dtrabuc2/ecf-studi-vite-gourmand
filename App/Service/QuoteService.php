@@ -9,7 +9,8 @@ use InvalidArgumentException;
 final class QuoteService
 {
     public function __construct(
-        private readonly MailService $mailService
+        private readonly MailService $mailService,
+        private readonly NotificationService $notificationService
     ) {
     }
 
@@ -98,6 +99,17 @@ final class QuoteService
             ?? $_ENV['MAIL_FROM_ADDRESS']
             ?? 'noreply@viteetgourmand.com';
 
+        if ($userId !== null) {
+            $this->notificationService->notify(
+                $userId,
+                'quote',
+                'Demande de devis enregistrée',
+                'Votre demande de devis #' . $id . ' a bien été reçue. Notre équipe va l’étudier.',
+                null,
+                $id
+            );
+        }
+
         $this->mailService->sendQuoteRequestNotificationToStaff(
             $companyEmail,
             [
@@ -179,6 +191,18 @@ final class QuoteService
             'status' => $status,
             'reply' => $reply !== '' ? $reply : null,
         ]);
+
+        if ($request['user_id'] !== null) {
+            $this->notificationService->notify(
+                (int) $request['user_id'],
+                'quote',
+                'Réponse à votre demande de devis',
+                'Votre demande de devis #' . $id . ' a été mise à jour : ' .
+                ($reply !== '' ? $reply : ($status . '.')),
+                null,
+                $id
+            );
+        }
 
         $this->mailService->sendQuoteRequestStatusEmail(
             (string) $request['email'],
