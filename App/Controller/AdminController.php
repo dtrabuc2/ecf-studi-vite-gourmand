@@ -40,9 +40,17 @@ final class AdminController extends BaseController
             (string) ($_POST['password'] ?? '')
         );
 
-        if ($user === null || !in_array($user->getRole(), ['employee', 'admin'], true)) {
-            Session::flash('login_error', 'Identifiants invalides ou droits insuffisants.');
+        if ($user === null) {
+            Session::flash('login_error', 'Identifiants invalides ou compte indisponible.');
             $this->redirect('/admin/login');
+        }
+
+        if (!in_array($user->getRole(), ['employee', 'admin'], true)) {
+            Session::flash(
+                'login_error',
+                'Ce compte est un compte client. Utilisez la connexion client.'
+            );
+            $this->redirect('/login');
         }
 
         Session::login($user->getId(), $user->getRole(), [
