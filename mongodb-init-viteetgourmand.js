@@ -1,41 +1,5 @@
-const seedConfig = {
-    dbName: "viteetgourmand",
-    menuImages: [
-        {
-            menuId: 1,
-            position: 1,
-            url: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&auto=format&fit=crop",
-            altText: "Présentation gastronomique du Menu de Noël"
-        },
-        {
-            menuId: 2,
-            position: 1,
-            url: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&auto=format&fit=crop",
-            altText: "Présentation gourmande du Menu de Pâques"
-        },
-        {
-            menuId: 3,
-            position: 1,
-            url: "https://images.unsplash.com/photo-1512621776951-a57141f2e8c0?w=1200&auto=format&fit=crop",
-            altText: "Présentation du Menu végétarien"
-        }
-    ]
-};
-
-const dbName = seedConfig.dbName;
-const database = db.getSiblingDB(dbName);
-
-if (!database.getCollectionNames().includes("comments")) {
-    database.createCollection("comments");
-}
-
-if (!database.getCollectionNames().includes("menu_statistics")) {
-    database.createCollection("menu_statistics");
-}
-
-if (!database.getCollectionNames().includes("menu_images")) {
-    database.createCollection("menu_images");
-}
+// Initialisation idempotente de MongoDB pour Vite & Gourmand.
+const database = db.getSiblingDB("viteetgourmand");
 
 const menuImages = [
     {
@@ -58,12 +22,20 @@ const menuImages = [
     }
 ];
 
-database.menu_images.deleteMany({
+["comments", "menu_statistics", "menu_images"].forEach((name) => {
+    if (!database.getCollectionNames().includes(name)) {
+        database.createCollection(name);
+    }
+});
+
+const imageCollection = database.menu_images;
+
+imageCollection.deleteMany({
     menuId: { $in: menuImages.map((image) => image.menuId) }
 });
 
 if (menuImages.length > 0) {
-    database.menu_images.insertMany(menuImages);
+    imageCollection.insertMany(menuImages);
 }
 
 database.comments.createIndex(
@@ -76,15 +48,15 @@ database.comments.createIndex(
     { name: "comments_user_order_unique", unique: true }
 );
 
-database.menu_images.createIndex(
+imageCollection.createIndex(
     { menuId: 1, position: 1 },
     { name: "menu_images_menu_position_unique", unique: true }
 );
 
 database.menu_statistics.createIndex(
     { menuId: 1, periodIdentifier: 1 },
-    { name: "menu_statistics_menu_period_unique", unique: true }
+    { name: "menu_statistics_menu_period_unique" }
 );
 
-print("Base MongoDB initialisee : " + dbName);
-print(menuImages.length + " image(s) de menu importee(s).");
+print("MongoDB viteetgourmand initialisee.");
+print("Images de menus : " + imageCollection.countDocuments({ menuId: { $in: menuImages.map((image) => image.menuId) } }));
