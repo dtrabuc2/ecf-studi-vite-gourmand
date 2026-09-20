@@ -1,49 +1,41 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Controller;
 
-use App\Service\OrderService;
-use App\Service\AuthService;
-use App\Service\MailService;
-use App\Repository\OrderRepository;
+use App\Core\Session;
 use App\Repository\UserRepository;
-use App\Repository\MenuRepository;
 use App\Service\CommentService;
-use App\Repository\CommentRepository;
+use App\Service\MenuService;
+use App\Service\OrderService;
 
-class OrderController extends BaseController
+final class OrderController extends BaseController
 {
-    private OrderService $orderService;
-    private AuthService $authService;
-    private CommentService $commentService;
-
-    public function __construct()
-    {
-        $this->orderService = new OrderService(
-            new OrderRepository(),
-            new UserRepository(),
-            new MenuRepository(),
-            new MailService()
-        );
-        $this->authService = new AuthService(new UserRepository());
-        $this->commentService = new CommentService(new CommentRepository());
+    public function __construct(
+        private readonly OrderService $orderService,
+        private readonly UserRepository $userRepository,
+        private readonly MenuService $menuService,
+        private readonly CommentService $commentService
+    ) {
     }
 
     public function index(): void
     {
+        $userId = Session::id();
 
-        $userId = (int) ($_SESSION['user_id'] ?? 0);
-        if ($userId === 0) {
-            header('Location: /login');
-            exit;
+        if ($userId === null) {
+            $this->redirect('/login');
         }
 
         $orders = $this->orderService->getUserOrders($userId);
         $history = [];
         $reviews = [];
+
         foreach ($orders as $order) {
             $history[$order->getId()] = $this->orderService->getOrderHistory($order->getId());
             $reviews[$order->getId()] = $this->commentService->getByOrderId($order->getId());
         }
+
         $this->render('order/index', [
             'orders' => $orders,
             'history' => $history,
@@ -51,18 +43,31 @@ class OrderController extends BaseController
         ]);
     }
 
-    public function create(): void
+    public function new(): void
     {
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            echo 'Method Not Allowed';
-            return;
+        $userId = Session::id();
+
+        if ($userId === null) {
+            $this->redirect('/login');
         }
 
-        $userId = (int) ($_SESSION['user_id'] ?? 0);
-        if ($userId === 0) {
-            header('Location: /login');
-            exit;
+        $menus = $this->menuService->getAllMenus();
+        $selectedMenuId = isset($_GET['menu']) ? (int) $_GET['menu'] : 0;
+        $user = $this->userRepository->findById($userId);
+
+        $this->render('order/new', [
+            'menus' => $menus,
+            'selectedMenuId' => $selectedMenuId,
+            'orderUser' => $user,
+        ]);
+    }
+
+    public function create(): void
+    {
+        $userId = Session::id();
+
+        if ($userId === null) {
+            $this->redirect('/login');
         }
 
         $menuId = $_POST['menu_id'] ?? null;
@@ -78,40 +83,44 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
         $errors = [];
 
-        if (empty($menuId) || !is_numeric($menuId)) {
+        if (!is_numeric($menuId)) {
             $errors['menu_id'] = 'Menu requis.';
         }
-        if (empty($numberOfPeople) || !is_numeric($numberOfPeople) || (int) $numberOfPeople < 1) {
+
+        if (!is_numeric($numberOfPeople) || (int) $numberOfPeople < 1) {
             $errors['number_of_people'] = 'Nombre de personnes requis et supérieur à 0.';
         }
-        if ($deliveryDate === '') {
-            $errors['delivery_date'] = 'Date de livraison requise.';
-        } elseif (!preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $deliveryDate)) {
+
+        if ($deliveryDate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $deliveryDate)) {
             $errors['delivery_date'] = 'Date de livraison invalide.';
         } elseif ($deliveryDate < date('Y-m-d')) {
             $errors['delivery_date'] = 'La date de livraison ne peut pas être passée.';
         }
-        if ($deliveryTime === '') {
-            $errors['delivery_time'] = 'Heure de livraison requise.';
-        } elseif (!preg_match('/^\\d{2}:\\d{2}$/', $deliveryTime)) {
+
+        if ($deliveryTime === '' || !preg_match('/^\d{2}:\d{2}$/', $deliveryTime)) {
             $errors['delivery_time'] = 'Heure de livraison invalide.';
         }
+
         if ($deliveryAddress === '') {
             $errors['delivery_address'] = 'Adresse de livraison requise.';
         }
+
         if ($deliveryCity === '') {
             $errors['delivery_city'] = 'Ville de livraison requise.';
         }
-        if ($deliveryCity !== '' && mb_strtolower($deliveryCity) !== 'bordeaux' &&
-            ($deliveryDistanceKm === null || $deliveryDistanceKm < 0)) {
+
+        if (
+            $deliveryCity !== ''
+            && mb_strtolower($deliveryCity) !== 'bordeaux'
+            && ($deliveryDistanceKm === null || $deliveryDistanceKm < 0)
+        ) {
             $errors['delivery_distance_km'] = 'Distance de livraison requise hors Bordeaux.';
         }
 
         if ($errors !== []) {
-            $_SESSION['order_errors'] = $errors;
-            $_SESSION['order_old_input'] = $_POST;
-            header('Location: /orders/new');
-            exit;
+            Session::flash('order_errors', $errors);
+            Session::flash('order_old_input', $_POST);
+            $this->redirect('/orders/new');
         }
 
         try {
@@ -127,50 +136,29 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 $deliveryDistanceKm
             );
 
-            header('Location: /orders/confirmation/' . $result['order_id']);
-            exit;
-        } catch (\InvalidArgumentException $e) {
-            $_SESSION['order_errors'] = ['general' => $e->getMessage()];
-            $_SESSION['order_old_input'] = $_POST;
-            header('Location: /orders/new');
-            exit;
-        } catch (\Throwable $e) {
-            error_log('Order creation error: ' . $e->getMessage());
-            $_SESSION['order_errors'] = ['general' => 'Une erreur est survenue lors de la création de la commande.'];
-            $_SESSION['order_old_input'] = $_POST;
-            header('Location: /orders/new');
-            exit;
+            $this->redirect('/orders/confirmation/' . $result['order_id']);
+        } catch (\InvalidArgumentException $exception) {
+            Session::flash('order_errors', ['general' => $exception->getMessage()]);
+            Session::flash('order_old_input', $_POST);
+            $this->redirect('/orders/new');
+        } catch (\Throwable $exception) {
+            error_log('Order creation error: ' . $exception->getMessage());
+            Session::flash('order_errors', ['general' => 'Une erreur est survenue lors de la création de la commande.']);
+            Session::flash('order_old_input', $_POST);
+            $this->redirect('/orders/new');
         }
-    }
-
-    public function new(): void
-    {
-$menus = (new MenuRepository())->findAll();
-        $selectedMenuId = isset($_GET['menu']) ? (int) $_GET['menu'] : 0;
-        $user = (new UserRepository())->findById((int) ($_SESSION['user_id'] ?? 0));
-
-        $this->render('order/new', [
-            'menus' => $menus,
-            'selectedMenuId' => $selectedMenuId,
-            'orderUser' => $user,
-        ]);
     }
 
     public function confirmation(int $id): void
     {
-$orderId = $id;
-        if ($orderId <= 0) {
-            header('Location: /');
-            exit;
+        $userId = Session::id();
+        $order = $this->orderService->getOrderById($id);
+
+        if ($userId === null || $order === null || $order->getUserId() !== $userId) {
+            $this->redirect('/');
         }
 
-        $order = $this->orderService->getOrderById($orderId);
-        if ($order === null || $order->getUserId() !== (int) ($_SESSION['user_id'] ?? 0)) {
-            header('Location: /');
-            exit;
-        }
-
-        $menu = (new \App\Service\MenuService(new MenuRepository()))->getMenuById($order->getMenuId());
+        $menu = $this->menuService->getMenuById($order->getMenuId());
 
         $this->render('order/confirmation', [
             'order' => $order,
@@ -180,69 +168,84 @@ $orderId = $id;
 
     public function updateCustomerOrder(int $id): void
     {
+        $userId = Session::id();
 
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); return; }
-        $orderId = $id;
-        $userId = (int)($_SESSION['user_id'] ?? 0);
-        try {
-            $distance = ($_POST['delivery_distance_km'] ?? '') !== '' ? (float)$_POST['delivery_distance_km'] : null;
-            $this->orderService->updateCustomerOrder(
-                $orderId, $userId, (int)$_POST['number_of_people'], trim((string)$_POST['delivery_date']),
-                trim((string)$_POST['delivery_time']), trim((string)$_POST['delivery_address']),
-                trim((string)$_POST['delivery_city']), trim((string)$_POST['delivery_postal_code']), $distance
-            );
-            $_SESSION['order_success'] = 'Commande modifiée.';
-        } catch (\Throwable $e) {
-            $_SESSION['order_error'] = $e->getMessage();
+        if ($userId === null) {
+            $this->redirect('/login');
         }
-        header('Location: /orders');
-        exit;
+
+        try {
+            $distance = ($_POST['delivery_distance_km'] ?? '') !== ''
+                ? (float) $_POST['delivery_distance_km']
+                : null;
+
+            $this->orderService->updateCustomerOrder(
+                $id,
+                $userId,
+                (int) $_POST['number_of_people'],
+                trim((string) $_POST['delivery_date']),
+                trim((string) $_POST['delivery_time']),
+                trim((string) $_POST['delivery_address']),
+                trim((string) $_POST['delivery_city']),
+                trim((string) $_POST['delivery_postal_code']),
+                $distance
+            );
+
+            Session::flash('order_success', 'Commande modifiée.');
+        } catch (\Throwable $exception) {
+            Session::flash('order_error', $exception->getMessage());
+        }
+
+        $this->redirect('/orders');
     }
 
     public function review(int $id): void
     {
+        $userId = Session::id();
 
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); return; }
+        if ($userId === null) {
+            $this->redirect('/login');
+        }
 
-        $orderId = $id;
-        $userId = (int)($_SESSION['user_id'] ?? 0);
-        $order = $this->orderService->getOrderById($orderId);
-        if ($order === null || $order->getUserId() !== $userId) { http_response_code(403); return; }
+        $order = $this->orderService->getOrderById($id);
+
+        if ($order === null || $order->getUserId() !== $userId) {
+            http_response_code(403);
+            return;
+        }
+
         if ($order->getStatus() !== 'completed') {
-            $_SESSION['order_error'] = 'Un avis est possible après la fin de la prestation.';
-            header('Location: /orders'); exit;
+            Session::flash('order_error', 'Un avis est possible après la fin de la prestation.');
+            $this->redirect('/orders');
         }
 
         try {
             $this->commentService->create([
                 'user_id' => $userId,
-                'order_id' => $orderId,
+                'order_id' => $id,
                 'menu_id' => $order->getMenuId(),
-                'rating' => (int)($_POST['rating'] ?? 0),
-                'comment' => trim((string)($_POST['comment'] ?? '')),
+                'rating' => (int) ($_POST['rating'] ?? 0),
+                'comment' => trim((string) ($_POST['comment'] ?? '')),
             ]);
-            $_SESSION['order_success'] = 'Votre avis a été transmis pour validation.';
-        } catch (\Throwable $e) {
-            $_SESSION['order_error'] = $e->getMessage();
+            Session::flash('order_success', 'Votre avis a été transmis pour validation.');
+        } catch (\Throwable $exception) {
+            Session::flash('order_error', $exception->getMessage());
         }
-        header('Location: /orders');
-        exit;
+
+        $this->redirect('/orders');
     }
 
     public function updateStatus(int $id): void
     {
-$orderId = $id;
-        $status = trim((string) ($_POST['status'] ?? ''));
-        $userId = (int) ($_SESSION['user_id'] ?? 0);
-        $role = (string) ($_SESSION['role'] ?? '');
+        $userId = Session::id();
+        $role = Session::role();
 
-        if ($orderId <= 0 || $status === '') {
-            http_response_code(400);
-            echo 'Requête invalide';
-            return;
+        if ($userId === null) {
+            $this->redirect('/login');
         }
 
-        $order = $this->orderService->getOrderById($orderId);
+        $order = $this->orderService->getOrderById($id);
+
         if ($order === null) {
             http_response_code(404);
             echo 'Commande introuvable';
@@ -258,6 +261,7 @@ $orderId = $id;
             return;
         }
 
+        $status = trim((string) ($_POST['status'] ?? ''));
         $cancellationReason = trim((string) ($_POST['cancellation_reason'] ?? ''));
         $notes = trim((string) ($_POST['notes'] ?? ''));
         $equipmentLoaned = $isStaff && array_key_exists('equipment_loaned', $_POST)
@@ -277,7 +281,9 @@ $orderId = $id;
                 echo 'Le mode de contact du client est obligatoire pour une annulation.';
                 return;
             }
-            $notes = 'Contact client : ' . $contactMode . ($notes !== '' ? ' — ' . $notes : '');
+
+            $notes = 'Contact client : ' . $contactMode
+                . ($notes !== '' ? ' — ' . $notes : '');
         }
 
         if ($status === 'cancelled' && $cancellationReason === '') {
@@ -288,7 +294,7 @@ $orderId = $id;
 
         try {
             $this->orderService->updateOrderStatus(
-                $orderId,
+                $id,
                 $status,
                 $userId,
                 $notes,
@@ -296,13 +302,12 @@ $orderId = $id;
                 $equipmentLoaned
             );
 
-            header('Location: /orders');
-            exit;
-        } catch (\InvalidArgumentException $e) {
+            $this->redirect('/orders');
+        } catch (\InvalidArgumentException $exception) {
             http_response_code(400);
-            echo $e->getMessage();
-        } catch (\Throwable $e) {
-            error_log('Order status update error: ' . $e->getMessage());
+            echo $exception->getMessage();
+        } catch (\Throwable $exception) {
+            error_log('Order status update error: ' . $exception->getMessage());
             http_response_code(500);
             echo 'Erreur serveur';
         }
