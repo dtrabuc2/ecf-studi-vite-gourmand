@@ -16,19 +16,23 @@ $flashKeys = [
     'reset_success' => 'success',
     'reset_error' => 'danger',
     'reset_errors' => 'danger',
+    'contact_success' => 'success',
+    'contact_errors' => 'danger',
 ];
+
 ?>
 <div class="container pt-3" aria-live="polite">
-<?php foreach ($flashKeys as $key => $type): ?>
-    <?php $message = AppCoreSession::pullFlash($key); ?>
-    <?php if (is_array($message)): ?>
-        <?php $message = implode(' ', array_map('strval', $message)); ?>
-    <?php endif; ?>
-    <?php if ($message !== null && $message !== ''): ?>
-        <div class="alert alert-<?= $escape($type) ?> alert-dismissible fade show" role="alert">
-            <?= $escape($message) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
-        </div>
-    <?php endif; ?>
-<?php endforeach; ?>
+    <?php foreach ($flashKeys as $key => $type): ?>
+        <?php $message = AppCoreSession::pullFlash($key); ?>
+        <?php if (is_array($message)): ?>
+            <?php $message = implode(' ', array_map('strval', $message)); ?>
+        <?php endif; ?>
+
+        <?php if ($message !== null && $message !== ''): ?>
+            <div class="alert alert-<?= $escape($type) ?> alert-dismissible fade show" role="alert">
+                <?= $escape($message) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+            </div>
+        <?php endif; ?>
+    <?php endforeach; ?>
 </div>
