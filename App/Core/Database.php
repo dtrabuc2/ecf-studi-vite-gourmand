@@ -103,3 +103,18 @@ final class Database
         return self::mongo()->getDatabase($name);
     }
 }
+
+    public static function getPDO(): PDO
+    {
+        return self::pdo();
+    }
+
+    public static function getMongo(): MongoClient
+    {
+        return self::mongo();
+    }
+
+    public static function getMongoDatabase(): MongoDatabase
+    {
+        return self::mongoDatabase();
+    }
