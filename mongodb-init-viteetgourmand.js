@@ -19,6 +19,7 @@ const menuImages = [
         menuId: 1,
         position: 1,
         url: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&auto=format&fit=crop",
+        href: "https://www.pexels.com/photo/meat-dish-on-plate-in-restaurant-16021237/",
         altText: "Présentation gastronomique du Menu Prestige"
     },
     {
@@ -31,6 +32,7 @@ const menuImages = [
         menuId: 2,
         position: 1,
         url: "https://images.unsplash.com/photo-1512621776951-a57141f2e8c0?w=1200&auto=format&fit=crop",
+        href: "https://unsplash.com/s/photos/vegan-food",
         altText: "Présentation du Menu Végétarien Délice"
     },
     {
@@ -43,6 +45,7 @@ const menuImages = [
         menuId: 3,
         position: 1,
         url: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&auto=format&fit=crop",
+        href: "https://unsplash.com/s/photos/cocktail",
         altText: "Présentation du Menu Cocktail Chic"
     },
     {
@@ -55,6 +58,7 @@ const menuImages = [
         menuId: 4,
         position: 1,
         url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&auto=format&fit=crop",
+        href: "https://www.pexels.com/search/burger%20fries/",
         altText: "Présentation du Menu Enfant Gourmand"
     },
     {
@@ -67,6 +71,7 @@ const menuImages = [
         menuId: 5,
         position: 1,
         url: "https://images.unsplash.com/photo-1512621776951-a57141f2e8c0?w=1200&auto=format&fit=crop",
+        href: "https://unsplash.com/s/photos/plant-based-food",
         altText: "Présentation du Menu Méditerranéen Végétal"
     },
     {
@@ -79,6 +84,7 @@ const menuImages = [
         menuId: 6,
         position: 1,
         url: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=1200&auto=format&fit=crop",
+        href: "https://unsplash.com/s/photos/seafood-dish",
         altText: "Présentation du Menu Saveurs de la Mer"
     },
     {
