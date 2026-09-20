@@ -87,6 +87,41 @@ class UserRepository
         return (int)$pdo->lastInsertId();
     }
 
+    public function findCustomers(?string $search = null, ?bool $active = null): array
+    {
+        $pdo = Database::getPDO();
+        $sql = "SELECT id, email, first_name, last_name, phone, gsm, address, is_active, created_at, updated_at
+                FROM users WHERE role = 'user'";
+        $params = [];
+
+        if ($search !== null && trim($search) !== '') {
+            $sql .= " AND (email LIKE :search OR first_name LIKE :search OR last_name LIKE :search OR phone LIKE :search OR gsm LIKE :search)";
+            $params['search'] = '%' . trim($search) . '%';
+        }
+
+        if ($active !== null) {
+            $sql .= ' AND is_active = :active';
+            $params['active'] = $active ? 1 : 0;
+        }
+
+        $sql .= ' ORDER BY created_at DESC';
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll() ?: [];
+    }
+
+    public function setCustomerActive(int $id, bool $active): void
+    {
+        $stmt = Database::getPDO()->prepare(
+            "UPDATE users SET is_active = :active, updated_at = NOW() WHERE id = :id AND role = 'user'"
+        );
+        $stmt->execute([
+            'id' => $id,
+            'active' => $active ? 1 : 0,
+        ]);
+    }
+
     public function setActive(int $id, bool $active): void
     {
         $stmt = Database::getPDO()->prepare("UPDATE users SET is_active = :active, updated_at = NOW() WHERE id = :id AND role = 'employee'");
