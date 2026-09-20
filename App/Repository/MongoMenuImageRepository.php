@@ -50,6 +50,7 @@ final class MongoMenuImageRepository
             $images[$menuId][] = [
                 'url' => $url,
                 'path' => $url,
+                'href' => (string) ($document['href'] ?? $url),
                 'alt_text' => (string) ($document['altText'] ?? $document['alt_text'] ?? 'Image du menu'),
                 'position' => (int) ($document['position'] ?? 1),
             ];
