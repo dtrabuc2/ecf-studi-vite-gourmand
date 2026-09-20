@@ -9,12 +9,14 @@ use App\Controller\ContactController;
 use App\Controller\OrderController;
 use App\Controller\PublicController;
 use App\Controller\QuoteController;
+use App\Controller\NotificationController;
 use App\Repository\CommentRepository;
 use App\Repository\DishRepository;
 use App\Repository\MenuRepository;
 use App\Repository\MongoMenuImageRepository;
 use App\Repository\OpeningHoursRepository;
 use App\Repository\OrderRepository;
+use App\Repository\NotificationRepository;
 use App\Repository\UserRepository;
 use App\Service\AdminService;
 use App\Service\AuthService;
@@ -26,6 +28,7 @@ use App\Service\MenuService;
 use App\Service\MenuStatisticsService;
 use App\Service\OrderService;
 use App\Service\QuoteService;
+use App\Service\NotificationService;
 use App\Middleware\Admin;
 use App\Middleware\Auth;
 use App\Middleware\Staff;
@@ -166,7 +169,8 @@ final class Container
                 $container->get(UserRepository::class),
                 $container->get(MenuRepository::class),
                 $container->get(MailService::class),
-                $container->get(MenuStatisticsService::class)
+                $container->get(MenuStatisticsService::class),
+                $container->get(NotificationService::class)
             )
         );
 
@@ -229,9 +233,22 @@ final class Container
         );
 
         $this->set(
+            NotificationRepository::class,
+            static fn (): NotificationRepository => new NotificationRepository()
+        );
+
+        $this->set(
+            NotificationService::class,
+            static fn (Container $container): NotificationService => new NotificationService(
+                $container->get(NotificationRepository::class)
+            )
+        );
+
+        $this->set(
             QuoteService::class,
             static fn (Container $container): QuoteService => new QuoteService(
-                $container->get(MailService::class)
+                $container->get(MailService::class),
+                $container->get(NotificationService::class)
             )
         );
 
@@ -239,6 +256,13 @@ final class Container
             QuoteController::class,
             static fn (Container $container): QuoteController => new QuoteController(
                 $container->get(QuoteService::class)
+            )
+        );
+
+        $this->set(
+            NotificationController::class,
+            static fn (Container $container): NotificationController => new NotificationController(
+                $container->get(NotificationService::class)
             )
         );
 
