@@ -27,12 +27,12 @@
             </div>
             <div class="row g-4">
                 <?php foreach ($menus as $menu): ?>
-                    <?php $details = $menuDetails[$menu->getId()] ?? ['images' => [], 'dishes' => [], 'allergens' => []]; ?>
-                    <?php $cover = $details['images'][0] ?? null; ?>
+                    <?php $mongoImages = $menuImages[$menu->getId()] ?? []; ?>
+                    <?php $cover = $mongoImages[0] ?? null; ?>
                     <div class="col-md-6 col-lg-4">
                         <article class="card h-100 shadow-sm border-0 overflow-hidden">
-                            <?php if ($cover): ?>
-                                <img src="/uploads/<?= $escape($cover['path']) ?>" class="card-img-top" alt="<?= $escape($cover['alt_text']) ?>" style="height:220px;object-fit:cover;">
+                            <?php if ($cover && !empty($cover['url'])): ?>
+                                <img src="<?= $escape($cover['url']) ?>" class="card-img-top" alt="<?= $escape($cover['alt_text']) ?>" style="height:220px;object-fit:cover;">
                             <?php else: ?>
                                 <div class="bg-light d-flex align-items-center justify-content-center text-muted" style="height:220px;">Aucune image disponible</div>
                             <?php endif; ?>
