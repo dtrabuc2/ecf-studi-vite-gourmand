@@ -101,6 +101,9 @@ HTML;
             'on_site' => 'Prestation sur place',
         ];
 
+        $serviceType = $details['service_type'] ?? '';
+        $serviceLabel = $serviceLabels[$serviceType] ?? $serviceType;
+
         $body = <<<TEXT
 Bonjour {$firstName},
 
@@ -108,7 +111,7 @@ Nous avons bien reçu votre demande de devis grand événement n°{$details['id'
 
 Date : {$details['event_date']}
 Nombre de personnes : {$details['number_of_people']}
-Prestation : {$serviceLabels[$details['service_type']] ?? $details['service_type']}
+Prestation : {$serviceLabel}
 
 Notre équipe va étudier votre demande et vous répondre par email.
 
