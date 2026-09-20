@@ -7,11 +7,30 @@ final class Session
 {
     public static function id(): ?int
     {
-        return isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
+        $id = $_SESSION['user_id'] ?? null;
+
+        return is_numeric($id) && (int) $id > 0
+            ? (int) $id
+            : null;
     }
 
-    public static function login(int $userId, string $role, array $identity = []): void
+    public static function role(): ?string
     {
+        $role = $_SESSION['role'] ?? null;
+
+        return is_string($role) && $role !== '' ? $role : null;
+    }
+
+    public static function isAuthenticated(): bool
+    {
+        return self::id() !== null;
+    }
+
+    public static function login(
+        int $userId,
+        string $role,
+        array $identity = []
+    ): void {
         session_regenerate_id(true);
 
         $_SESSION['user_id'] = $userId;
@@ -20,6 +39,8 @@ final class Session
         foreach ($identity as $key => $value) {
             $_SESSION[$key] = $value;
         }
+
+        self::csrfToken();
     }
 
     public static function logout(): void
@@ -32,11 +53,14 @@ final class Session
             setcookie(
                 session_name(),
                 '',
-                time() - 42000,
-                $params['path'],
-                $params['domain'],
-                $params['secure'],
-                $params['httponly']
+                [
+                    'expires' => time() - 42000,
+                    'path' => $params['path'],
+                    'domain' => $params['domain'],
+                    'secure' => $params['secure'],
+                    'httponly' => $params['httponly'],
+                    'samesite' => $params['samesite'] ?? 'Lax',
+                ]
             );
         }
 
@@ -45,11 +69,15 @@ final class Session
 
     public static function csrfToken(): string
     {
-        if (empty($_SESSION['csrf_token'])) {
+        if (
+            !isset($_SESSION['csrf_token'])
+            || !is_string($_SESSION['csrf_token'])
+            || strlen($_SESSION['csrf_token']) !== 64
+        ) {
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
 
-        return (string) $_SESSION['csrf_token'];
+        return $_SESSION['csrf_token'];
     }
 
     public static function flash(string $key, mixed $value): void
@@ -57,8 +85,10 @@ final class Session
         $_SESSION['_flash'][$key] = $value;
     }
 
-    public static function pullFlash(string $key, mixed $default = null): mixed
-    {
+    public static function pullFlash(
+        string $key,
+        mixed $default = null
+    ): mixed {
         $value = $_SESSION['_flash'][$key] ?? $default;
         unset($_SESSION['_flash'][$key]);
 
