@@ -1,8 +1,28 @@
-// Initialisation MongoDB Vite & Gourmand
-// Les images des menus sont stockées exclusivement dans MongoDB.
-// MariaDB ne contient aucune table menu_images.
+const seedConfig = {
+    dbName: "viteetgourmand",
+    menuImages: [
+        {
+            menuId: 1,
+            position: 1,
+            url: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&auto=format&fit=crop",
+            altText: "Présentation gastronomique du Menu de Noël"
+        },
+        {
+            menuId: 2,
+            position: 1,
+            url: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&auto=format&fit=crop",
+            altText: "Présentation gourmande du Menu de Pâques"
+        },
+        {
+            menuId: 3,
+            position: 1,
+            url: "https://images.unsplash.com/photo-1512621776951-a57141f2e8c0?w=1200&auto=format&fit=crop",
+            altText: "Présentation du Menu végétarien"
+        }
+    ]
+};
 
-const dbName = "viteetgourmand";
+const dbName = seedConfig.dbName;
 const database = db.getSiblingDB(dbName);
 
 if (!database.getCollectionNames().includes("comments")) {
@@ -17,8 +37,6 @@ if (!database.getCollectionNames().includes("menu_images")) {
     database.createCollection("menu_images");
 }
 
-// Images récupérées depuis l'ancien frontend.
-// Elles sont liées aux vrais identifiants des menus MariaDB.
 const menuImages = [
     {
         menuId: 1,
@@ -40,7 +58,6 @@ const menuImages = [
     }
 ];
 
-// Réinitialise uniquement les images gérées par ce script.
 database.menu_images.deleteMany({
     menuId: { $in: menuImages.map((image) => image.menuId) }
 });
