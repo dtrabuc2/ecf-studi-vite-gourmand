@@ -1,5 +1,6 @@
 <?php
-$old = Session::pullFlash('quote_old_input', []);
+$old = $_SESSION['quote_old_input'] ?? [];
+unset($_SESSION['quote_old_input']);
 ?>
 <main class="py-5">
     <div class="container">
