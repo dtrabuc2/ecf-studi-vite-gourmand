@@ -77,10 +77,17 @@ class PublicController extends BaseController
             $details = ['images' => [], 'dishes' => [], 'allergens' => []];
         }
 
+        try {
+            $menuImages = $this->menuImageRepository->findByMenuId($id);
+        } catch (\Throwable $exception) {
+            error_log('Erreur images MongoDB : ' . $exception->getMessage());
+            $menuImages = [];
+        }
+
         $this->render('home/menu_detail', [
             'menu' => $menu,
             'details' => $details,
-            'menuImages' => $this->menuImageRepository->findByMenuId($id),
+            'menuImages' => $menuImages,
             'user' => $_SESSION['user_id'] ?? null,
         ]);
     }
