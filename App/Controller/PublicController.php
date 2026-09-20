@@ -74,7 +74,7 @@ class PublicController extends BaseController
             $details = (new MenuRepository())->findDetails($id);
         } catch (\Throwable $exception) {
             error_log('Impossible de charger les détails du menu : ' . $exception->getMessage());
-            $details = ['images' => [], 'dishes' => [], 'allergens' => []];
+            $details = ['dishes' => [], 'allergens' => []];
         }
 
         try {
@@ -116,7 +116,7 @@ class PublicController extends BaseController
             $details = (new MenuRepository())->findDetails($id);
         } catch (\Throwable $exception) {
             error_log('Erreur détails menu API : ' . $exception->getMessage());
-            $details = ['images' => [], 'dishes' => [], 'allergens' => []];
+            $details = ['dishes' => [], 'allergens' => []];
         }
 
         header('Content-Type: application/json');
@@ -176,7 +176,7 @@ class PublicController extends BaseController
                 $details[$menu->getId()] = $repository->findDetails($menu->getId());
             } catch (\Throwable $exception) {
                 error_log('Erreur détails menu #' . $menu->getId() . ' : ' . $exception->getMessage());
-                $details[$menu->getId()] = ['images' => [], 'dishes' => [], 'allergens' => []];
+                $details[$menu->getId()] = ['dishes' => [], 'allergens' => []];
             }
         }
 
