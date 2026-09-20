@@ -4,59 +4,33 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Core\Session;
-use App\Repository\CommentRepository;
-use App\Repository\MenuRepository;
-use App\Repository\MongoMenuImageRepository;
+use App\Entity\Menu;
 use App\Service\CommentService;
 use App\Service\MenuService;
 
 final class PublicController extends BaseController
 {
-    private readonly MenuService $menuService;
-    private readonly CommentService $commentService;
-
-    public function __construct()
-    {
-        $this->menuService = new MenuService(
-            new MenuRepository(),
-            new MongoMenuImageRepository(),
-            new \App\Service\CacheService()
-        );
-        $this->commentService = new CommentService(
-            new CommentRepository()
-        );
+    public function __construct(
+        private readonly MenuService $menuService,
+        private readonly CommentService $commentService
+    ) {
     }
 
     public function index(): void
     {
         try {
-            $menus = array_slice(
-                $this->menuService->getAllMenus(),
-                0,
-                3
-            );
-        } catch (\Throwable $exception) {
-            error_log(
-                'Impossible de charger les menus : '
-                . $exception->getMessage()
-            );
-            $menus = [];
-        }
-
-        try {
+            $menus = array_slice($this->menuService->getAllMenus(), 0, 3);
             $reviews = $this->commentService->getHomepageReviews();
         } catch (\Throwable $exception) {
-            error_log(
-                'Impossible de charger les avis : '
-                . $exception->getMessage()
-            );
-            $reviews = [];
+            error_log($exception->__toString());
+            $menus ??= [];
+            $reviews ??= [];
         }
 
         $this->render('home/index', [
-            'reviews' => $reviews,
-            'menus' => $menus,
-            'menuImages' => $this->menuService->getMenusImages($menus),
+            'reviews' => $reviews ?? [],
+            'menus' => $menus ?? [],
+            'menuImages' => $this->menuService->getMenusImages($menus ?? []),
             'user' => Session::id(),
         ]);
     }
@@ -66,10 +40,7 @@ final class PublicController extends BaseController
         try {
             $menus = $this->menuService->getAllMenus();
         } catch (\Throwable $exception) {
-            error_log(
-                'Impossible de charger le catalogue : '
-                . $exception->getMessage()
-            );
+            error_log('Impossible de charger le catalogue : ' . $exception->getMessage());
             $menus = [];
         }
 
@@ -103,9 +74,7 @@ final class PublicController extends BaseController
     {
         $this->json([
             'success' => true,
-            'data' => $this->serializeMenus(
-                $this->menuService->getAllMenus()
-            ),
+            'data' => $this->serializeMenus($this->menuService->getAllMenus()),
         ]);
     }
 
@@ -114,10 +83,7 @@ final class PublicController extends BaseController
         $menu = $this->menuService->getMenuById($id);
 
         if ($menu === null) {
-            $this->json([
-                'success' => false,
-                'error' => 'Menu introuvable.'
-            ], 404);
+            $this->json(['success' => false, 'error' => 'Menu introuvable.'], 404);
         }
 
         $this->json([
@@ -128,19 +94,9 @@ final class PublicController extends BaseController
 
     public function filterMenus(): void
     {
-        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
-            $this->json([
-                'success' => false,
-                'error' => 'Méthode HTTP non autorisée.'
-            ], 405);
-        }
-
         $filters = [];
 
-        foreach (
-            ['max_price', 'min_price', 'theme', 'dietary_regime', 'min_people']
-            as $key
-        ) {
+        foreach (['max_price', 'min_price', 'theme', 'dietary_regime', 'min_people'] as $key) {
             if (isset($_GET[$key]) && $_GET[$key] !== '') {
                 $filters[$key] = $_GET[$key];
             }
@@ -148,9 +104,7 @@ final class PublicController extends BaseController
 
         $this->json([
             'success' => true,
-            'data' => $this->serializeMenus(
-                $this->menuService->filterMenus($filters)
-            ),
+            'data' => $this->serializeMenus($this->menuService->filterMenus($filters)),
         ]);
     }
 
@@ -167,13 +121,15 @@ final class PublicController extends BaseController
     private function serializeMenus(array $menus): array
     {
         return array_map(
-            fn ($menu): array => $this->serializeMenu($menu),
+            fn (Menu $menu): array => $this->serializeMenu($menu),
             $menus
         );
     }
 
-    private function serializeMenu(\App\Entity\Menu $menu): array
+    private function serializeMenu(Menu $menu): array
     {
+        $details = $this->menuService->getMenuDetails($menu->getId());
+
         return [
             'id' => $menu->getId(),
             'title' => $menu->getTitle(),
@@ -184,15 +140,9 @@ final class PublicController extends BaseController
             'base_price' => $menu->getBasePrice(),
             'conditions' => $menu->getConditions(),
             'available_stock' => $menu->getAvailableStock(),
-            'dishes' => $this->menuService->getMenuDetails(
-                $menu->getId()
-            )['dishes'] ?? [],
-            'allergens' => $this->menuService->getMenuDetails(
-                $menu->getId()
-            )['allergens'] ?? [],
-            'images' => $this->menuService->getMenuImages(
-                $menu->getId()
-            ),
+            'dishes' => $details['dishes'] ?? [],
+            'allergens' => $details['allergens'] ?? [],
+            'images' => $this->menuService->getMenuImages($menu->getId()),
         ];
     }
 
@@ -201,8 +151,7 @@ final class PublicController extends BaseController
         $details = [];
 
         foreach ($menus as $menu) {
-            $details[$menu->getId()] = $this->menuService
-                ->getMenuDetails($menu->getId());
+            $details[$menu->getId()] = $this->menuService->getMenuDetails($menu->getId());
         }
 
         return $details;
