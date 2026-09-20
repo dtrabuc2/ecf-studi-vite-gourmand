@@ -1,15 +1,26 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Middleware;
 
-class Auth
+use App\Core\Session;
+use App\Repository\UserRepository;
+
+final class Auth
 {
     public function __invoke(): void
     {
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
+        $userId = Session::id();
+
+        if ($userId === null) {
+            header('Location: /login');
+            exit;
         }
 
-        if (empty($_SESSION['user_id'])) {
+        $user = (new UserRepository())->findById($userId);
+
+        if ($user === null || !(new UserRepository())->isActive($userId)) {
+            Session::logout();
             header('Location: /login');
             exit;
         }
