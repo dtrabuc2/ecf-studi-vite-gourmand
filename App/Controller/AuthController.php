@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Core\Session;
-use App\Service\AuthService;
 use App\Repository\UserRepository;
+use App\Service\AuthService;
 use App\Service\MailService;
 use Throwable;
 
@@ -15,11 +15,11 @@ final class AuthController extends BaseController
     private UserRepository $userRepository;
     private MailService $mailService;
 
-    public function __construct(?AuthService $authService = null, ?UserRepository $userRepository = null, ?MailService $mailService = null)
+    public function __construct()
     {
-        $this->userRepository = $userRepository ?? new UserRepository();
-        $this->authService = $authService ?? new AuthService($this->userRepository);
-        $this->mailService = $mailService ?? new MailService();
+        $this->userRepository = new UserRepository();
+        $this->authService = new AuthService($this->userRepository);
+        $this->mailService = new MailService();
     }
 
     public function showLogin(): void
@@ -29,10 +29,10 @@ final class AuthController extends BaseController
 
     public function login(): void
     {
-        $email = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
-        $password = (string) ($_POST['password'] ?? '');
-
-        $user = $this->authService->login($email, $password);
+        $user = $this->authService->login(
+            (string) ($_POST['email'] ?? ''),
+            (string) ($_POST['password'] ?? '')
+        );
 
         if ($user === null) {
             Session::flash('login_error', 'Identifiants invalides ou compte indisponible.');
@@ -63,7 +63,8 @@ final class AuthController extends BaseController
         $errors = $this->validateRegistrationInput($data);
 
         if ($errors !== []) {
-            $this->rememberFormError('register_errors', $errors, 'register_old_input', $data);
+            Session::flash('register_errors', $errors);
+            Session::flash('register_old_input', $data);
             $this->redirect('/register');
         }
 
@@ -71,21 +72,25 @@ final class AuthController extends BaseController
             $this->authService->register($data);
 
             try {
-                $this->mailService->sendWelcomeEmail($data['email'], $data['first_name']);
+                $this->mailService->sendWelcomeEmail(
+                    $data['email'],
+                    $data['first_name']
+                );
             } catch (Throwable $mailException) {
                 error_log('Email de bienvenue : ' . $mailException->getMessage());
             }
 
-            Session::flash('register_success', 'Inscription réussie. Vous pouvez maintenant vous connecter.');
+            Session::flash(
+                'register_success',
+                'Inscription réussie. Vous pouvez maintenant vous connecter.'
+            );
             $this->redirect('/login');
         } catch (Throwable $exception) {
             error_log('Inscription : ' . $exception->getMessage());
-            $this->rememberFormError(
-                'register_errors',
-                ['general' => 'Impossible de créer ce compte. ' . $exception->getMessage()],
-                'register_old_input',
-                $data
-            );
+            Session::flash('register_errors', [
+                'general' => 'Impossible de créer ce compte.'
+            ]);
+            Session::flash('register_old_input', $data);
             $this->redirect('/register');
         }
     }
@@ -114,7 +119,7 @@ final class AuthController extends BaseController
     public function updateProfile(): void
     {
         $data = [
-            'email' => mb_strtolower(trim((string) ($_POST['email'] ?? ''))),
+            'email' => trim((string) ($_POST['email'] ?? '')),
             'first_name' => trim((string) ($_POST['first_name'] ?? '')),
             'last_name' => trim((string) ($_POST['last_name'] ?? '')),
             'phone' => trim((string) ($_POST['phone'] ?? '')),
@@ -123,33 +128,38 @@ final class AuthController extends BaseController
         ];
 
         $errors = [];
-
         foreach ($data as $field => $value) {
             if ($value === '') {
                 $errors[$field] = 'Ce champ est requis.';
             }
         }
 
-        if ($data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+        if (
+            $data['email'] !== ''
+            && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)
+        ) {
             $errors['email'] = 'Adresse email invalide.';
         }
 
         if ($errors !== []) {
-            $this->rememberFormError('profile_errors', $errors, 'profile_old_input', $data);
+            Session::flash('profile_errors', $errors);
+            Session::flash('profile_old_input', $data);
             $this->redirect('/profile');
         }
 
         try {
-            $this->authService->updateProfile((int) Session::id(), $data);
-
-            $_SESSION['email'] = $data['email'];
-            $_SESSION['first_name'] = $data['first_name'];
-            $_SESSION['last_name'] = $data['last_name'];
-
-            Session::flash('profile_success', 'Profil mis à jour avec succès.');
+            $this->authService->updateProfile(
+                (int) Session::id(),
+                $data
+            );
+            Session::flash(
+                'profile_success',
+                'Profil mis à jour avec succès.'
+            );
         } catch (Throwable $exception) {
-            error_log('Profil : ' . $exception->getMessage());
-            Session::flash('profile_errors', ['general' => 'Impossible de mettre à jour le profil.']);
+            Session::flash('profile_errors', [
+                'general' => $exception->getMessage()
+            ]);
         }
 
         $this->redirect('/profile');
@@ -162,15 +172,26 @@ final class AuthController extends BaseController
         $confirm = (string) ($_POST['confirm_password'] ?? '');
 
         if ($new !== $confirm) {
-            Session::flash('password_errors', ['confirm_password' => 'Les mots de passe ne correspondent pas.']);
+            Session::flash('password_errors', [
+                'confirm_password' => 'Les mots de passe ne correspondent pas.'
+            ]);
             $this->redirect('/profile');
         }
 
         try {
-            $this->authService->changePassword((int) Session::id(), $current, $new);
-            Session::flash('password_success', 'Mot de passe modifié avec succès.');
+            $this->authService->changePassword(
+                (int) Session::id(),
+                $current,
+                $new
+            );
+            Session::flash(
+                'password_success',
+                'Mot de passe modifié avec succès.'
+            );
         } catch (Throwable $exception) {
-            Session::flash('password_errors', ['new_password' => $exception->getMessage()]);
+            Session::flash('password_errors', [
+                'new_password' => $exception->getMessage()
+            ]);
         }
 
         $this->redirect('/profile');
@@ -200,17 +221,22 @@ final class AuthController extends BaseController
 
         if ($token !== null) {
             $user = $this->userRepository->findByEmail($email);
-            $baseUrl = rtrim((string) config('app.url', 'http://127.0.0.1:8000'), '/');
-            $resetUrl = $baseUrl . '/reset-password/' . rawurlencode($token);
+            $baseUrl = rtrim(
+                (string) config('app.url', 'http://127.0.0.1:8000'),
+                '/'
+            );
 
             try {
                 $this->mailService->sendPasswordResetEmail(
                     $email,
                     $user?->getFirstName() ?? '',
-                    $resetUrl
+                    $baseUrl . '/reset-password/' . rawurlencode($token)
                 );
             } catch (Throwable $exception) {
-                error_log('Réinitialisation du mot de passe : ' . $exception->getMessage());
+                error_log(
+                    'Réinitialisation du mot de passe : '
+                    . $exception->getMessage()
+                );
             }
         }
 
@@ -224,7 +250,10 @@ final class AuthController extends BaseController
     public function showResetPassword(string $token): void
     {
         if ($this->authService->validateResetToken($token) === null) {
-            Session::flash('reset_error', 'Le lien est invalide ou expiré.');
+            Session::flash(
+                'reset_error',
+                'Le lien est invalide ou expiré.'
+            );
             $this->redirect('/forgot-password');
         }
 
@@ -233,35 +262,62 @@ final class AuthController extends BaseController
 
     public function resetPassword(string $token = ''): void
     {
-        $token = trim($token !== '' ? $token : (string) ($_POST['token'] ?? ''));
+        $token = trim(
+            $token !== ''
+                ? $token
+                : (string) ($_POST['token'] ?? '')
+        );
         $password = (string) ($_POST['password'] ?? '');
         $confirm = (string) ($_POST['confirm_password'] ?? '');
 
         if ($password !== $confirm) {
-            Session::flash('reset_errors', ['confirm_password' => 'Les mots de passe ne correspondent pas.']);
-            $this->redirect('/reset-password/' . rawurlencode($token));
+            Session::flash('reset_errors', [
+                'confirm_password' => 'Les mots de passe ne correspondent pas.'
+            ]);
+            $this->redirect(
+                '/reset-password/' . rawurlencode($token)
+            );
         }
 
         try {
             $this->authService->resetPassword($token, $password);
-            Session::flash('reset_success', 'Mot de passe réinitialisé. Vous pouvez vous connecter.');
+            Session::flash(
+                'reset_success',
+                'Mot de passe réinitialisé. Vous pouvez vous connecter.'
+            );
             $this->redirect('/login');
         } catch (Throwable $exception) {
-            Session::flash('reset_errors', ['password' => $exception->getMessage()]);
-            $this->redirect('/reset-password/' . rawurlencode($token));
+            Session::flash('reset_errors', [
+                'password' => $exception->getMessage()
+            ]);
+            $this->redirect(
+                '/reset-password/' . rawurlencode($token)
+            );
         }
     }
 
     private function collectUserInput(): array
     {
         return [
-            'email' => mb_strtolower(trim((string) ($_POST['email'] ?? ''))),
+            'email' => mb_strtolower(
+                trim((string) ($_POST['email'] ?? ''))
+            ),
             'password' => (string) ($_POST['password'] ?? ''),
-            'first_name' => trim((string) ($_POST['first_name'] ?? '')),
-            'last_name' => trim((string) ($_POST['last_name'] ?? '')),
-            'phone' => trim((string) ($_POST['phone'] ?? '')),
-            'gsm' => trim((string) ($_POST['gsm'] ?? '')),
-            'address' => trim((string) ($_POST['address'] ?? '')),
+            'first_name' => trim(
+                (string) ($_POST['first_name'] ?? '')
+            ),
+            'last_name' => trim(
+                (string) ($_POST['last_name'] ?? '')
+            ),
+            'phone' => trim(
+                (string) ($_POST['phone'] ?? '')
+            ),
+            'gsm' => trim(
+                (string) ($_POST['gsm'] ?? '')
+            ),
+            'address' => trim(
+                (string) ($_POST['address'] ?? '')
+            ),
         ];
     }
 
@@ -269,28 +325,30 @@ final class AuthController extends BaseController
     {
         $errors = [];
 
-        foreach (['email', 'first_name', 'last_name', 'phone', 'gsm', 'address'] as $field) {
+        foreach (
+            ['email', 'first_name', 'last_name', 'phone', 'gsm', 'address']
+            as $field
+        ) {
             if ($data[$field] === '') {
                 $errors[$field] = 'Ce champ est requis.';
             }
         }
 
-        if ($data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+        if (
+            $data['email'] !== ''
+            && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)
+        ) {
             $errors['email'] = 'Adresse email invalide.';
         }
 
-        $passwordErrors = $this->authService->validatePassword($data['password']);
+        $passwordErrors = $this->authService->validatePassword(
+            $data['password']
+        );
 
         if ($passwordErrors !== null) {
             $errors['password'] = implode(' ', $passwordErrors);
         }
 
         return $errors;
-    }
-
-    private function rememberFormError(string $errorKey, array $errors, string $inputKey, array $input): void
-    {
-        Session::flash($errorKey, $errors);
-        Session::flash($inputKey, $input);
     }
 }
