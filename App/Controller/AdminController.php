@@ -195,6 +195,50 @@ class AdminController extends BaseController
         header('Location: /admin/orders'); exit;
     }
 
+    public function customers(): void
+    {
+        (new \App\Middleware\Staff())();
+
+        $search = trim((string)($_GET['search'] ?? ''));
+        $active = isset($_GET['active']) && $_GET['active'] !== ''
+            ? ((string) $_GET['active'] === '1')
+            : null;
+
+        $this->render('admin/customers', [
+            'customers' => $this->adminService->getCustomers($search !== '' ? $search : null, $active),
+            'search' => $search,
+            'active' => $active,
+        ]);
+    }
+
+    public function disableCustomer(array $params): void
+    {
+        (new \App\Middleware\Staff())();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            return;
+        }
+
+        $this->adminService->disableCustomer((int) ($params[0] ?? 0));
+        header('Location: /admin/customers');
+        exit;
+    }
+
+    public function enableCustomer(array $params): void
+    {
+        (new \App\Middleware\Staff())();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            return;
+        }
+
+        $this->adminService->enableCustomer((int) ($params[0] ?? 0));
+        header('Location: /admin/customers');
+        exit;
+    }
+
     public function createEmployee(): void
     {
         // Apply auth middleware
