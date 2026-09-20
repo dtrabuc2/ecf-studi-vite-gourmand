@@ -11,6 +11,7 @@ use App\Service\AuthService;
 use App\Service\CommentService;
 use App\Service\MenuService;
 use App\Service\OrderService;
+use App\Service\QuoteService;
 use Throwable;
 
 final class AdminController extends BaseController
@@ -22,7 +23,8 @@ final class AdminController extends BaseController
         private readonly CommentService $commentService,
         private readonly OrderService $orderService,
         private readonly DishRepository $dishRepository,
-        private readonly OpeningHoursRepository $openingHoursRepository
+        private readonly OpeningHoursRepository $openingHoursRepository,
+        private readonly QuoteService $quoteService
     ) {
     }
 
@@ -72,6 +74,31 @@ final class AdminController extends BaseController
             'selectedStatus' => $status,
             'customer' => $customer,
         ]);
+    }
+
+    public function quotes(): void
+    {
+        $status = trim((string) ($_GET['status'] ?? ''));
+
+        $this->render('admin/quotes', [
+            'quotes' => $this->quoteService->findForStaff($status !== '' ? $status : null),
+            'selectedStatus' => $status,
+        ]);
+    }
+
+    public function updateQuoteStatus(int $id): void
+    {
+        $status = trim((string) ($_POST['status'] ?? ''));
+        $reply = trim((string) ($_POST['reply'] ?? ''));
+
+        try {
+            $this->quoteService->updateStatus($id, $status, $reply);
+            Session::flash('admin_success', 'Demande de devis mise à jour et client informé par email.');
+        } catch (Throwable $exception) {
+            Session::flash('admin_error', $exception->getMessage());
+        }
+
+        $this->redirect('/admin/quotes');
     }
 
     public function updateOrderStatus(int $id): void
