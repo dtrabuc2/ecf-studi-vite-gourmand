@@ -119,7 +119,7 @@
 
   const loadMenus = async () => {
     const data = await window.VgApi.get('/public/menus');
-    menus = Array.isArray(data) ? data : [];
+    menus = Array.isArray(data) ? data : (Array.isArray(data?.menus) ? data.menus : []);
 
     document.querySelectorAll('.service-selector').forEach((button) => {
       button.addEventListener('click', () => {
