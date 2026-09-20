@@ -90,6 +90,100 @@ HTML;
         );
     }
 
+    public function sendQuoteRequestAcknowledgement(
+        string $to,
+        string $firstName,
+        array $details
+    ): bool {
+        $serviceLabels = [
+            'pickup' => 'Retrait / à emporter',
+            'delivery' => 'Livraison',
+            'on_site' => 'Prestation sur place',
+        ];
+
+        $body = <<<TEXT
+Bonjour {$firstName},
+
+Nous avons bien reçu votre demande de devis grand événement n°{$details['id']}.
+
+Date : {$details['event_date']}
+Nombre de personnes : {$details['number_of_people']}
+Prestation : {$serviceLabels[$details['service_type']] ?? $details['service_type']}
+
+Notre équipe va étudier votre demande et vous répondre par email.
+
+À bientôt,
+L'équipe Vite & Gourmand
+TEXT;
+
+        return $this->send($to, 'Accusé de réception de votre demande de devis', $body);
+    }
+
+    public function sendQuoteRequestNotificationToStaff(
+        string $to,
+        array $details
+    ): bool {
+        $serviceLabels = [
+            'pickup' => 'Retrait / à emporter',
+            'delivery' => 'Livraison',
+            'on_site' => 'Prestation sur place',
+        ];
+
+        $body = <<<TEXT
+Nouvelle demande de devis grand événement #{$details['id']}
+
+Client : {$details['first_name']} {$details['last_name']}
+Email : {$details['email']}
+Téléphone : {$details['phone']}
+Société : {$details['company']}
+
+Date : {$details['event_date']}
+Personnes : {$details['number_of_people']}
+Prestation : {$serviceLabels[$details['service_type']] ?? $details['service_type']}
+Lieu : {$details['event_location']}
+Code postal : {$details['postal_code']}
+
+Besoin :
+{$details['details']}
+
+Connectez-vous à l'espace équipe pour traiter la demande.
+TEXT;
+
+        return $this->send($to, 'Nouvelle demande de devis #' . $details['id'], $body);
+    }
+
+    public function sendQuoteRequestStatusEmail(
+        string $to,
+        string $firstName,
+        int $requestId,
+        string $status,
+        string $reply
+    ): bool {
+        $labels = [
+            'new' => 'Nouvelle',
+            'in_review' => 'En cours de traitement',
+            'quoted' => 'Devis envoyé',
+            'accepted' => 'Demande acceptée',
+            'declined' => 'Demande refusée',
+            'closed' => 'Demande clôturée',
+        ];
+
+        $body = <<<TEXT
+Bonjour {$firstName},
+
+Concernant votre demande de devis #{$requestId}, son statut est désormais :
+{$labels[$status] ?? $status}
+
+Réponse de l'équipe :
+{$reply}
+
+À bientôt,
+L'équipe Vite & Gourmand
+TEXT;
+
+        return $this->send($to, 'Mise à jour de votre demande de devis #' . $requestId, $body);
+    }
+
     public function sendOrderConfirmationEmail(string $to, string $firstName, array $orderDetails): bool
     {
         $subject = 'Confirmation de votre commande';
