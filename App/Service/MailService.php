@@ -132,6 +132,9 @@ TEXT;
             'on_site' => 'Prestation sur place',
         ];
 
+        $serviceType = $details['service_type'] ?? '';
+        $serviceLabel = $serviceLabels[$serviceType] ?? $serviceType;
+
         $body = <<<TEXT
 Nouvelle demande de devis grand événement #{$details['id']}
 
@@ -142,7 +145,7 @@ Société : {$details['company']}
 
 Date : {$details['event_date']}
 Personnes : {$details['number_of_people']}
-Prestation : {$serviceLabels[$details['service_type']] ?? $details['service_type']}
+Prestation : {$serviceLabel}
 Lieu : {$details['event_location']}
 Code postal : {$details['postal_code']}
 
