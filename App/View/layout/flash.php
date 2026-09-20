@@ -1,27 +1,34 @@
 <?php
-$flashMessages = [
-    'login_error' => ['danger', $_SESSION['login_error'] ?? null],
-    'register_success' => ['success', $_SESSION['register_success'] ?? null],
-    'register_error' => ['danger', $_SESSION['register_error'] ?? null],
-    'profile_success' => ['success', $_SESSION['profile_success'] ?? null],
-    'order_success' => ['success', $_SESSION['order_success'] ?? null],
-    'order_error' => ['danger', $_SESSION['order_error'] ?? null],
-    'admin_success' => ['success', $_SESSION['admin_success'] ?? null],
-    'admin_error' => ['danger', $_SESSION['admin_error'] ?? null],
-    'forgot_success' => ['success', $_SESSION['forgot_success'] ?? null],
-    'forgot_error' => ['danger', $_SESSION['forgot_error'] ?? null],
-    'reset_success' => ['success', $_SESSION['reset_success'] ?? null],
-    'reset_error' => ['danger', $_SESSION['reset_error'] ?? null],
+$flashKeys = [
+    'login_error' => 'danger',
+    'register_success' => 'success',
+    'register_error' => 'danger',
+    'profile_success' => 'success',
+    'profile_errors' => 'danger',
+    'password_success' => 'success',
+    'password_errors' => 'danger',
+    'order_success' => 'success',
+    'order_error' => 'danger',
+    'admin_success' => 'success',
+    'admin_error' => 'danger',
+    'forgot_success' => 'success',
+    'forgot_error' => 'danger',
+    'reset_success' => 'success',
+    'reset_error' => 'danger',
+    'reset_errors' => 'danger',
 ];
 ?>
 <div class="container pt-3" aria-live="polite">
-    <?php foreach ($flashMessages as $key => [$type, $message]): ?>
-        <?php if ($message): ?>
-            <div class="alert alert-<?= $escape($type) ?> alert-dismissible fade show" role="alert">
-                <?= $escape($message) ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
-            </div>
-            <?php unset($_SESSION[$key]); ?>
-        <?php endif; ?>
-    <?php endforeach; ?>
+<?php foreach ($flashKeys as $key => $type): ?>
+    <?php $message = AppCoreSession::pullFlash($key); ?>
+    <?php if (is_array($message)): ?>
+        <?php $message = implode(' ', array_map('strval', $message)); ?>
+    <?php endif; ?>
+    <?php if ($message !== null && $message !== ''): ?>
+        <div class="alert alert-<?= $escape($type) ?> alert-dismissible fade show" role="alert">
+            <?= $escape($message) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    <?php endif; ?>
+<?php endforeach; ?>
 </div>
