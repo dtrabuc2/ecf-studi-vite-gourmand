@@ -18,7 +18,9 @@ final class Session
     {
         $role = $_SESSION['role'] ?? null;
 
-        return is_string($role) && $role !== '' ? $role : null;
+        return is_string($role) && $role !== ''
+            ? $role
+            : null;
     }
 
     public static function isAuthenticated(): bool
@@ -91,7 +93,6 @@ final class Session
     ): mixed {
         $value = $_SESSION['_flash'][$key] ?? $default;
         unset($_SESSION['_flash'][$key]);
-
         return $value;
     }
 }
