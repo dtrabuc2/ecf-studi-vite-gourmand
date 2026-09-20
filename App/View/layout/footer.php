@@ -42,6 +42,8 @@
                 <a class="link-light small d-block" href="/legal">Mentions légales</a>
                 <a class="link-light small d-block" href="/cgv">CGV</a>
                 <a class="link-light small d-block" href="/login">Espace client</a>
+                <a class="link-light small d-block opacity-75" href="/admin/login">Espace admin</a>
+                <a class="link-light small d-block" href="/quote">Demander un devis</a>
             </div>
         </div>
     </div>
