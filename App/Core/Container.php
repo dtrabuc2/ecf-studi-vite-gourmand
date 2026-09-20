@@ -26,6 +26,11 @@ use App\Service\MenuService;
 use App\Service\MenuStatisticsService;
 use App\Service\OrderService;
 use App\Service\QuoteService;
+use App\Middleware\Admin;
+use App\Middleware\Auth;
+use App\Middleware\Staff;
+use App\Middleware\Guest;
+
 use RuntimeException;
 
 final class Container
@@ -235,6 +240,32 @@ final class Container
             static fn (Container $container): QuoteController => new QuoteController(
                 $container->get(QuoteService::class)
             )
+        );
+
+        $this->set(
+            Auth::class,
+            static fn (Container $container): Auth => new Auth(
+                $container->get(UserRepository::class)
+            )
+        );
+
+        $this->set(
+            Admin::class,
+            static fn (Container $container): Admin => new Admin(
+                $container->get(Auth::class)
+            )
+        );
+
+        $this->set(
+            Staff::class,
+            static fn (Container $container): Staff => new Staff(
+                $container->get(Auth::class)
+            )
+        );
+
+        $this->set(
+            Guest::class,
+            static fn (Container $container): Guest => new Guest()
         );
     }
 }
