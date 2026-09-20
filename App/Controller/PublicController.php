@@ -1,47 +1,63 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Controller;
 
-use App\Service\MenuService;
-use App\Service\CommentService;
-use App\Repository\MenuRepository;
+use App\Core\Session;
 use App\Repository\CommentRepository;
+use App\Repository\MenuRepository;
 use App\Repository\MongoMenuImageRepository;
+use App\Service\CommentService;
+use App\Service\MenuService;
 
-class PublicController extends BaseController
+final class PublicController extends BaseController
 {
-    private MenuService $menuService;
-    private CommentService $commentService;
-    private MongoMenuImageRepository $menuImageRepository;
+    private readonly MenuService $menuService;
+    private readonly CommentService $commentService;
 
     public function __construct()
     {
-        $this->menuService = new MenuService(new MenuRepository());
-        $this->commentService = new CommentService(new CommentRepository());
-        $this->menuImageRepository = new MongoMenuImageRepository();
+        $this->menuService = new MenuService(
+            new MenuRepository(),
+            new MongoMenuImageRepository(),
+            new \App\Service\CacheService()
+        );
+        $this->commentService = new CommentService(
+            new CommentRepository()
+        );
     }
 
     public function index(): void
     {
         try {
-            $reviews = $this->commentService->getHomepageReviews();
+            $menus = array_slice(
+                $this->menuService->getAllMenus(),
+                0,
+                3
+            );
         } catch (\Throwable $exception) {
-            error_log('Impossible de charger les avis : ' . $exception->getMessage());
-            $reviews = [];
+            error_log(
+                'Impossible de charger les menus : '
+                . $exception->getMessage()
+            );
+            $menus = [];
         }
 
         try {
-            $menus = array_slice($this->menuService->getAllMenus(), 0, 3);
+            $reviews = $this->commentService->getHomepageReviews();
         } catch (\Throwable $exception) {
-            error_log('Impossible de charger les menus : ' . $exception->getMessage());
-            $menus = [];
+            error_log(
+                'Impossible de charger les avis : '
+                . $exception->getMessage()
+            );
+            $reviews = [];
         }
 
         $this->render('home/index', [
             'reviews' => $reviews,
             'menus' => $menus,
-            'menuDetails' => $this->loadMenuDetails($menus),
-            'menuImages' => $this->loadMenuImages($menus),
-            'user' => $_SESSION['user_id'] ?? null,
+            'menuImages' => $this->menuService->getMenusImages($menus),
+            'user' => Session::id(),
         ]);
     }
 
@@ -50,149 +66,92 @@ class PublicController extends BaseController
         try {
             $menus = $this->menuService->getAllMenus();
         } catch (\Throwable $exception) {
-            error_log('Impossible de charger le catalogue : ' . $exception->getMessage());
+            error_log(
+                'Impossible de charger le catalogue : '
+                . $exception->getMessage()
+            );
             $menus = [];
         }
 
         $this->render('home/menus', [
             'menus' => $menus,
-            'menuDetails' => $this->loadMenuDetails($menus),
-            'menuImages' => $this->loadMenuImages($menus),
-            'user' => $_SESSION['user_id'] ?? null,
+            'menuDetails' => $this->loadDetails($menus),
+            'menuImages' => $this->menuService->getMenusImages($menus),
+            'user' => Session::id(),
         ]);
     }
 
     public function menuDetail(int $id): void
     {
-        $menu = $id > 0 ? $this->menuService->getMenuById($id) : null;
+        $menu = $this->menuService->getMenuById($id);
+
         if ($menu === null) {
             http_response_code(404);
             $this->render('home/menu_detail', ['menu' => null]);
             return;
         }
-        try {
-            $details = (new MenuRepository())->findDetails($id);
-        } catch (\Throwable $exception) {
-            error_log('Impossible de charger les détails du menu : ' . $exception->getMessage());
-            $details = ['dishes' => [], 'allergens' => []];
-        }
-
-        try {
-            $menuImages = $this->menuImageRepository->findByMenuId($id);
-        } catch (\Throwable $exception) {
-            error_log('Erreur images MongoDB : ' . $exception->getMessage());
-            $menuImages = [];
-        }
 
         $this->render('home/menu_detail', [
             'menu' => $menu,
-            'details' => $details,
-            'menuImages' => $menuImages,
-            'user' => $_SESSION['user_id'] ?? null,
+            'details' => $this->menuService->getMenuDetails($id),
+            'menuImages' => $this->menuService->getMenuImages($id),
+            'user' => Session::id(),
         ]);
     }
 
     public function getMenus(): void
     {
-        try {
-            $this->jsonMenus($this->menuService->getAllMenus());
-        } catch (\Throwable $exception) {
-            error_log('Erreur API menus : ' . $exception->getMessage());
-            $this->json(['success' => false, 'error' => 'Impossible de charger les menus.'], 500);
-        }
+        $this->json([
+            'success' => true,
+            'data' => $this->serializeMenus(
+                $this->menuService->getAllMenus()
+            ),
+        ]);
     }
 
     public function getMenuById(int $id): void
     {
-        if ($id <= 0) {
-            $this->json(['success' => false, 'error' => 'Identifiant invalide'], 400);
-        }
         $menu = $this->menuService->getMenuById($id);
+
         if ($menu === null) {
-            http_response_code(404);
-            $this->json(['success' => false, 'error' => 'Menu introuvable'], 404);
-            return;
+            $this->json([
+                'success' => false,
+                'error' => 'Menu introuvable.'
+            ], 404);
         }
 
-        try {
-            $details = (new MenuRepository())->findDetails($id);
-        } catch (\Throwable $exception) {
-            error_log('Erreur détails menu API : ' . $exception->getMessage());
-            $details = ['dishes' => [], 'allergens' => []];
-        }
-
-        $this->json(['success' => true, 'data' => $this->menuToArray($menu, $details)]);
+        $this->json([
+            'success' => true,
+            'data' => $this->serializeMenu($menu),
+        ]);
     }
 
     public function filterMenus(): void
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-            http_response_code(405);
-            $this->json(['success' => false, 'error' => 'Method Not Allowed'], 405);
-            return;
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+            $this->json([
+                'success' => false,
+                'error' => 'Méthode HTTP non autorisée.'
+            ], 405);
         }
 
         $filters = [];
-        foreach (['max_price', 'min_price', 'theme', 'dietary_regime', 'min_people'] as $key) {
+
+        foreach (
+            ['max_price', 'min_price', 'theme', 'dietary_regime', 'min_people']
+            as $key
+        ) {
             if (isset($_GET[$key]) && $_GET[$key] !== '') {
                 $filters[$key] = $_GET[$key];
             }
         }
 
-        try {
-            $menus = $this->menuService->filterMenus($filters);
-            $this->jsonMenus($menus);
-        } catch (\Throwable $exception) {
-            error_log('Erreur API filtre menus : ' . $exception->getMessage());
-            $this->json(['success' => false, 'error' => 'Impossible de filtrer les menus.'], 500);
-        }
-    }
-
-    private function jsonMenus(array $menus): void
-    {
-        $repository = new MenuRepository();
-        $payload = [];
-
-        foreach ($menus as $menu) {
-            try {
-                $details = $repository->findDetails($menu->getId());
-                $payload[] = $this->menuToArray($menu, $details);
-            } catch (\Throwable $exception) {
-                error_log('Erreur détails menu #' . $menu->getId() . ' : ' . $exception->getMessage());
-                $payload[] = $this->menuToArray($menu);
-            }
-        }
-
-        $this->json(['success' => true, 'data' => $payload]);
-    }
-
-    private function loadMenuDetails(array $menus): array
-    {
-        $repository = new MenuRepository();
-        $details = [];
-
-        foreach ($menus as $menu) {
-            try {
-                $details[$menu->getId()] = $repository->findDetails($menu->getId());
-            } catch (\Throwable $exception) {
-                error_log('Erreur détails menu #' . $menu->getId() . ' : ' . $exception->getMessage());
-                $details[$menu->getId()] = ['dishes' => [], 'allergens' => []];
-            }
-        }
-
-        return $details;
-    }
-
-    private function loadMenuImages(array $menus): array
-    {
-        $ids = array_map(static fn ($menu): int => $menu->getId(), $menus);
-
-        try {
-            return $this->menuImageRepository->findByMenuIds($ids);
-        } catch (\Throwable $exception) {
-            error_log('Erreur images MongoDB : ' . $exception->getMessage());
-            return [];
-        }
+        $this->json([
+            'success' => true,
+            'data' => $this->serializeMenus(
+                $this->menuService->filterMenus($filters)
+            ),
+        ]);
     }
 
     public function legal(): void
@@ -205,7 +164,15 @@ class PublicController extends BaseController
         $this->render('home/cgv');
     }
 
-    private function menuToArray(\App\Entity\Menu $menu, array $details = []): array
+    private function serializeMenus(array $menus): array
+    {
+        return array_map(
+            fn ($menu): array => $this->serializeMenu($menu),
+            $menus
+        );
+    }
+
+    private function serializeMenu(\App\Entity\Menu $menu): array
     {
         return [
             'id' => $menu->getId(),
@@ -217,9 +184,27 @@ class PublicController extends BaseController
             'base_price' => $menu->getBasePrice(),
             'conditions' => $menu->getConditions(),
             'available_stock' => $menu->getAvailableStock(),
-            'dishes' => $details['dishes'] ?? [],
-            'allergens' => $details['allergens'] ?? [],
-            'images' => $this->menuImageRepository->findByMenuId($menu->getId()),
+            'dishes' => $this->menuService->getMenuDetails(
+                $menu->getId()
+            )['dishes'] ?? [],
+            'allergens' => $this->menuService->getMenuDetails(
+                $menu->getId()
+            )['allergens'] ?? [],
+            'images' => $this->menuService->getMenuImages(
+                $menu->getId()
+            ),
         ];
+    }
+
+    private function loadDetails(array $menus): array
+    {
+        $details = [];
+
+        foreach ($menus as $menu) {
+            $details[$menu->getId()] = $this->menuService
+                ->getMenuDetails($menu->getId());
+        }
+
+        return $details;
     }
 }
