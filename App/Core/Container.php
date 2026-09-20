@@ -19,6 +19,7 @@ use App\Service\AdminService;
 use App\Service\AuthService;
 use App\Service\CacheService;
 use App\Service\CommentService;
+use App\Service\ContactService;
 use App\Service\MailService;
 use App\Service\MenuService;
 use App\Service\MenuStatisticsService;
@@ -81,7 +82,9 @@ final class Container
 
         $this->set(
             CommentRepository::class,
-            static fn (): CommentRepository => new CommentRepository()
+            static fn (Container $container): CommentRepository => new CommentRepository(
+                $container->get(UserRepository::class)
+            )
         );
 
         $this->set(
@@ -102,6 +105,11 @@ final class Container
         $this->set(
             CacheService::class,
             static fn (): CacheService => new CacheService()
+        );
+
+        $this->set(
+            ContactService::class,
+            static fn (): ContactService => new ContactService()
         );
 
         $this->set(
@@ -207,7 +215,10 @@ final class Container
 
         $this->set(
             ContactController::class,
-            static fn (Container $container): ContactController => new ContactController()
+            static fn (Container $container): ContactController => new ContactController(
+                $container->get(\App\Service\ContactService::class),
+                $container->get(MailService::class)
+            )
         );
     }
 }
