@@ -5,12 +5,14 @@ namespace App\Service;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use DateTimeImmutable;
 use InvalidArgumentException;
 
 final class AuthService
 {
-    public function __construct(private readonly UserRepository $userRepository)
-    {
+    public function __construct(
+        private readonly UserRepository $userRepository
+    ) {
     }
 
     public function validatePassword(string $password): ?array
@@ -38,7 +40,8 @@ final class AuthService
 
     public function register(array $data): int
     {
-        $email = mb_strtolower(trim((string) ($data['email'] ?? '')));
+        $email = $this->normalizeEmail((string) ($data['email'] ?? ''));
+        $password = (string) ($data['password'] ?? '');
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new InvalidArgumentException('Adresse email invalide.');
@@ -48,9 +51,7 @@ final class AuthService
             throw new InvalidArgumentException('Cette adresse email est déjà utilisée.');
         }
 
-        $password = (string) ($data['password'] ?? '');
         $errors = $this->validatePassword($password);
-
         if ($errors !== null) {
             throw new InvalidArgumentException(implode(' ', $errors));
         }
@@ -69,7 +70,8 @@ final class AuthService
 
     public function login(string $email, string $password): ?User
     {
-        $user = $this->userRepository->findByEmail(mb_strtolower(trim($email)));
+        $email = $this->normalizeEmail($email);
+        $user = $this->userRepository->findByEmail($email);
 
         if ($user === null || !$this->userRepository->isActive($user->getId())) {
             return null;
@@ -77,7 +79,10 @@ final class AuthService
 
         $lockedUntil = $user->getLockedUntil();
 
-        if ($lockedUntil !== null && $lockedUntil > new DateTimeImmutable()) {
+        if (
+            $lockedUntil !== null
+            && $lockedUntil->getTimestamp() > time()
+        ) {
             return null;
         }
 
@@ -87,34 +92,53 @@ final class AuthService
             $this->userRepository->updateFailedAttempts(
                 $user->getId(),
                 $failedAttempts,
-                $failedAttempts >= 5 ? new DateTimeImmutable('+15 minutes') : null
+                $failedAttempts >= 5
+                    ? new DateTimeImmutable('+15 minutes')
+                    : null
             );
 
             return null;
         }
 
-        if (password_needs_rehash($user->getPasswordHash(), PASSWORD_DEFAULT)) {
+        if (password_needs_rehash(
+            $user->getPasswordHash(),
+            PASSWORD_DEFAULT
+        )) {
             $this->userRepository->updatePassword(
                 $user->getId(),
                 password_hash($password, PASSWORD_DEFAULT)
             );
         }
 
-        $this->userRepository->updateFailedAttempts($user->getId(), 0, null);
+        $this->userRepository->updateFailedAttempts(
+            $user->getId(),
+            0,
+            null
+        );
 
         return $user;
     }
 
-    public function changePassword(int $userId, string $currentPassword, string $newPassword): void
-    {
+    public function changePassword(
+        int $userId,
+        string $currentPassword,
+        string $newPassword
+    ): void {
         $user = $this->userRepository->findById($userId);
 
-        if ($user === null || !password_verify($currentPassword, $user->getPasswordHash())) {
-            throw new InvalidArgumentException('Mot de passe actuel incorrect.');
+        if (
+            $user === null
+            || !password_verify(
+                $currentPassword,
+                $user->getPasswordHash()
+            )
+        ) {
+            throw new InvalidArgumentException(
+                'Mot de passe actuel incorrect.'
+            );
         }
 
         $errors = $this->validatePassword($newPassword);
-
         if ($errors !== null) {
             throw new InvalidArgumentException(implode(' ', $errors));
         }
@@ -123,12 +147,16 @@ final class AuthService
             $userId,
             password_hash($newPassword, PASSWORD_DEFAULT)
         );
-        $this->userRepository->updateFailedAttempts($userId, 0, null);
+        $this->userRepository->updateFailedAttempts(
+            $userId,
+            0,
+            null
+        );
     }
 
     public function updateProfile(int $userId, array $data): void
     {
-        $email = mb_strtolower(trim((string) ($data['email'] ?? '')));
+        $email = $this->normalizeEmail((string) ($data['email'] ?? ''));
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new InvalidArgumentException('Adresse email invalide.');
@@ -136,8 +164,13 @@ final class AuthService
 
         $existing = $this->userRepository->findByEmail($email);
 
-        if ($existing !== null && $existing->getId() !== $userId) {
-            throw new InvalidArgumentException('Cette adresse email est déjà utilisée.');
+        if (
+            $existing !== null
+            && $existing->getId() !== $userId
+        ) {
+            throw new InvalidArgumentException(
+                'Cette adresse email est déjà utilisée.'
+            );
         }
 
         $data['email'] = $email;
@@ -146,9 +179,14 @@ final class AuthService
 
     public function createResetToken(string $email): ?string
     {
-        $user = $this->userRepository->findByEmail(mb_strtolower(trim($email)));
+        $user = $this->userRepository->findByEmail(
+            $this->normalizeEmail($email)
+        );
 
-        if ($user === null || !$this->userRepository->isActive($user->getId())) {
+        if (
+            $user === null
+            || !$this->userRepository->isActive($user->getId())
+        ) {
             return null;
         }
 
@@ -169,19 +207,24 @@ final class AuthService
             return null;
         }
 
-        return $this->userRepository->findByResetTokenHash(hash('sha256', $token));
+        return $this->userRepository->findByResetTokenHash(
+            hash('sha256', $token)
+        );
     }
 
-    public function resetPassword(string $token, string $newPassword): void
-    {
+    public function resetPassword(
+        string $token,
+        string $newPassword
+    ): void {
         $user = $this->validateResetToken($token);
 
         if ($user === null) {
-            throw new InvalidArgumentException('Le lien de réinitialisation est invalide ou expiré.');
+            throw new InvalidArgumentException(
+                'Le lien de réinitialisation est invalide ou expiré.'
+            );
         }
 
         $errors = $this->validatePassword($newPassword);
-
         if ($errors !== null) {
             throw new InvalidArgumentException(implode(' ', $errors));
         }
@@ -191,5 +234,10 @@ final class AuthService
             password_hash($newPassword, PASSWORD_DEFAULT)
         );
         $this->userRepository->clearResetToken($user->getId());
+    }
+
+    private function normalizeEmail(string $email): string
+    {
+        return mb_strtolower(trim($email));
     }
 }
