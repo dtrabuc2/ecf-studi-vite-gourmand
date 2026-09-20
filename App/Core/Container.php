@@ -216,7 +216,7 @@ final class Container
         $this->set(
             ContactController::class,
             static fn (Container $container): ContactController => new ContactController(
-                $container->get(\App\Service\ContactService::class),
+                $container->get(ContactService::class),
                 $container->get(MailService::class)
             )
         );
