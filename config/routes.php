@@ -4,10 +4,10 @@ declare(strict_types=1);
 return [
     ['GET', '/', 'PublicController@index', ['Security']],
     ['GET', '/menus', 'PublicController@menusPage', ['Security']],
+    ['GET', '/menus/filter', 'PublicController@filterMenus', ['Security']],
     ['GET', '/menus/{id}', 'PublicController@menuDetail', ['Security']],
     ['GET', '/public/menus', 'PublicController@getMenus', ['Security']],
     ['GET', '/public/menus/{id}', 'PublicController@getMenuById', ['Security']],
-    ['GET', '/menus/filter', 'PublicController@filterMenus', ['Security']],
     ['GET', '/contact', 'ContactController@index', ['Security']],
     ['POST', '/contact', 'ContactController@send', ['Security']],
     ['GET', '/legal', 'PublicController@legal', ['Security']],
