@@ -37,8 +37,13 @@ class MenuStatisticsService
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
 
-        $database = Database::getMongoDatabase();
-        $collection = $database->selectCollection('menu_statistics');
+        try {
+            $database = Database::getMongoDatabase();
+            $collection = $database->selectCollection('menu_statistics');
+        } catch (\Throwable $exception) {
+            error_log('Statistiques MongoDB indisponibles : ' . $exception->getMessage());
+            return;
+        }
 
         $periodIdentifier = '';
         if ($periodStart !== null && $periodEnd !== null) {
