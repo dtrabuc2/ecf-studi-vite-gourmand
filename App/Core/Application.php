@@ -8,6 +8,7 @@ use RuntimeException;
 final class Application
 {
     private Router $router;
+    private Container $container;
 
     private function __construct()
     {
@@ -17,7 +18,8 @@ final class Application
         $this->configureErrorHandling();
         $this->configureSession();
 
-        $this->router = new Router();
+        $this->container = new Container();
+        $this->router = new Router($this->container);
         $this->router->setRoutes(
             require dirname(__DIR__, 2) . '/config/routes.php'
         );
@@ -76,7 +78,7 @@ final class Application
                 explode('=', $line, 2)
             );
 
-            $value = trim($value, "\"\'");
+            $value = trim($value, ""'");
 
             $_ENV[$key] = $value;
             $_SERVER[$key] = $value;
