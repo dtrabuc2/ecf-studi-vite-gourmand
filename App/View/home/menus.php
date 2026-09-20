@@ -1,9 +1,15 @@
 <main class="py-5">
+    <section class="menu-hero hero py-5 text-center text-white mb-5">
+        <div class="container py-4">
+            <h1 class="display-5 fw-bold mb-3">Nos menus et formules</h1>
+            <p class="lead mb-0">Des propositions pour les réceptions privées, les événements professionnels et les commandes à la carte.</p>
+        </div>
+    </section>
+
     <section class="container">
-        <div class="text-center mb-5">
-            <span class="badge bg-primary-subtle text-primary">Nos formules</span>
-            <h1 class="display-6 text-primary fw-bold mt-3">Menus et prestations</h1>
-            <p class="text-muted">Choisissez une formule, consultez son aperçu et lancez directement votre commande.</p>
+        <div class="text-center mb-4">
+            <span class="badge bg-primary-subtle text-primary">Menus complets</span>
+            <h2 class="section-title d-inline-block mt-3">Choisir une formule</h2>
         </div>
 
         <form id="menuFilters" class="card border-0 shadow-sm p-3 mb-4" data-filter-endpoint="/menus/filter">
@@ -48,42 +54,36 @@
 
         <div id="menuFilterStatus" class="visually-hidden" aria-live="polite"></div>
 
-        <div id="menuGrid" class="row g-4">
+        <div id="menuGrid" class="row g-4 mb-5">
             <?php foreach ($menus as $menu): ?>
-                <?php $details = $menuDetails[$menu->getId()] ?? ['images' => [], 'dishes' => [], 'allergens' => []]; ?>
+                <?php $details = $menuDetails[$menu->getId()] ?? ['dishes' => []]; ?>
                 <?php $mongoImages = $menuImages[$menu->getId()] ?? []; ?>
                 <?php $cover = $mongoImages[0] ?? null; ?>
                 <div class="col-md-6 col-lg-4" data-menu-card>
                     <article class="card h-100 border-0 shadow-sm overflow-hidden">
                         <?php if ($cover && !empty($cover['url'])): ?>
-                            <img src="<?= $escape($cover['url']) ?>" class="card-img-top" alt="<?= $escape($cover['alt_text']) ?>" style="height:220px;object-fit:cover;">
+                            <img src="<?= $escape($cover['url']) ?>" class="card-img-top" alt="<?= $escape($cover['alt_text'] ?? $menu->getTitle()) ?>" style="height:250px;object-fit:cover;">
                         <?php else: ?>
-                            <div class="bg-light d-flex align-items-center justify-content-center text-muted" style="height:220px;">
-                                <span>Aucune image disponible</span>
-                            </div>
+                            <div class="bg-light d-flex align-items-center justify-content-center text-muted" style="height:250px;">Aucune image disponible</div>
                         <?php endif; ?>
-
                         <div class="card-body d-flex flex-column">
                             <div class="d-flex justify-content-between gap-2">
                                 <span class="badge bg-primary-subtle text-primary"><?= $escape($menu->getTheme()) ?></span>
                                 <strong><?= number_format($menu->getBasePrice(), 2, ',', ' ') ?> €</strong>
                             </div>
-                            <h2 class="h4 text-primary mt-3"><?= $escape($menu->getTitle()) ?></h2>
+                            <h3 class="h4 text-primary mt-3"><?= $escape($menu->getTitle()) ?></h3>
                             <p class="text-muted flex-grow-1"><?= $escape($menu->getDescription()) ?></p>
-
                             <?php $dishesByCategory = ['starter' => [], 'main' => [], 'dessert' => []]; ?>
-                            <?php foreach ($details['dishes'] as $dish): ?>
+                            <?php foreach ($details['dishes'] ?? [] as $dish): ?>
                                 <?php if (isset($dishesByCategory[$dish['category']])): ?>
                                     <?php $dishesByCategory[$dish['category']][] = $dish['name']; ?>
                                 <?php endif; ?>
                             <?php endforeach; ?>
-
                             <div class="bg-light p-3 rounded mb-3 small text-muted">
                                 <p class="mb-1"><strong>Entrées :</strong> <?= $escape(implode(', ', array_slice($dishesByCategory['starter'], 0, 2)) ?: 'Non renseignées') ?></p>
                                 <p class="mb-1"><strong>Plats :</strong> <?= $escape(implode(', ', array_slice($dishesByCategory['main'], 0, 2)) ?: 'Non renseignés') ?></p>
                                 <p class="mb-0"><strong>Desserts :</strong> <?= $escape(implode(', ', array_slice($dishesByCategory['dessert'], 0, 2)) ?: 'Non renseignés') ?></p>
                             </div>
-
                             <p class="small mb-3">Minimum : <?= $menu->getMinPeople() ?> personnes · Stock : <?= $menu->getAvailableStock() ?></p>
                             <div class="d-grid gap-2 mt-auto">
                                 <a class="btn btn-outline-primary" href="/menus/<?= $menu->getId() ?>">Voir le détail</a>
@@ -97,7 +97,6 @@
                     </article>
                 </div>
             <?php endforeach; ?>
-
             <?php if ($menus === []): ?>
                 <div class="col-12"><div class="alert alert-warning">Aucun menu disponible pour le moment.</div></div>
             <?php endif; ?>
