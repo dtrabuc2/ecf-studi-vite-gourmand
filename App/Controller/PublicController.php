@@ -5,17 +5,19 @@ use App\Service\MenuService;
 use App\Service\CommentService;
 use App\Repository\MenuRepository;
 use App\Repository\CommentRepository;
-use App\Entity\Menu;
+use App\Repository\MongoMenuImageRepository;
 
 class PublicController extends BaseController
 {
     private MenuService $menuService;
     private CommentService $commentService;
+    private MongoMenuImageRepository $menuImageRepository;
 
     public function __construct()
     {
         $this->menuService = new MenuService(new MenuRepository());
         $this->commentService = new CommentService(new CommentRepository());
+        $this->menuImageRepository = new MongoMenuImageRepository();
     }
 
     public function index(): void
@@ -38,6 +40,7 @@ class PublicController extends BaseController
             'reviews' => $reviews,
             'menus' => $menus,
             'menuDetails' => $this->loadMenuDetails($menus),
+            'menuImages' => $this->loadMenuImages($menus),
             'user' => $_SESSION['user_id'] ?? null,
         ]);
     }
@@ -54,6 +57,7 @@ class PublicController extends BaseController
         $this->render('home/menus', [
             'menus' => $menus,
             'menuDetails' => $this->loadMenuDetails($menus),
+            'menuImages' => $this->loadMenuImages($menus),
             'user' => $_SESSION['user_id'] ?? null,
         ]);
     }
@@ -73,7 +77,12 @@ class PublicController extends BaseController
             $details = ['images' => [], 'dishes' => [], 'allergens' => []];
         }
 
-        $this->render('home/menu_detail', ['menu' => $menu, 'details' => $details]);
+        $this->render('home/menu_detail', [
+            'menu' => $menu,
+            'details' => $details,
+            'menuImages' => $this->menuImageRepository->findByMenuId($id),
+            'user' => $_SESSION['user_id'] ?? null,
+        ]);
     }
 
     public function getMenus(): void
@@ -167,6 +176,18 @@ class PublicController extends BaseController
         return $details;
     }
 
+    private function loadMenuImages(array $menus): array
+    {
+        $ids = array_map(static fn ($menu): int => $menu->getId(), $menus);
+
+        try {
+            return $this->menuImageRepository->findByMenuIds($ids);
+        } catch (\Throwable $exception) {
+            error_log('Erreur images MongoDB : ' . $exception->getMessage());
+            return [];
+        }
+    }
+
     public function legal(): void
     {
         $this->render('home/legal');
@@ -189,9 +210,9 @@ class PublicController extends BaseController
             'base_price' => $menu->getBasePrice(),
             'conditions' => $menu->getConditions(),
             'available_stock' => $menu->getAvailableStock(),
-            'images' => $details['images'] ?? [],
             'dishes' => $details['dishes'] ?? [],
             'allergens' => $details['allergens'] ?? [],
+            'images' => $this->menuImageRepository->findByMenuId($menu->getId()),
         ];
     }
 }
