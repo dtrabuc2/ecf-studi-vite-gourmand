@@ -7,9 +7,8 @@ final class Config
 {
     private array $items;
 
-    public function __construct(array $items)
+    public function __construct(private readonly array $items)
     {
-        $this->items = $items;
     }
 
     public function get(string $key, mixed $default = null): mixed
