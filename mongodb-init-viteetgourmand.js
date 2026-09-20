@@ -1,5 +1,5 @@
-// Fichier de référence MongoDB Vite & Gourmand
-// À exécuter avec mongosh.
+// Initialisation MongoDB Vite & Gourmand
+// Les URLs d'images viennent de l'ancien frontend et sont conservées dans MongoDB.
 
 const dbName = "viteetgourmand";
 const database = db.getSiblingDB(dbName);
@@ -16,6 +16,33 @@ if (!database.getCollectionNames().includes("menu_images")) {
     database.createCollection("menu_images");
 }
 
+const menuImages = [
+    {
+        menuId: 1,
+        position: 1,
+        url: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&auto=format&fit=crop",
+        altText: "Présentation gastronomique du Menu de Noël"
+    },
+    {
+        menuId: 2,
+        position: 1,
+        url: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&auto=format&fit=crop",
+        altText: "Présentation gourmande du Menu de Pâques"
+    },
+    {
+        menuId: 3,
+        position: 1,
+        url: "https://images.unsplash.com/photo-1512621776951-a57141f2e8c0?w=1200&auto=format&fit=crop",
+        altText: "Présentation du Menu végétarien"
+    }
+];
+
+database.menu_images.deleteMany({
+    menuId: { $in: menuImages.map((image) => image.menuId) }
+});
+
+database.menu_images.insertMany(menuImages);
+
 database.comments.createIndex(
     { isValidated: 1, createdAt: -1 },
     { name: "comments_validation_createdAt" }
@@ -26,9 +53,15 @@ database.comments.createIndex(
     { name: "comments_user_order_unique", unique: true }
 );
 
+database.menu_images.createIndex(
+    { menuId: 1, position: 1 },
+    { name: "menu_images_menu_position_unique", unique: true }
+);
+
 database.menu_statistics.createIndex(
     { menuId: 1, periodIdentifier: 1 },
     { name: "menu_statistics_menu_period_unique", unique: true }
 );
 
 print("Base MongoDB initialisee : " + dbName);
+print(menuImages.length + " image(s) de menu importee(s).");
