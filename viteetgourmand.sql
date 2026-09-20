@@ -1,8 +1,8 @@
-CREATE DATABASE IF NOT EXISTS `vitegourmand`
+CREATE DATABASE IF NOT EXISTS `viteetgourmand`
     DEFAULT CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
 
-USE `vitegourmand`;
+USE `viteetgourmand`;
 
 CREATE TABLE IF NOT EXISTS `users` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -137,10 +137,6 @@ CREATE TABLE IF NOT EXISTS `orders` (
     CONSTRAINT `fk_orders_menu`
         FOREIGN KEY (`menu_id`) REFERENCES `menus` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
-
-ALTER TABLE `orders`
-    ADD COLUMN IF NOT EXISTS `equipment_loaned` TINYINT(1) NOT NULL DEFAULT 0
-    AFTER `status`;
 
 CREATE TABLE IF NOT EXISTS `order_status_history` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
