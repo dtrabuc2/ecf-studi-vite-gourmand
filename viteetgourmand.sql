@@ -211,7 +211,7 @@ INSERT INTO `users`
     (`email`, `password`, `role`, `first_name`, `last_name`, `phone`, `gsm`, `address`, `is_active`)
 VALUES
     ('admin@viteetgourmand.local',
-     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llCqYV3YpO8Y8m9qP7H2y',
+     '$2y$12$reyyfX4tbPWQ5mCzO6XAk.Esqx7U5wkuUIYQek5TpKxdzPLBk5jru',
      'admin',
      'Admin',
      'Vite & Gourmand',
