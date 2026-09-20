@@ -1,88 +1,105 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Core;
 
-use PDO;
 use MongoDB\Client as MongoClient;
+use MongoDB\Database as MongoDatabase;
+use PDO;
+use PDOException;
+use RuntimeException;
 
-class Database
+final class Database
 {
     private static ?PDO $pdo = null;
-    private static ?MongoClient $mongo = null;
+    private static ?MongoClient $mongoClient = null;
 
-    public static function getPDO(): PDO
+    public static function pdo(): PDO
     {
-        if (self::$pdo === null) {
-            $config = require __DIR__ . '/../../config/app.php';
-            $dbConfig = $config['database']['mariadb'];
+        if (self::$pdo instanceof PDO) {
+            return self::$pdo;
+        }
 
-            $dsn = sprintf(
-                'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-                $dbConfig['host'],
-                $dbConfig['port'],
-                $dbConfig['database'],
-                $dbConfig['charset']
-            );
+        $config = config('database.mariadb', []);
 
-            $options = [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-            ];
+        $dsn = sprintf(
+            'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+            $config['host'] ?? '127.0.0.1',
+            (int) ($config['port'] ?? 3306),
+            $config['database'] ?? 'viteetgourmand',
+            $config['charset'] ?? 'utf8mb4'
+        );
 
+        try {
             self::$pdo = new PDO(
                 $dsn,
-                $dbConfig['username'],
-                $dbConfig['password'],
-                $options
+                (string) ($config['username'] ?? ''),
+                (string) ($config['password'] ?? ''),
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                ]
+            );
+        } catch (PDOException $exception) {
+            throw new RuntimeException(
+                'Connexion MariaDB impossible.',
+                0,
+                $exception
             );
         }
 
         return self::$pdo;
     }
 
-    public static function getMongo(): MongoClient
+    public static function mongo(): MongoClient
     {
-        if (self::$mongo === null) {
-            // Check if we have a full connection string
-            $connectionString = getenv('MONGO_CONNECTION_STRING');
-            if (!empty($connectionString)) {
-                self::$mongo = new MongoClient($connectionString);
-            } else {
-                // Fall back to individual components approach
-                $config = require __DIR__ . '/../../config/app.php';
-                $mongoConfig = $config['database']['mongodb'];
+        if (self::$mongoClient instanceof MongoClient) {
+            return self::$mongoClient;
+        }
 
+        $config = config('database.mongodb', []);
+        $uri = trim((string) ($config['uri'] ?? ''));
+
+        if ($uri === '') {
+            $host = $config['host'] ?? '127.0.0.1';
+            $port = (int) ($config['port'] ?? 27017);
+            $username = (string) ($config['username'] ?? '');
+            $password = (string) ($config['password'] ?? '');
+            $authSource = (string) ($config['auth_source'] ?? 'admin');
+
+            if ($username !== '') {
                 $uri = sprintf(
-                    'mongodb://%s:%s@%s:%d/%s',
-                    $mongoConfig['username'],
-                    $mongoConfig['password'],
-                    $mongoConfig['host'],
-                    $mongoConfig['port'],
-                    $mongoConfig['database']
+                    'mongodb://%s:%s@%s:%d/%s?authSource=%s',
+                    rawurlencode($username),
+                    rawurlencode($password),
+                    $host,
+                    $port,
+                    $config['database'] ?? 'viteetgourmand',
+                    rawurlencode($authSource)
                 );
-
-                // If username and password are empty, we don't want to include them in the URI
-                if (empty($mongoConfig['username']) && empty($mongoConfig['password'])) {
-                    $uri = sprintf(
-                        'mongodb://%s:%d/%s',
-                        $mongoConfig['host'],
-                        $mongoConfig['port'],
-                        $mongoConfig['database']
-                    );
-                }
-
-                self::$mongo = new MongoClient($uri);
+            } else {
+                $uri = sprintf('mongodb://%s:%d', $host, $port);
             }
         }
 
-        return self::$mongo;
+        try {
+            self::$mongoClient = new MongoClient($uri);
+        } catch (\Throwable $exception) {
+            throw new RuntimeException(
+                'Connexion MongoDB impossible.',
+                0,
+                $exception
+            );
+        }
+
+        return self::$mongoClient;
     }
 
-    public static function getMongoDatabase()
+    public static function mongoDatabase(): MongoDatabase
     {
-        $mongo = self::getMongo();
-        $config = require __DIR__ . '/../../config/app.php';
-        $dbName = $config['database']['mongodb']['database'];
-        return $mongo->selectDatabase($dbName);
+        $name = (string) config('database.mongodb.database', 'viteetgourmand');
+
+        return self::mongo()->getDatabase($name);
     }
 }
