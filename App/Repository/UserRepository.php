@@ -1,101 +1,189 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Repository;
 
-use App\Entity\User;
 use App\Core\Database;
+use App\Entity\User;
 
-class UserRepository
+final class UserRepository
 {
     public function findByEmail(string $email): ?User
     {
-        $pdo = Database::getPDO();
-        $stmt = $pdo->prepare('SELECT * FROM users WHERE email = :email');
-        $stmt->execute(['email' => $email]);
+        $stmt = Database::pdo()->prepare(
+            'SELECT * FROM users WHERE email = :email LIMIT 1'
+        );
+        $stmt->execute(['email' => mb_strtolower(trim($email))]);
+
         $row = $stmt->fetch();
 
-        if ($row === false) {
-            return null;
-        }
-
-        $user = new User();
-        $user->setId((int)$row['id']);
-        $user->setEmail($row['email']);
-        $user->setPasswordHash($row['password']);
-        $user->setRole($row['role']);
-        $user->setFirstName($row['first_name']);
-        $user->setLastName($row['last_name']);
-        $user->setPhone($row['phone']);
-        $user->setGsm($row['gsm']);
-        $user->setAddress($row['address']);
-        $user->setCreatedAt($row['created_at'] ? new \DateTimeImmutable($row['created_at']) : null);
-        $user->setUpdatedAt($row['updated_at'] ? new \DateTimeImmutable($row['updated_at']) : null);
-        $user->setFailedAttempts((int)$row['failed_attempts']);
-        $user->setLockedUntil($row['locked_until'] ? new \DateTimeImmutable($row['locked_until']) : null);
-        $user->setResetTokenHash($row['reset_token_hash']);
-        $user->setResetTokenExpiresAt($row['reset_token_expires_at'] ? new \DateTimeImmutable($row['reset_token_expires_at']) : null);
-
-        return $user;
+        return $row === false ? null : $this->hydrate($row);
     }
 
     public function findById(int $id): ?User
     {
-        $pdo = Database::getPDO();
-        $stmt = $pdo->prepare('SELECT * FROM users WHERE id = :id');
-        $stmt->execute(['id' => $id]);
-        $row = $stmt->fetch();
-
-        if ($row === false) {
+        if ($id < 1) {
             return null;
         }
 
-        $user = new User();
-        $user->setId((int)$row['id']);
-        $user->setEmail($row['email']);
-        $user->setPasswordHash($row['password']);
-        $user->setRole($row['role']);
-        $user->setFirstName($row['first_name']);
-        $user->setLastName($row['last_name']);
-        $user->setPhone($row['phone']);
-        $user->setGsm($row['gsm']);
-        $user->setAddress($row['address']);
-        $user->setCreatedAt($row['created_at'] ? new \DateTimeImmutable($row['created_at']) : null);
-        $user->setUpdatedAt($row['updated_at'] ? new \DateTimeImmutable($row['updated_at']) : null);
+        $stmt = Database::pdo()->prepare(
+            'SELECT * FROM users WHERE id = :id LIMIT 1'
+        );
+        $stmt->execute(['id' => $id]);
 
-        return $user;
+        $row = $stmt->fetch();
+
+        return $row === false ? null : $this->hydrate($row);
     }
 
     public function create(array $data): int
     {
-        $pdo = Database::getPDO();
-        $stmt = $pdo->prepare('INSERT INTO users (email, password, role, first_name, last_name, phone, gsm, address, failed_attempts, locked_until, reset_token_hash, reset_token_expires_at)
-                               VALUES (:email, :password, :role, :first_name, :last_name, :phone, :gsm, :address, :failed_attempts, :locked_until, :reset_token_hash, :reset_token_expires_at)');
+        $stmt = Database::pdo()->prepare(
+            'INSERT INTO users (
+                email, password, role, first_name, last_name, phone, gsm, address
+            ) VALUES (
+                :email, :password, :role, :first_name, :last_name, :phone, :gsm, :address
+            )'
+        );
+
         $stmt->execute([
-            'email' => $data['email'],
-            'password' => $data['password'], // Already hashed
-            'role' => $data['role'],
-            'first_name' => $data['first_name'],
-            'last_name' => $data['last_name'],
-            'phone' => $data['phone'],
-            'gsm' => $data['gsm'],
-            'address' => $data['address'],
-            'failed_attempts' => 0,
-            'locked_until' => null,
-            'reset_token_hash' => null,
-            'reset_token_expires_at' => null,
+            'email' => mb_strtolower(trim((string) $data['email'])),
+            'password' => (string) $data['password'],
+            'role' => (string) ($data['role'] ?? 'user'),
+            'first_name' => trim((string) $data['first_name']),
+            'last_name' => trim((string) $data['last_name']),
+            'phone' => trim((string) $data['phone']),
+            'gsm' => trim((string) $data['gsm']),
+            'address' => trim((string) $data['address']),
         ]);
 
-        return (int)$pdo->lastInsertId();
+        return (int) Database::pdo()->lastInsertId();
+    }
+
+    public function isActive(int $id): bool
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT is_active FROM users WHERE id = :id LIMIT 1'
+        );
+        $stmt->execute(['id' => $id]);
+
+        return (int) $stmt->fetchColumn() === 1;
+    }
+
+    public function update(int $id, array $data): void
+    {
+        $stmt = Database::pdo()->prepare(
+            'UPDATE users SET
+                email = :email,
+                first_name = :first_name,
+                last_name = :last_name,
+                phone = :phone,
+                gsm = :gsm,
+                address = :address,
+                updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id'
+        );
+
+        $stmt->execute([
+            'id' => $id,
+            'email' => mb_strtolower(trim((string) $data['email'])),
+            'first_name' => trim((string) $data['first_name']),
+            'last_name' => trim((string) $data['last_name']),
+            'phone' => trim((string) $data['phone']),
+            'gsm' => trim((string) $data['gsm']),
+            'address' => trim((string) $data['address']),
+        ]);
+    }
+
+    public function updatePassword(int $id, string $hash): void
+    {
+        $stmt = Database::pdo()->prepare(
+            'UPDATE users
+             SET password = :password, updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id'
+        );
+        $stmt->execute([
+            'id' => $id,
+            'password' => $hash,
+        ]);
+    }
+
+    public function updateFailedAttempts(int $id, int $failedAttempts, ?DateTimeInterface $lockedUntil): void
+    {
+        $stmt = Database::pdo()->prepare(
+            'UPDATE users
+             SET failed_attempts = :failed_attempts,
+                 locked_until = :locked_until,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id'
+        );
+
+        $stmt->execute([
+            'id' => $id,
+            'failed_attempts' => $failedAttempts,
+            'locked_until' => $lockedUntil?->format('Y-m-d H:i:s'),
+        ]);
+    }
+
+    public function updateResetToken(int $userId, string $hash, DateTimeInterface $expiresAt): void
+    {
+        $stmt = Database::pdo()->prepare(
+            'UPDATE users
+             SET reset_token_hash = :hash,
+                 reset_token_expires_at = :expires_at,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id'
+        );
+        $stmt->execute([
+            'id' => $userId,
+            'hash' => $hash,
+            'expires_at' => $expiresAt->format('Y-m-d H:i:s'),
+        ]);
+    }
+
+    public function findByResetTokenHash(string $hash): ?User
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT * FROM users
+             WHERE reset_token_hash = :hash
+               AND reset_token_expires_at > CURRENT_TIMESTAMP
+             LIMIT 1'
+        );
+        $stmt->execute(['hash' => $hash]);
+
+        $row = $stmt->fetch();
+
+        return $row === false ? null : $this->hydrate($row);
+    }
+
+    public function clearResetToken(int $userId): void
+    {
+        $stmt = Database::pdo()->prepare(
+            'UPDATE users
+             SET reset_token_hash = NULL,
+                 reset_token_expires_at = NULL,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id'
+        );
+        $stmt->execute(['id' => $userId]);
     }
 
     public function findCustomers(?string $search = null, ?bool $active = null): array
     {
-        $pdo = Database::getPDO();
-        $sql = "SELECT id, email, first_name, last_name, phone, gsm, address, is_active, created_at, updated_at
-                FROM users WHERE role = 'user'";
-        $params = [];
+        $sql = 'SELECT id, email, first_name, last_name, phone, gsm, address,
+                       is_active, created_at, updated_at
+                FROM users
+                WHERE role = :role';
+        $params = ['role' => 'user'];
 
         if ($search !== null && trim($search) !== '') {
-            $sql .= " AND (email LIKE :search OR first_name LIKE :search OR last_name LIKE :search OR phone LIKE :search OR gsm LIKE :search)";
+            $sql .= ' AND (
+                email LIKE :search
+                OR first_name LIKE :search
+                OR last_name LIKE :search
+                OR phone LIKE :search
+                OR gsm LIKE :search
+            )';
             $params['search'] = '%' . trim($search) . '%';
         }
 
@@ -105,130 +193,66 @@ class UserRepository
         }
 
         $sql .= ' ORDER BY created_at DESC';
-        $stmt = $pdo->prepare($sql);
+
+        $stmt = Database::pdo()->prepare($sql);
         $stmt->execute($params);
 
-        return $stmt->fetchAll() ?: [];
+        return $stmt->fetchAll();
     }
 
     public function setCustomerActive(int $id, bool $active): void
     {
-        $stmt = Database::getPDO()->prepare(
-            "UPDATE users SET is_active = :active, updated_at = NOW() WHERE id = :id AND role = 'user'"
+        $stmt = Database::pdo()->prepare(
+            'UPDATE users
+             SET is_active = :active, updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id AND role = :role'
         );
+
         $stmt->execute([
             'id' => $id,
             'active' => $active ? 1 : 0,
+            'role' => 'user',
         ]);
     }
 
     public function setActive(int $id, bool $active): void
     {
-        $stmt = Database::getPDO()->prepare("UPDATE users SET is_active = :active, updated_at = NOW() WHERE id = :id AND role = 'employee'");
-        $stmt->execute(['id' => $id, 'active' => $active ? 1 : 0]);
-    }
+        $stmt = Database::pdo()->prepare(
+            'UPDATE users
+             SET is_active = :active, updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id AND role = :role'
+        );
 
-    public function isActive(int $id): bool
-    {
-        $stmt = Database::getPDO()->prepare('SELECT is_active FROM users WHERE id = :id');
-        $stmt->execute(['id' => $id]);
-        $value = $stmt->fetchColumn();
-        return $value !== false && (int)$value === 1;
-    }
-
-    public function update(int $id, array $data): void
-    {
-        $pdo = Database::getPDO();
-        $stmt = $pdo->prepare('UPDATE users SET
-                               email = :email,
-                               first_name = :first_name,
-                               last_name = :last_name,
-                               phone = :phone,
-                               gsm = :gsm,
-                               address = :address,
-                               updated_at = NOW()
-                               WHERE id = :id');
         $stmt->execute([
             'id' => $id,
-            'email' => $data['email'],
-            'first_name' => $data['first_name'],
-            'last_name' => $data['last_name'],
-            'phone' => $data['phone'],
-            'gsm' => $data['gsm'],
-            'address' => $data['address'],
+            'active' => $active ? 1 : 0,
+            'role' => 'employee',
         ]);
     }
 
-    public function updatePassword(int $id, string $hashedPassword): void
+    private function hydrate(array $row): User
     {
-        $pdo = Database::getPDO();
-        $stmt = $pdo->prepare('UPDATE users SET password = :password, updated_at = NOW() WHERE id = :id');
-        $stmt->execute([
-            'id' => $id,
-            'password' => $hashedPassword,
-        ]);
-    }
-
-    public function updateFailedAttempts(int $id, int $failedAttempts, ?\DateTimeInterface $lockedUntil): void
-    {
-        $pdo = Database::getPDO();
-        $lockedUntilString = $lockedUntil ? $lockedUntil->format('Y-m-d H:i:s') : null;
-        $stmt = $pdo->prepare('UPDATE users SET failed_attempts = :failed_attempts, locked_until = :locked_until, updated_at = NOW() WHERE id = :id');
-        $stmt->execute([
-            'id' => $id,
-            'failed_attempts' => $failedAttempts,
-            'locked_until' => $lockedUntilString,
-        ]);
-    }
-
-    public function findByResetTokenHash(string $tokenHash): ?User
-    {
-        $pdo = Database::getPDO();
-        $stmt = $pdo->prepare('SELECT * FROM users WHERE reset_token_hash = :token_hash AND reset_token_expires_at > NOW()');
-        $stmt->execute(['token_hash' => $tokenHash]);
-        $row = $stmt->fetch();
-
-        if ($row === false) {
-            return null;
-        }
-
         $user = new User();
-        $user->setId((int)$row['id']);
-        $user->setEmail($row['email']);
-        $user->setPasswordHash($row['password']);
-        $user->setRole($row['role']);
-        $user->setFirstName($row['first_name']);
-        $user->setLastName($row['last_name']);
-        $user->setPhone($row['phone']);
-        $user->setGsm($row['gsm']);
-        $user->setAddress($row['address']);
-        $user->setCreatedAt($row['created_at'] ? new \DateTimeImmutable($row['created_at']) : null);
-        $user->setUpdatedAt($row['updated_at'] ? new \DateTimeImmutable($row['updated_at']) : null);
-        $user->setFailedAttempts((int)$row['failed_attempts']);
-        $user->setLockedUntil($row['locked_until'] ? new \DateTimeImmutable($row['locked_until']) : null);
-        $user->setResetTokenHash($row['reset_token_hash']);
-        $user->setResetTokenExpiresAt($row['reset_token_expires_at'] ? new \DateTimeImmutable($row['reset_token_expires_at']) : null);
+        $user->setId((int) $row['id']);
+        $user->setEmail((string) $row['email']);
+        $user->setPasswordHash((string) $row['password']);
+        $user->setRole((string) $row['role']);
+        $user->setFirstName((string) $row['first_name']);
+        $user->setLastName((string) $row['last_name']);
+        $user->setPhone((string) ($row['phone'] ?? ''));
+        $user->setGsm((string) ($row['gsm'] ?? ''));
+        $user->setAddress((string) ($row['address'] ?? ''));
+        $user->setCreatedAt(!empty($row['created_at']) ? new DateTimeImmutable($row['created_at']) : null);
+        $user->setUpdatedAt(!empty($row['updated_at']) ? new DateTimeImmutable($row['updated_at']) : null);
+        $user->setFailedAttempts((int) ($row['failed_attempts'] ?? 0));
+        $user->setLockedUntil(!empty($row['locked_until']) ? new DateTimeImmutable($row['locked_until']) : null);
+        $user->setResetTokenHash($row['reset_token_hash'] ?? null);
+        $user->setResetTokenExpiresAt(
+            !empty($row['reset_token_expires_at'])
+                ? new DateTimeImmutable($row['reset_token_expires_at'])
+                : null
+        );
 
         return $user;
-    }
-
-    public function updateResetToken(int $userId, string $hashedToken, \DateTimeInterface $expiresAt): void
-    {
-        $pdo = Database::getPDO();
-        $stmt = $pdo->prepare('UPDATE users SET reset_token_hash = :token_hash, reset_token_expires_at = :expires_at, updated_at = NOW() WHERE id = :id');
-        $stmt->execute([
-            'id' => $userId,
-            'token_hash' => $hashedToken,
-            'expires_at' => $expiresAt->format('Y-m-d H:i:s'),
-        ]);
-    }
-
-    public function clearResetToken(int $userId): void
-    {
-        $pdo = Database::getPDO();
-        $stmt = $pdo->prepare('UPDATE users SET reset_token_hash = NULL, reset_token_expires_at = NULL, updated_at = NOW() WHERE id = :id');
-        $stmt->execute([
-            'id' => $userId,
-        ]);
     }
 }
