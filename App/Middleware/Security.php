@@ -56,7 +56,7 @@ class Security
         $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_POST['csrf_token'] ?? null);
         $storedToken = $_SESSION['csrf_token'] ?? null;
 
-        if (!$csrfToken || !$storedToken || !hash_equals($storedToken, $csrfToken)) {
+        if (!is_string($csrfToken) || !is_string($storedToken) || !hash_equals($storedToken, $csrfToken)) {
             http_response_code(403);
             if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
                 strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
@@ -85,7 +85,7 @@ class Security
             return;
         }
 
-        $clientIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $clientIp = (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
         $rateLimitKey = "rate_limit:{$endpoint}:{$clientIp}";
         $rule = $this->rateLimitRules[$endpoint];
         $currentCount = (int) $this->cacheService->get($rateLimitKey, 0);
