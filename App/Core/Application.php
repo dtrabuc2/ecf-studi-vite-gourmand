@@ -11,6 +11,7 @@ final class Application
 
     private function __construct()
     {
+        require_once __DIR__ . '/functions.php';
         $this->loadEnvironment();
         $this->configureErrorHandling();
         $this->configureSession();
@@ -56,7 +57,7 @@ final class Application
             }
 
             [$key, $value] = array_map('trim', explode('=', $line, 2));
-            $value = trim($value, ""'");
+            $value = trim($value, "\"\'");
 
             $_ENV[$key] = $value;
             $_SERVER[$key] = $value;
