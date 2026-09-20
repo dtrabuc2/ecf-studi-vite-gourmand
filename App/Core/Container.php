@@ -220,7 +220,8 @@ final class Container
                 $container->get(CommentService::class),
                 $container->get(OrderService::class),
                 $container->get(DishRepository::class),
-                $container->get(OpeningHoursRepository::class)
+                $container->get(OpeningHoursRepository::class),
+                $container->get(QuoteService::class)
             )
         );
 
