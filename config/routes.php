@@ -10,6 +10,8 @@ return [
     ['GET', '/public/menus/{id}', 'PublicController@getMenuById', ['Security']],
     ['GET', '/contact', 'ContactController@index', ['Security']],
     ['POST', '/contact', 'ContactController@send', ['Security']],
+    ['GET', '/quote', 'QuoteController@index', ['Security']],
+    ['POST', '/quote', 'QuoteController@submit', ['Security']],
     ['GET', '/legal', 'PublicController@legal', ['Security']],
     ['GET', '/cgv', 'PublicController@cgv', ['Security']],
 
@@ -38,6 +40,8 @@ return [
     ['POST', '/admin/login', 'AdminController@login', ['Security', 'Guest']],
     ['GET', '/admin/dashboard', 'AdminController@dashboard', ['Security', 'Admin']],
     ['GET', '/admin/orders', 'AdminController@orders', ['Security', 'Staff']],
+    ['GET', '/admin/quotes', 'AdminController@quotes', ['Security', 'Staff']],
+    ['POST', '/admin/quotes/{id}/status', 'AdminController@updateQuoteStatus', ['Security', 'Staff']],
     ['POST', '/admin/orders/{id}/status', 'AdminController@updateOrderStatus', ['Security', 'Staff']],
     ['GET', '/admin/hours', 'AdminController@openingHours', ['Security', 'Staff']],
     ['POST', '/admin/hours', 'AdminController@updateOpeningHours', ['Security', 'Staff']],
