@@ -48,19 +48,6 @@ CREATE TABLE IF NOT EXISTS `menus` (
     KEY `idx_menus_min_people` (`min_people`)
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS `menu_images` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `menu_id` INT UNSIGNED NOT NULL,
-    `path` VARCHAR(255) NOT NULL COMMENT 'Chemin relatif sous public/uploads',
-    `alt_text` VARCHAR(150) NOT NULL,
-    `position` TINYINT UNSIGNED NOT NULL DEFAULT 1,
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uq_menu_images_position` (`menu_id`, `position`),
-    CONSTRAINT `fk_menu_images_menu`
-        FOREIGN KEY (`menu_id`) REFERENCES `menus` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
 CREATE TABLE IF NOT EXISTS `dishes` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(150) NOT NULL,
