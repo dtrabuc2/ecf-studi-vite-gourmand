@@ -13,7 +13,7 @@ class MenuService
     {
         $this->menuRepository = $menuRepository;
         // Try to use RedisCacheService first, fall back to basic CacheService
-        $this->cacheService = $cacheService ?? new \App\Service\RedisCacheService();
+        $this->cacheService = $cacheService ?? new \App\Service\CacheService();
     }
 
     public function getAllMenus(): array
