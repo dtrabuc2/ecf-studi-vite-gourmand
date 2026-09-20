@@ -15,7 +15,7 @@ final readonly class Staff
 
     public function __invoke(): void
     {
-        $this->auth();
+        ($this->auth)();
 
         if (!in_array(Session::role(), ['employee', 'admin'], true)) {
             Response::redirect('/admin/login');
