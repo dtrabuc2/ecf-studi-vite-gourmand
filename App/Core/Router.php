@@ -1,114 +1,170 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Core;
 
-class Router
+use ReflectionMethod;
+
+final class Router
 {
-    private $routes;
-    private $config;
+    private array $routes = [];
 
-    public function __construct(array $config)
-    {
-        $this->config = $config;
-        $this->routes = [];
-    }
-
-    public function addRoute(string $method, string $uri, string $controllerAction, array $middlewares = []): void
-    {
+    public function addRoute(
+        string $method,
+        string $uri,
+        string $controllerAction,
+        array $middlewares = []
+    ): void {
         $this->routes[] = [
-            'method' => $method,
+            'method' => strtoupper($method),
             'uri' => $uri,
-            'controller_action' => $controllerAction,
+            'action' => $controllerAction,
             'middlewares' => $middlewares,
         ];
     }
 
     public function setRoutes(array $routes): void
     {
-        $this->routes = $routes;
+        $this->routes = [];
+
+        foreach ($routes as $route) {
+            $this->addRoute(
+                $route[0],
+                $route[1],
+                $route[2],
+                $route[3] ?? []
+            );
+        }
     }
 
     public function dispatch(): void
     {
-        $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        $method = $_SERVER['REQUEST_METHOD'];
+        $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+        $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
         foreach ($this->routes as $route) {
-            // Route format: [HTTP_METHOD, URI, CONTROLLER@ACTION, MIDDLEWARES]
-            $routeMethod = $route[0];
-            $routeUri = $route[1];
-            $controllerAction = $route[2];
-            $middlewares = $route[3] ?? [];
-
-            // Convert route uri pattern to regex
-            // Example: /users/{id} -> #^/users/([^/]+)$#
-            $pattern = '#^' . preg_replace('/\{([a-zA-Z0-9_]+)\}/', '([^/]+)', $routeUri) . '$#';
-
-            if (preg_match($pattern, $uri, $matches) && strtoupper($routeMethod) === $method) {
-                // Remove the first match (the entire string)
-                array_shift($matches);
-
-                // Split controller@action
-                [$controllerName, $actionName] = explode('@', $controllerAction);
-
-                // Apply middlewares
-                foreach ($middlewares as $middleware) {
-                    $this->applyMiddleware($middleware);
-                }
-
-                // Execute controller action
-                $this->executeControllerAction($controllerAction, $matches);
-
-                return;
+            if ($route['method'] !== $method) {
+                continue;
             }
+
+            $parameters = $this->match($route['uri'], $path);
+
+            if ($parameters === null) {
+                continue;
+            }
+
+            foreach ($route['middlewares'] as $middleware) {
+                $this->runMiddleware($middleware);
+            }
+
+            $this->runAction($route['action'], $parameters);
+            return;
         }
 
-        // If no route matched, throw 404
         http_response_code(404);
-        echo 'Not Found';
+        echo 'Page introuvable.';
     }
 
-    private function applyMiddleware(string $middleware): void
+    private function match(string $routeUri, string $requestPath): ?array
     {
-        $middlewarePath = __DIR__ . '/../../App/Middleware/' . $middleware . '.php';
-        if (file_exists($middlewarePath)) {
-            require_once $middlewarePath;
-            // First, try to instantiate a class with the given name in the App\Middleware namespace
-            $className = '\\App\\Middleware\\' . $middleware;
-            if (class_exists($className)) {
-                $instance = new $className();
-                $instance();
-            } elseif (function_exists($middleware)) {
-                $middleware();
+        $names = [];
+
+        $pattern = preg_replace_callback(
+            '/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/',
+            static function (array $matches) use (&$names): string {
+                $names[] = $matches[1];
+                return '([^/]+)';
+            },
+            $routeUri
+        );
+
+        if ($pattern === null) {
+            return null;
+        }
+
+        if (!preg_match('#^' . $pattern . '$#', $requestPath, $matches)) {
+            return null;
+        }
+
+        array_shift($matches);
+
+        $parameters = [];
+        foreach ($names as $index => $name) {
+            $parameters[$name] = $matches[$index] ?? null;
+        }
+
+        return $parameters;
+    }
+
+    private function runMiddleware(string $middleware): void
+    {
+        $class = str_starts_with($middleware, 'App\\')
+            ? $middleware
+            : 'App\\Middleware\\' . $middleware;
+
+        if (!class_exists($class)) {
+            throw new \RuntimeException('Middleware introuvable : ' . $class);
+        }
+
+        $instance = new $class();
+
+        if (!is_callable($instance)) {
+            throw new \RuntimeException('Middleware non appelable : ' . $class);
+        }
+
+        $instance();
+    }
+
+    private function runAction(string $action, array $parameters): void
+    {
+        [$controller, $method] = explode('@', $action, 2);
+
+        $class = str_starts_with($controller, 'App\\')
+            ? $controller
+            : 'App\\Controller\\' . $controller;
+
+        if (!class_exists($class)) {
+            throw new \RuntimeException('Contrôleur introuvable : ' . $class);
+        }
+
+        $instance = new $class();
+
+        if (!method_exists($instance, $method)) {
+            throw new \RuntimeException('Action introuvable : ' . $class . '@' . $method);
+        }
+
+        $reflection = new ReflectionMethod($instance, $method);
+        $arguments = [];
+
+        foreach ($reflection->getParameters() as $parameter) {
+            $name = $parameter->getName();
+
+            if (array_key_exists($name, $parameters)) {
+                $arguments[] = $this->castParameter(
+                    $parameters[$name],
+                    $parameter->getType()?->getName()
+                );
+                continue;
             }
+
+            if ($parameter->isDefaultValueAvailable()) {
+                $arguments[] = $parameter->getDefaultValue();
+                continue;
+            }
+
+            $arguments[] = null;
         }
+
+        $reflection->invokeArgs($instance, $arguments);
     }
 
-    private function executeControllerAction(string $controllerAction, array $params): void
+    private function castParameter(string $value, ?string $type): mixed
     {
-        // Split controller@action
-        [$controllerName, $actionName] = explode('@', $controllerAction);
-
-        // Build the controller class name
-        $controllerClass = '\\App\\Controller\\' . $controllerName;
-
-        // Check if the controller class exists
-        if (!class_exists($controllerClass)) {
-            http_response_code(500);
-            echo 'Controller not found: ' . $controllerClass;
-            return;
-        }
-
-        // Instantiate the controller
-        $controller = new $controllerClass();
-
-        // Check if the action method exists
-        if (!method_exists($controller, $actionName)) {
-            http_response_code(500);
-            echo 'Method not found: ' . $actionName . ' in ' . $controllerClass;
-            return;
-        }
-
-        // Call the action with parameters
-        call_user_func_array([$controller, $actionName], $params);
+        return match ($type) {
+            'int' => (int) $value,
+            'float' => (float) $value,
+            'bool' => filter_var($value, FILTER_VALIDATE_BOOL),
+            default => $value,
+        };
     }
 }
