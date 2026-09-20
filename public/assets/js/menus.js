@@ -33,18 +33,23 @@
       return '<div class="bg-light d-flex align-items-center justify-content-center text-muted" style="height:250px;">Aucune image disponible</div>';
     }
 
-    const thumbs = images.slice(1).map((image, index) => {
+    const thumbs = images.slice(1).map((image) => {
       const url = imageUrl(image);
       if (!url) return '';
-      return '<img src="' + escapeHtml(url) + '" class="rounded" alt="' +
+      const href = String(image.href || url).trim();
+      return '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener noreferrer">' +
+        '<img src="' + escapeHtml(url) + '" class="rounded" alt="' +
         escapeHtml(image.alt_text || menu.title) +
-        '" style="width:72px;height:52px;object-fit:cover;" loading="lazy">';
+        '" style="width:72px;height:52px;object-fit:cover;" loading="lazy">' +
+        '</a>';
     }).join('');
 
     return '<div class="position-relative">' +
+      '<a href="' + escapeHtml(String(images[0]?.href || primary)) + '" target="_blank" rel="noopener noreferrer">' +
       '<img src="' + escapeHtml(primary) + '" class="card-img-top" alt="' +
       escapeHtml(images[0]?.alt_text || menu.title) +
       '" style="height:250px;object-fit:cover;">' +
+      '</a>' +
       (thumbs ? '<div class="position-absolute bottom-0 start-0 end-0 d-flex gap-2 p-2 bg-dark bg-opacity-50">' + thumbs + '</div>' : '') +
       '</div>';
   };
