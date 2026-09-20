@@ -89,8 +89,10 @@
         renderDishes(menu) +
         '<p class="small mb-2"><strong>Minimum :</strong> ' +
         Number(menu.min_people || 0) + ' personnes</p>' +
-        '<p class="small mb-3"><strong>Prix de base :</strong> ' +
+        '<p class="small mb-1"><strong>Prix de base :</strong> ' +
         formatPrice(menu.base_price) + '</p>' +
+        '<p class="small mb-3"><strong>Stock disponible :</strong> ' +
+        Number(menu.available_stock || 0) + ' commande(s)</p>' +
         '<p class="small text-muted mb-3"><strong>Conditions :</strong> ' +
         escapeHtml(menu.conditions || 'Voir le détail du menu.') + '</p>' +
         '<div class="d-grid gap-2 mt-auto">' +
