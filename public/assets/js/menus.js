@@ -56,8 +56,7 @@
     grid.setAttribute('aria-busy','true');
 
     try {
-      const data = await window.VgApi.get(url);
-      const menus = data?.menus || data;
+      const menus = await window.VgApi.get(url);
       renderMenus(menus);
       if (status) status.textContent = (Array.isArray(menus) ? menus.length : 0) + ' menu(s) affiché(s).';
     } catch (error) {
