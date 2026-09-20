@@ -98,17 +98,17 @@ class PublicController extends BaseController
             $this->jsonMenus($this->menuService->getAllMenus());
         } catch (\Throwable $exception) {
             error_log('Erreur API menus : ' . $exception->getMessage());
-            echo $this->jsonError('Impossible de charger les menus.', 500);
+            $this->json(['success' => false, 'error' => 'Impossible de charger les menus.'], 500);
         }
     }
 
     public function getMenuById(int $id): void
     {
-        if ($id <= 0) { http_response_code(400); echo $this->jsonError('Identifiant invalide'); return; }
+        if ($id <= 0) { http_response_code(400); $this->json(['success' => false, 'error' => 'Identifiant invalide'], 400); }
         $menu = $this->menuService->getMenuById($id);
         if ($menu === null) {
             http_response_code(404);
-            echo $this->jsonError('Menu introuvable');
+            $this->json(['success' => false, 'error' => 'Menu introuvable'], 404);
             return;
         }
 
@@ -120,7 +120,7 @@ class PublicController extends BaseController
         }
 
         header('Content-Type: application/json');
-        echo $this->jsonSuccess($this->menuToArray($menu, $details));
+        $this->json(['success' => true, 'data' => $this->menuToArray($menu, $details)]);
     }
 
     public function filterMenus(): void
@@ -143,7 +143,7 @@ class PublicController extends BaseController
             $this->jsonMenus($menus);
         } catch (\Throwable $exception) {
             error_log('Erreur API filtre menus : ' . $exception->getMessage());
-            echo $this->jsonError('Impossible de filtrer les menus.', 500);
+            $this->json(['success' => false, 'error' => 'Impossible de filtrer les menus.'], 500);
         }
     }
 
