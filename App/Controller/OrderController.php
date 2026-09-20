@@ -72,6 +72,22 @@ final class OrderController extends BaseController
 
         $menuId = $_POST['menu_id'] ?? null;
         $numberOfPeople = $_POST['number_of_people'] ?? null;
+
+        if (is_numeric($numberOfPeople) && (int) $numberOfPeople >= 50) {
+            Session::flash(
+                'order_error',
+                'Pour 50 personnes ou plus, votre demande est traitée par devis afin de permettre à l’équipe de confirmer la disponibilité, le mode de prestation et les conditions.'
+            );
+            Session::flash('quote_old_input', [
+                'number_of_people' => (int) $numberOfPeople,
+                'event_date' => trim((string) ($_POST['delivery_date'] ?? '')),
+                'service_type' => 'delivery',
+                'event_location' => trim((string) ($_POST['delivery_address'] ?? '')),
+                'postal_code' => trim((string) ($_POST['delivery_postal_code'] ?? '')),
+                'request_details' => 'Menu demandé : ' . ((int) $menuId > 0 ? 'menu #' . (int) $menuId : 'à préciser'),
+            ]);
+            $this->redirect('/quote'); 
+        }
         $deliveryDate = trim((string) ($_POST['delivery_date'] ?? ''));
         $deliveryTime = trim((string) ($_POST['delivery_time'] ?? ''));
         $deliveryAddress = trim((string) ($_POST['delivery_address'] ?? ''));
