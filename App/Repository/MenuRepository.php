@@ -84,9 +84,6 @@ class MenuRepository
     {
         $pdo = Database::getPDO();
 
-        $imagesStmt = $pdo->prepare('SELECT path, alt_text, position FROM menu_images WHERE menu_id = :menu_id ORDER BY position ASC');
-        $imagesStmt->execute(['menu_id' => $menuId]);
-
         $dishesStmt = $pdo->prepare('SELECT d.id, d.name, d.description, md.category, md.position
             FROM menu_dishes md
             INNER JOIN dishes d ON d.id = md.dish_id
@@ -103,7 +100,6 @@ class MenuRepository
         $allergensStmt->execute(['menu_id' => $menuId]);
 
         return [
-            'images' => $imagesStmt->fetchAll(),
             'dishes' => $dishesStmt->fetchAll(),
             'allergens' => array_column($allergensStmt->fetchAll(), 'name'),
         ];
