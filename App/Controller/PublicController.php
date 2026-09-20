@@ -60,7 +60,12 @@ class PublicController extends BaseController
 
     public function getMenus(): void
     {
-        $this->jsonMenus($this->menuService->getAllMenus());
+        try {
+            $this->jsonMenus($this->menuService->getAllMenus());
+        } catch (\Throwable $exception) {
+            error_log('Erreur API menus : ' . $exception->getMessage());
+            echo $this->jsonError('Impossible de charger les menus.', 500);
+        }
     }
 
     public function getMenuById(int $id): void
@@ -87,8 +92,13 @@ class PublicController extends BaseController
             }
         }
 
-        $menus = $this->menuService->filterMenus($filters);
-        $this->jsonMenus($menus);
+        try {
+            $menus = $this->menuService->filterMenus($filters);
+            $this->jsonMenus($menus);
+        } catch (\Throwable $exception) {
+            error_log('Erreur API filtre menus : ' . $exception->getMessage());
+            echo $this->jsonError('Impossible de filtrer les menus.', 500);
+        }
     }
 
     private function jsonMenus(array $menus): void
@@ -107,7 +117,7 @@ class PublicController extends BaseController
         $this->render('home/cgv');
     }
 
-    private function menuToArray(\App\Entity\Menu $menu): array
+    private function menuToArray(\App\Entity\Menu $menu, array $details = []): array
     {
         return [
             'id' => $menu->getId(),
@@ -119,6 +129,9 @@ class PublicController extends BaseController
             'base_price' => $menu->getBasePrice(),
             'conditions' => $menu->getConditions(),
             'available_stock' => $menu->getAvailableStock(),
+            'images' => $details['images'] ?? [],
+            'dishes' => $details['dishes'] ?? [],
+            'allergens' => $details['allergens'] ?? [],
         ];
     }
 }
