@@ -160,7 +160,8 @@ final class Container
             static fn (Container $container): AdminService => new AdminService(
                 $container->get(UserRepository::class),
                 $container->get(OrderRepository::class),
-                $container->get(MenuRepository::class)
+                $container->get(MenuRepository::class),
+                $container->get(MenuStatisticsService::class)
             )
         );
 
