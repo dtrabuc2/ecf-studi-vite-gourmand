@@ -127,7 +127,7 @@ class PublicController extends BaseController
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
             http_response_code(405);
-            echo $this->jsonError('Method Not Allowed');
+            $this->json(['success' => false, 'error' => 'Method Not Allowed'], 405);
             return;
         }
 
@@ -163,7 +163,7 @@ class PublicController extends BaseController
         }
 
         header('Content-Type: application/json');
-        echo $this->jsonSuccess($payload);
+        $this->json(['success' => true, 'data' => $payload]);
     }
 
     private function loadMenuDetails(array $menus): array
