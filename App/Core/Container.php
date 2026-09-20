@@ -8,6 +8,7 @@ use App\Controller\AuthController;
 use App\Controller\ContactController;
 use App\Controller\OrderController;
 use App\Controller\PublicController;
+use App\Controller\QuoteController;
 use App\Repository\CommentRepository;
 use App\Repository\DishRepository;
 use App\Repository\MenuRepository;
@@ -24,6 +25,7 @@ use App\Service\MailService;
 use App\Service\MenuService;
 use App\Service\MenuStatisticsService;
 use App\Service\OrderService;
+use App\Service\QuoteService;
 use RuntimeException;
 
 final class Container
@@ -218,6 +220,20 @@ final class Container
             static fn (Container $container): ContactController => new ContactController(
                 $container->get(ContactService::class),
                 $container->get(MailService::class)
+            )
+        );
+
+        $this->set(
+            QuoteService::class,
+            static fn (Container $container): QuoteService => new QuoteService(
+                $container->get(MailService::class)
+            )
+        );
+
+        $this->set(
+            QuoteController::class,
+            static fn (Container $container): QuoteController => new QuoteController(
+                $container->get(QuoteService::class)
             )
         );
     }
