@@ -31,8 +31,16 @@ final class AuthController extends BaseController
         );
 
         if ($user === null) {
-            Session::flash('login_error', 'Identifiants invalides ou compte indisponible.');
+            Session::flash('login_error', 'Identifiants invalides, compte indisponible ou accès réservé à l’espace équipe.');
             $this->redirect('/login');
+        }
+
+        if (!in_array($user->getRole(), ['user'], true)) {
+            Session::flash(
+                'login_error',
+                'Ce compte appartient à l’équipe. Utilisez l’accès « Espace admin ».'
+            );
+            $this->redirect('/admin/login');
         }
 
         Session::login($user->getId(), $user->getRole(), [
