@@ -12,6 +12,10 @@ if (!database.getCollectionNames().includes("menu_statistics")) {
     database.createCollection("menu_statistics");
 }
 
+if (!database.getCollectionNames().includes("menu_images")) {
+    database.createCollection("menu_images");
+}
+
 database.comments.createIndex(
     { isValidated: 1, createdAt: -1 },
     { name: "comments_validation_createdAt" }
