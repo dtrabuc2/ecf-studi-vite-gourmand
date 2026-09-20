@@ -1,8 +1,13 @@
 <?php
+declare(strict_types=1);
+
+use App\Core\Session;
+
 $flashKeys = [
     'login_error' => 'danger',
     'register_success' => 'success',
     'register_error' => 'danger',
+    'register_errors' => 'danger',
     'profile_success' => 'success',
     'profile_errors' => 'danger',
     'password_success' => 'success',
@@ -20,17 +25,28 @@ $flashKeys = [
     'contact_errors' => 'danger',
 ];
 
+$formatMessage = static function (mixed $value): string {
+    if (is_array($value)) {
+        return implode(
+            ' ',
+            array_map(
+                static fn (mixed $item): string => is_scalar($item)
+                    ? (string) $item
+                    : '',
+                $value
+            )
+        );
+    }
+
+    return (string) $value;
+};
 ?>
 <div class="container pt-3" aria-live="polite">
     <?php foreach ($flashKeys as $key => $type): ?>
-        <?php $message = AppCoreSession::pullFlash($key); ?>
-        <?php if (is_array($message)): ?>
-            <?php $message = implode(' ', array_map('strval', $message)); ?>
-        <?php endif; ?>
-
+        <?php $message = Session::pullFlash($key); ?>
         <?php if ($message !== null && $message !== ''): ?>
             <div class="alert alert-<?= $escape($type) ?> alert-dismissible fade show" role="alert">
-                <?= $escape($message) ?>
+                <?= $escape($formatMessage($message)) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
             </div>
         <?php endif; ?>
