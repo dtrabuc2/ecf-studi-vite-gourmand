@@ -27,10 +27,20 @@ final class PublicController extends BaseController
             $reviews ??= [];
         }
 
+        $menus ??= [];
+        $reviews ??= [];
+
+        $menuImages = [];
+        try {
+            $menuImages = $this->menuService->getMenusImages($menus);
+        } catch (\Throwable $exception) {
+            error_log('Impossible de charger les images des menus : ' . $exception->getMessage());
+        }
+
         $this->render('home/index', [
-            'reviews' => $reviews ?? [],
-            'menus' => $menus ?? [],
-            'menuImages' => $this->menuService->getMenusImages($menus ?? []),
+            'reviews' => $reviews,
+            'menus' => $menus,
+            'menuImages' => $menuImages,
             'user' => Session::id(),
         ]);
     }
