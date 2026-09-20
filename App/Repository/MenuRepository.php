@@ -29,24 +29,49 @@ class MenuRepository
         $params = [];
 
         if (isset($filters['max_price']) && $filters['max_price'] !== '') {
+            $maxPrice = filter_var($filters['max_price'], FILTER_VALIDATE_FLOAT);
+            if ($maxPrice === false || $maxPrice < 0) {
+                throw new \InvalidArgumentException('Le prix maximum est invalide.');
+            }
             $query .= ' AND base_price <= :max_price';
-            $params['max_price'] = (float) $filters['max_price'];
+            $params['max_price'] = $maxPrice;
         }
+
         if (isset($filters['min_price']) && $filters['min_price'] !== '') {
+            $minPrice = filter_var($filters['min_price'], FILTER_VALIDATE_FLOAT);
+            if ($minPrice === false || $minPrice < 0) {
+                throw new \InvalidArgumentException('Le prix minimum est invalide.');
+            }
             $query .= ' AND base_price >= :min_price';
-            $params['min_price'] = (float) $filters['min_price'];
+            $params['min_price'] = $minPrice;
         }
+
         if (!empty($filters['theme'])) {
             $query .= ' AND theme = :theme';
-            $params['theme'] = $filters['theme'];
+            $params['theme'] = trim((string) $filters['theme']);
         }
+
         if (!empty($filters['dietary_regime'])) {
+            $allowedRegimes = ['classic', 'vegetarian', 'vegan', 'other'];
+            $regime = trim((string) $filters['dietary_regime']);
+            if (!in_array($regime, $allowedRegimes, true)) {
+                throw new \InvalidArgumentException('Le régime alimentaire est invalide.');
+            }
             $query .= ' AND dietary_regime = :dietary_regime';
-            $params['dietary_regime'] = $filters['dietary_regime'];
+            $params['dietary_regime'] = $regime;
         }
+
         if (isset($filters['min_people']) && $filters['min_people'] !== '') {
+            $minPeople = filter_var($filters['min_people'], FILTER_VALIDATE_INT);
+            if ($minPeople === false || $minPeople < 1) {
+                throw new \InvalidArgumentException('Le nombre de personnes est invalide.');
+            }
             $query .= ' AND min_people <= :min_people';
-            $params['min_people'] = (int) $filters['min_people'];
+            $params['min_people'] = $minPeople;
+        }
+
+        if (isset($params['min_price'], $params['max_price']) && $params['min_price'] > $params['max_price']) {
+            throw new \InvalidArgumentException('La fourchette de prix est invalide.');
         }
 
         $query .= ' ORDER BY id DESC';
