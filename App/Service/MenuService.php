@@ -1,176 +1,237 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Service;
 
 use App\Entity\Menu;
 use App\Repository\MenuRepository;
+use App\Repository\MongoMenuImageRepository;
 
-class MenuService
+final class MenuService
 {
-    private MenuRepository $menuRepository;
-    private \App\Service\CacheService $cacheService;
-
-    public function __construct(MenuRepository $menuRepository, ?\App\Service\CacheService $cacheService = null)
-    {
-        $this->menuRepository = $menuRepository;
-        // Try to use RedisCacheService first, fall back to basic CacheService
-        $this->cacheService = $cacheService ?? new \App\Service\CacheService();
+    public function __construct(
+        private readonly MenuRepository $menuRepository,
+        private readonly MongoMenuImageRepository $imageRepository,
+        private readonly CacheService $cacheService
+    ) {
     }
 
     public function getAllMenus(): array
     {
-        // Try to get from cache first
         $cached = $this->cacheService->get('menus_all');
-        if ($cached !== null) {
+
+        if (is_array($cached)) {
             return $cached;
         }
-        
-        // If not in cache, get from database
+
         $menus = $this->menuRepository->findAll();
-        
-        // Store in cache for 1 hour (menus don't change frequently)
-        $this->cacheService->set('menus_all', $menus, 3600);
-        
+        $this->cacheService->set('menus_all', $menus, 300);
+
         return $menus;
     }
 
     public function getMenuById(int $id): ?Menu
     {
-        // Try to get from cache first
-        $cached = $this->cacheService->get("menu_{$id}");
-        if ($cached !== null) {
+        if ($id < 1) {
+            return null;
+        }
+
+        $key = 'menu_' . $id;
+        $cached = $this->cacheService->get($key);
+
+        if ($cached instanceof Menu) {
             return $cached;
         }
-        
-        // If not in cache, get from database
+
         $menu = $this->menuRepository->findById($id);
-        
-        // Store in cache for 1 hour
+
         if ($menu !== null) {
-            $this->cacheService->set("menu_{$id}", $menu, 3600);
+            $this->cacheService->set($key, $menu, 300);
         }
-        
+
         return $menu;
+    }
+
+    public function getMenuDetails(int $id): array
+    {
+        if ($id < 1) {
+            return ['dishes' => [], 'allergens' => []];
+        }
+
+        return $this->menuRepository->findDetails($id);
+    }
+
+    public function getMenuImages(int $id): array
+    {
+        return $id > 0
+            ? $this->imageRepository->findByMenuId($id)
+            : [];
+    }
+
+    public function getMenusImages(array $menus): array
+    {
+        $ids = array_map(
+            static fn (Menu $menu): int => $menu->getId(),
+            $menus
+        );
+
+        return $this->imageRepository->findByMenuIds($ids);
     }
 
     public function filterMenus(array $filters): array
     {
-        // Create a cache key based on the filters
-        $cacheKey = 'menus_filtered_' . md5(json_encode($filters));
-        
-        // Try to get from cache first
-        $cached = $this->cacheService->get($cacheKey);
-        if ($cached !== null) {
-            return $cached;
+        $normalized = [];
+
+        foreach (
+            ['max_price', 'min_price', 'theme', 'dietary_regime', 'min_people']
+            as $key
+        ) {
+            if (
+                isset($filters[$key])
+                && $filters[$key] !== ''
+            ) {
+                $normalized[$key] = $filters[$key];
+            }
         }
-        
-        // If not in cache, get from database
-        $menus = $this->menuRepository->filter($filters);
-        
-        // Store in cache for 30 minutes (filtered results might change more often)
-        $this->cacheService->set($cacheKey, $menus, 1800);
-        
-        return $menus;
+
+        return $this->menuRepository->filter($normalized);
     }
 
     public function createMenu(array $data): int
     {
-        // Validate data
-        if (empty($data['title'])) {
-            throw new \InvalidArgumentException('Le titre est requis');
-        }
-        if (empty($data['description'])) {
-            throw new \InvalidArgumentException('La description est requise');
-        }
-        if (empty($data['theme'])) {
-            throw new \InvalidArgumentException('Le thème est requis');
-        }
-        if (empty($data['min_people']) || !is_numeric($data['min_people']) || (int)$data['min_people'] < 1) {
-            throw new \InvalidArgumentException('Le nombre minimum de personnes doit être un nombre positif');
-        }
-        if (empty($data['base_price']) || !is_numeric($data['base_price']) || (float)$data['base_price'] < 0) {
-            throw new \InvalidArgumentException('Le prix de base doit être un nombre positif');
-        }
-        if (empty($data['conditions'])) {
-            throw new \InvalidArgumentException('Les conditions sont requises');
-        }
-        if (!isset($data['available_stock']) || !is_numeric($data['available_stock']) || (int)$data['available_stock'] < 0) {
-            throw new \InvalidArgumentException('Le stock disponible doit être un nombre positif ou zéro');
-        }
-
-        $menu = new Menu();
-        $menu->setTitle($data['title']);
-        $menu->setDescription($data['description']);
-        $menu->setTheme($data['theme']);
-        $menu->setDietaryRegime($data['dietary_regime'] ?? 'classic');
-        $menu->setMinPeople((int)$data['min_people']);
-        $menu->setBasePrice((float)$data['base_price']);
-        $menu->setConditions($data['conditions']);
-        $menu->setAvailableStock((int)$data['available_stock']);
-        // createdAt and updatedAt will be set by the repository (default to current timestamp)
-
+        $menu = $this->hydrateInput($data);
         $id = $this->menuRepository->create($menu);
-        
-        // Clear related cache entries since data has changed
-        $this->clearMenuCache();
-        
+        $this->clearCache($id);
+
         return $id;
     }
 
     public function updateMenu(int $id, array $data): void
     {
-        // Validate data (same as create but allow partial updates)
         $menu = $this->menuRepository->findById($id);
+
         if ($menu === null) {
-            throw new \InvalidArgumentException('Menu non trouvé');
+            throw new \InvalidArgumentException('Menu non trouvé.');
         }
 
-        if (isset($data['title']) && $data['title'] !== '') {
-            $menu->setTitle($data['title']);
+        if (isset($data['title']) && trim((string) $data['title']) !== '') {
+            $menu->setTitle(trim((string) $data['title']));
         }
-        if (isset($data['description']) && $data['description'] !== '') {
-            $menu->setDescription($data['description']);
+
+        if (isset($data['description']) && trim((string) $data['description']) !== '') {
+            $menu->setDescription(trim((string) $data['description']));
         }
-        if (isset($data['theme']) && $data['theme'] !== '') {
-            $menu->setTheme($data['theme']);
+
+        if (isset($data['theme']) && trim((string) $data['theme']) !== '') {
+            $menu->setTheme(trim((string) $data['theme']));
         }
-        if (isset($data['dietary_regime']) && $data['dietary_regime'] !== '') {
-            $menu->setDietaryRegime($data['dietary_regime']);
+
+        if (isset($data['dietary_regime']) && trim((string) $data['dietary_regime']) !== '') {
+            $menu->setDietaryRegime((string) $data['dietary_regime']);
         }
-        if (isset($data['min_people']) && is_numeric($data['min_people']) && (int)$data['min_people'] >= 1) {
-            $menu->setMinPeople((int)$data['min_people']);
+
+        if (isset($data['min_people']) && is_numeric($data['min_people']) && (int) $data['min_people'] > 0) {
+            $menu->setMinPeople((int) $data['min_people']);
         }
-        if (isset($data['base_price']) && is_numeric($data['base_price']) && (float)$data['base_price'] >= 0) {
-            $menu->setBasePrice((float)$data['base_price']);
+
+        if (isset($data['base_price']) && is_numeric($data['base_price']) && (float) $data['base_price'] >= 0) {
+            $menu->setBasePrice((float) $data['base_price']);
         }
-        if (isset($data['conditions']) && $data['conditions'] !== '') {
-            $menu->setConditions($data['conditions']);
+
+        if (isset($data['conditions']) && trim((string) $data['conditions']) !== '') {
+            $menu->setConditions(trim((string) $data['conditions']));
         }
-        if (isset($data['available_stock']) && is_numeric($data['available_stock']) && (int)$data['available_stock'] >= 0) {
-            $menu->setAvailableStock((int)$data['available_stock']);
+
+        if (isset($data['available_stock']) && is_numeric($data['available_stock']) && (int) $data['available_stock'] >= 0) {
+            $menu->setAvailableStock((int) $data['available_stock']);
         }
 
         $this->menuRepository->update($menu);
-        
-        // Clear related cache entries since data has changed
-        $this->clearMenuCache();
+        $this->clearCache($id);
     }
 
     public function deleteMenu(int $id): void
     {
         $this->menuRepository->delete($id);
-        
-        // Clear related cache entries since data has changed
-        $this->clearMenuCache();
+        $this->clearCache($id);
     }
 
-    /**
-     * Clear menu-related cache entries
-     */
-    private function clearMenuCache(): void
+    private function hydrateInput(array $data): Menu
+    {
+        $title = trim((string) ($data['title'] ?? ''));
+        $description = trim((string) ($data['description'] ?? ''));
+        $theme = trim((string) ($data['theme'] ?? ''));
+        $conditions = trim((string) ($data['conditions'] ?? ''));
+
+        if ($title === '') {
+            throw new \InvalidArgumentException('Le titre est requis.');
+        }
+
+        if ($description === '') {
+            throw new \InvalidArgumentException('La description est requise.');
+        }
+
+        if ($theme === '') {
+            throw new \InvalidArgumentException('Le thème est requis.');
+        }
+
+        if ($conditions === '') {
+            throw new \InvalidArgumentException('Les conditions sont requises.');
+        }
+
+        $minPeople = filter_var(
+            $data['min_people'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
+
+        $stock = filter_var(
+            $data['available_stock'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 0]]
+        );
+
+        $price = filter_var(
+            $data['base_price'] ?? null,
+            FILTER_VALIDATE_FLOAT
+        );
+
+        if ($minPeople === false) {
+            throw new \InvalidArgumentException(
+                'Le nombre minimum de personnes est invalide.'
+            );
+        }
+
+        if ($stock === false) {
+            throw new \InvalidArgumentException(
+                'Le stock disponible est invalide.'
+            );
+        }
+
+        if ($price === false || $price < 0) {
+            throw new \InvalidArgumentException(
+                'Le prix de base est invalide.'
+            );
+        }
+
+        $menu = new Menu();
+        $menu->setTitle($title);
+        $menu->setDescription($description);
+        $menu->setTheme($theme);
+        $menu->setDietaryRegime(
+            (string) ($data['dietary_regime'] ?? 'classic')
+        );
+        $menu->setMinPeople($minPeople);
+        $menu->setBasePrice($price);
+        $menu->setConditions($conditions);
+        $menu->setAvailableStock($stock);
+
+        return $menu;
+    }
+
+    private function clearCache(int $id): void
     {
         $this->cacheService->delete('menus_all');
-        // Note: For a more sophisticated implementation with patterned deletion,
-        // we would need to iterate through cache directory and delete matching files
-        // For simplicity, we're clearing the main caches and letting filtered caches expire
+        $this->cacheService->delete('menu_' . $id);
     }
 }
