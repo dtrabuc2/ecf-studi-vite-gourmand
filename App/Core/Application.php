@@ -57,12 +57,16 @@ final class Application
             return;
         }
 
-        foreach (
-            file(
-                $envFile,
-                FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES
-            ) as $line
-        ) {
+        $lines = file(
+            $envFile,
+            FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES
+        );
+
+        if ($lines === false) {
+            return;
+        }
+
+        foreach ($lines as $line) {
             $line = trim($line);
 
             if (
@@ -120,9 +124,7 @@ final class Application
         ini_set('session.use_strict_mode', '1');
 
         if (!session_start()) {
-            throw new RuntimeException(
-                'Impossible de démarrer la session.'
-            );
+            throw new RuntimeException('Impossible de démarrer la session.');
         }
     }
 }
