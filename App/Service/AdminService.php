@@ -43,6 +43,21 @@ class AdminService
         return $this->userRepository->create($userData);
     }
 
+    public function getCustomers(?string $search = null, ?bool $active = null): array
+    {
+        return $this->userRepository->findCustomers($search, $active);
+    }
+
+    public function disableCustomer(int $id): void
+    {
+        $this->userRepository->setCustomerActive($id, false);
+    }
+
+    public function enableCustomer(int $id): void
+    {
+        $this->userRepository->setCustomerActive($id, true);
+    }
+
     public function getEmployees(): array
     {
         $pdo = Database::getPDO();
