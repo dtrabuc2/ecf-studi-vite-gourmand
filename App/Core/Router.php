@@ -4,24 +4,11 @@ declare(strict_types=1);
 namespace App\Core;
 
 use ReflectionMethod;
+use RuntimeException;
 
 final class Router
 {
     private array $routes = [];
-
-    public function addRoute(
-        string $method,
-        string $uri,
-        string $controllerAction,
-        array $middlewares = []
-    ): void {
-        $this->routes[] = [
-            'method' => strtoupper($method),
-            'uri' => $uri,
-            'action' => $controllerAction,
-            'middlewares' => $middlewares,
-        ];
-    }
 
     public function setRoutes(array $routes): void
     {
@@ -29,10 +16,10 @@ final class Router
 
         foreach ($routes as $route) {
             $this->addRoute(
-                $route[0],
-                $route[1],
-                $route[2],
-                $route[3] ?? []
+                (string) ($route[0] ?? 'GET'),
+                (string) ($route[1] ?? '/'),
+                (string) ($route[2] ?? ''),
+                array_values($route[3] ?? [])
             );
         }
 
@@ -43,10 +30,26 @@ final class Router
         );
     }
 
+    public function addRoute(
+        string $method,
+        string $uri,
+        string $action,
+        array $middlewares = []
+    ): void {
+        $this->routes[] = [
+            'method' => strtoupper($method),
+            'uri' => $this->normalizePath($uri),
+            'action' => $action,
+            'middlewares' => $middlewares,
+        ];
+    }
+
     public function dispatch(): void
     {
-        $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-        $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        $path = $this->normalizePath(
+            (string) (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/')
+        );
+        $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
         foreach ($this->routes as $route) {
             if ($route['method'] !== $method) {
@@ -59,16 +62,12 @@ final class Router
                 continue;
             }
 
-            foreach ($route['middlewares'] as $middleware) {
-                $this->runMiddleware($middleware);
-            }
-
+            $this->runMiddlewareStack($route['middlewares']);
             $this->runAction($route['action'], $parameters);
             return;
         }
 
-        http_response_code(404);
-        echo 'Page introuvable.';
+        Response::json(['success' => false, 'error' => 'Page introuvable.'], 404);
     }
 
     private function match(string $routeUri, string $requestPath): ?array
@@ -88,7 +87,7 @@ final class Router
             return null;
         }
 
-        if (!preg_match('#^' . $pattern . '$#', $requestPath, $matches)) {
+        if (!preg_match('#^' . $pattern . '$#u', $requestPath, $matches)) {
             return null;
         }
 
@@ -96,33 +95,39 @@ final class Router
 
         $parameters = [];
         foreach ($names as $index => $name) {
-            $parameters[$name] = $matches[$index] ?? null;
+            $parameters[$name] = rawurldecode((string) ($matches[$index] ?? ''));
         }
 
         return $parameters;
     }
 
-    private function runMiddleware(string $middleware): void
+    private function runMiddlewareStack(array $middlewares): void
     {
-        $class = str_starts_with($middleware, 'App\\')
-            ? $middleware
-            : 'App\\Middleware\\' . $middleware;
+        foreach ($middlewares as $middleware) {
+            $class = str_starts_with($middleware, 'App\\')
+                ? $middleware
+                : 'App\\Middleware\\' . $middleware;
 
-        if (!class_exists($class)) {
-            throw new \RuntimeException('Middleware introuvable : ' . $class);
+            if (!class_exists($class)) {
+                throw new RuntimeException('Middleware introuvable : ' . $class);
+            }
+
+            $instance = new $class();
+
+            if (!is_callable($instance)) {
+                throw new RuntimeException('Middleware non appelable : ' . $class);
+            }
+
+            $instance();
         }
-
-        $instance = new $class();
-
-        if (!is_callable($instance)) {
-            throw new \RuntimeException('Middleware non appelable : ' . $class);
-        }
-
-        $instance();
     }
 
     private function runAction(string $action, array $parameters): void
     {
+        if (!str_contains($action, '@')) {
+            throw new RuntimeException('Action de route invalide : ' . $action);
+        }
+
         [$controller, $method] = explode('@', $action, 2);
 
         $class = str_starts_with($controller, 'App\\')
@@ -130,13 +135,13 @@ final class Router
             : 'App\\Controller\\' . $controller;
 
         if (!class_exists($class)) {
-            throw new \RuntimeException('Contrôleur introuvable : ' . $class);
+            throw new RuntimeException('Contrôleur introuvable : ' . $class);
         }
 
         $instance = new $class();
 
         if (!method_exists($instance, $method)) {
-            throw new \RuntimeException('Action introuvable : ' . $class . '@' . $method);
+            throw new RuntimeException('Action introuvable : ' . $class . '@' . $method);
         }
 
         $reflection = new ReflectionMethod($instance, $method);
@@ -158,7 +163,9 @@ final class Router
                 continue;
             }
 
-            $arguments[] = null;
+            throw new RuntimeException(
+                sprintf('Paramètre de route manquant : %s', $name)
+            );
         }
 
         $reflection->invokeArgs($instance, $arguments);
@@ -167,10 +174,18 @@ final class Router
     private function castParameter(string $value, ?string $type): mixed
     {
         return match ($type) {
-            'int' => (int) $value,
-            'float' => (float) $value,
-            'bool' => filter_var($value, FILTER_VALIDATE_BOOL),
+            'int' => filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE),
+            'float' => filter_var($value, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE),
+            'bool' => filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE),
             default => $value,
         };
+    }
+
+    private function normalizePath(string $path): string
+    {
+        $path = '/' . ltrim($path, '/');
+        $path = rtrim($path, '/');
+
+        return $path === '' ? '/' : $path;
     }
 }
