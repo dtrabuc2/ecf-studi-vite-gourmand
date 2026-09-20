@@ -185,6 +185,26 @@ CREATE TABLE IF NOT EXISTS `quote_requests` (
 ) ENGINE=InnoDB;
 
 
+CREATE TABLE IF NOT EXISTS `user_notifications` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id` INT UNSIGNED NOT NULL,
+    `order_id` INT UNSIGNED NULL,
+    `quote_request_id` INT UNSIGNED NULL,
+    `type` VARCHAR(40) NOT NULL,
+    `title` VARCHAR(150) NOT NULL,
+    `message` TEXT NOT NULL,
+    `is_read` TINYINT(1) NOT NULL DEFAULT 0,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_notifications_user_read_date` (`user_id`, `is_read`, `created_at`),
+    CONSTRAINT `fk_notifications_user`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_notifications_order`
+        FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE SET NULL,
+    CONSTRAINT `fk_notifications_quote`
+        FOREIGN KEY (`quote_request_id`) REFERENCES `quote_requests` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
 -- ================================================================
 -- Données de départ du catalogue
 -- Les menus, plats, régimes, thèmes et relations restent relationnels.
