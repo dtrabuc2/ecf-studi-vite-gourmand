@@ -8,12 +8,17 @@ use App\Core\Session;
 
 final class Admin
 {
+    public function __construct(
+        private readonly Auth $auth
+    ) {
+    }
+
     public function __invoke(): void
     {
-        (new Auth())();
+        $this->auth();
 
         if (Session::role() !== 'admin') {
-            Response::redirect('/login');
+            Response::redirect('/admin/login');
         }
     }
 }
