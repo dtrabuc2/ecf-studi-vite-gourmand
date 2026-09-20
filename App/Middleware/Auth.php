@@ -17,9 +17,10 @@ final class Auth
             Response::redirect('/login');
         }
 
-        $user = (new UserRepository())->findById($userId);
+        $repository = new UserRepository();
+        $user = $repository->findById($userId);
 
-        if ($user === null || !(new UserRepository())->isActive($userId)) {
+        if ($user === null || !$repository->isActive($userId)) {
             Session::logout();
             Response::redirect('/login');
         }
