@@ -1,16 +1,26 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Middleware;
 
-class Admin
+use App\Core\Session;
+use App\Repository\UserRepository;
+
+final class Admin
 {
     public function __invoke(): void
     {
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
+        $userId = Session::id();
+        $role = $_SESSION['role'] ?? '';
+
+        if ($userId === null || $role !== 'admin') {
+            header('Location: /login');
+            exit;
         }
 
-        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
-            header('Location: /login');
+        if (!(new UserRepository())->isActive($userId)) {
+            Session::logout();
+            header('Location: /admin/login');
             exit;
         }
     }
