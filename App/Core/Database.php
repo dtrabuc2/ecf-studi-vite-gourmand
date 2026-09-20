@@ -42,11 +42,7 @@ final class Database
                 ]
             );
         } catch (PDOException $exception) {
-            throw new RuntimeException(
-                'Connexion MariaDB impossible.',
-                0,
-                $exception
-            );
+            throw new RuntimeException('Connexion MariaDB impossible.', 0, $exception);
         }
 
         return self::$pdo;
@@ -62,11 +58,12 @@ final class Database
         $uri = trim((string) ($config['uri'] ?? ''));
 
         if ($uri === '') {
-            $host = $config['host'] ?? '127.0.0.1';
+            $host = (string) ($config['host'] ?? '127.0.0.1');
             $port = (int) ($config['port'] ?? 27017);
             $username = (string) ($config['username'] ?? '');
             $password = (string) ($config['password'] ?? '');
             $authSource = (string) ($config['auth_source'] ?? 'admin');
+            $database = (string) ($config['database'] ?? 'viteetgourmand');
 
             if ($username !== '') {
                 $uri = sprintf(
@@ -75,7 +72,7 @@ final class Database
                     rawurlencode($password),
                     $host,
                     $port,
-                    $config['database'] ?? 'viteetgourmand',
+                    $database,
                     rawurlencode($authSource)
                 );
             } else {
@@ -86,11 +83,7 @@ final class Database
         try {
             self::$mongoClient = new MongoClient($uri);
         } catch (\Throwable $exception) {
-            throw new RuntimeException(
-                'Connexion MongoDB impossible.',
-                0,
-                $exception
-            );
+            throw new RuntimeException('Connexion MongoDB impossible.', 0, $exception);
         }
 
         return self::$mongoClient;
@@ -98,11 +91,10 @@ final class Database
 
     public static function mongoDatabase(): MongoDatabase
     {
-        $name = (string) config('database.mongodb.database', 'viteetgourmand');
-
-        return self::mongo()->getDatabase($name);
+        return self::mongo()->getDatabase(
+            (string) config('database.mongodb.database', 'viteetgourmand')
+        );
     }
-}
 
     public static function getPDO(): PDO
     {
@@ -118,3 +110,4 @@ final class Database
     {
         return self::mongoDatabase();
     }
+}
