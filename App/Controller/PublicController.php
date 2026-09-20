@@ -25,13 +25,19 @@ class PublicController extends BaseController
             error_log('Impossible de charger les avis : ' . $exception->getMessage());
             $reviews = [];
         }
+
         try {
             $menus = array_slice($this->menuService->getAllMenus(), 0, 3);
         } catch (\Throwable $exception) {
             error_log('Impossible de charger les menus : ' . $exception->getMessage());
             $menus = [];
         }
-        $this->render('home/index', ['reviews' => $reviews, 'menus' => $menus]);
+
+        $this->render('home/index', [
+            'reviews' => $reviews,
+            'menus' => $menus,
+            'menuDetails' => $this->loadMenuDetails($menus),
+        ]);
     }
 
     public function menusPage(): void
@@ -43,7 +49,10 @@ class PublicController extends BaseController
             $menus = [];
         }
 
-        $this->render('home/menus', ['menus' => $menus]);
+        $this->render('home/menus', [
+            'menus' => $menus,
+            'menuDetails' => $this->loadMenuDetails($menus),
+        ]);
     }
 
     public function menuDetail(int $id): void
@@ -54,7 +63,13 @@ class PublicController extends BaseController
             $this->render('home/menu_detail', ['menu' => null]);
             return;
         }
-        $details = (new MenuRepository())->findDetails($id);
+        try {
+            $details = (new MenuRepository())->findDetails($id);
+        } catch (\Throwable $exception) {
+            error_log('Impossible de charger les détails du menu : ' . $exception->getMessage());
+            $details = ['images' => [], 'dishes' => [], 'allergens' => []];
+        }
+
         $this->render('home/menu_detail', ['menu' => $menu, 'details' => $details]);
     }
 
@@ -72,9 +87,21 @@ class PublicController extends BaseController
     {
         if ($id <= 0) { http_response_code(400); echo $this->jsonError('Identifiant invalide'); return; }
         $menu = $this->menuService->getMenuById($id);
-        if ($menu === null) { http_response_code(404); echo $this->jsonError('Menu introuvable'); return; }
+        if ($menu === null) {
+            http_response_code(404);
+            echo $this->jsonError('Menu introuvable');
+            return;
+        }
+
+        try {
+            $details = (new MenuRepository())->findDetails($id);
+        } catch (\Throwable $exception) {
+            error_log('Erreur détails menu API : ' . $exception->getMessage());
+            $details = ['images' => [], 'dishes' => [], 'allergens' => []];
+        }
+
         header('Content-Type: application/json');
-        echo $this->jsonSuccess($this->menuToArray($menu));
+        echo $this->jsonSuccess($this->menuToArray($menu, $details));
     }
 
     public function filterMenus(): void
@@ -103,8 +130,38 @@ class PublicController extends BaseController
 
     private function jsonMenus(array $menus): void
     {
+        $repository = new MenuRepository();
+        $payload = [];
+
+        foreach ($menus as $menu) {
+            try {
+                $details = $repository->findDetails($menu->getId());
+                $payload[] = $this->menuToArray($menu, $details);
+            } catch (\Throwable $exception) {
+                error_log('Erreur détails menu #' . $menu->getId() . ' : ' . $exception->getMessage());
+                $payload[] = $this->menuToArray($menu);
+            }
+        }
+
         header('Content-Type: application/json');
-        echo $this->jsonSuccess(array_map([$this, 'menuToArray'], $menus));
+        echo $this->jsonSuccess($payload);
+    }
+
+    private function loadMenuDetails(array $menus): array
+    {
+        $repository = new MenuRepository();
+        $details = [];
+
+        foreach ($menus as $menu) {
+            try {
+                $details[$menu->getId()] = $repository->findDetails($menu->getId());
+            } catch (\Throwable $exception) {
+                error_log('Erreur détails menu #' . $menu->getId() . ' : ' . $exception->getMessage());
+                $details[$menu->getId()] = ['images' => [], 'dishes' => [], 'allergens' => []];
+            }
+        }
+
+        return $details;
     }
 
     public function legal(): void
