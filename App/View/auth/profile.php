@@ -1,6 +1,6 @@
 <?php
-$errors = AppCoreSession::pullFlash('profile_errors') ?? [];
-$oldInput = AppCoreSession::pullFlash('profile_old_input') ?? [];
+$errors = \App\Core\Session::pullFlash('profile_errors') ?? [];
+$oldInput = \App\Core\Session::pullFlash('profile_old_input') ?? [];
 $value = static fn (string $key): string => (string) ($oldInput[$key] ?? $user[$key] ?? '');
 ?>
 <main class="py-5">
