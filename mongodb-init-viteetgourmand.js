@@ -1,5 +1,6 @@
 // Initialisation MongoDB Vite & Gourmand
-// Les URLs d'images viennent de l'ancien frontend et sont conservées dans MongoDB.
+// Les images des menus sont stockées exclusivement dans MongoDB.
+// MariaDB ne contient aucune table menu_images.
 
 const dbName = "viteetgourmand";
 const database = db.getSiblingDB(dbName);
@@ -16,6 +17,8 @@ if (!database.getCollectionNames().includes("menu_images")) {
     database.createCollection("menu_images");
 }
 
+// Images récupérées depuis l'ancien frontend.
+// Elles sont liées aux vrais identifiants des menus MariaDB.
 const menuImages = [
     {
         menuId: 1,
@@ -37,11 +40,14 @@ const menuImages = [
     }
 ];
 
+// Réinitialise uniquement les images gérées par ce script.
 database.menu_images.deleteMany({
     menuId: { $in: menuImages.map((image) => image.menuId) }
 });
 
-database.menu_images.insertMany(menuImages);
+if (menuImages.length > 0) {
+    database.menu_images.insertMany(menuImages);
+}
 
 database.comments.createIndex(
     { isValidated: 1, createdAt: -1 },
