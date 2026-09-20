@@ -203,6 +203,26 @@ INSERT INTO `opening_hours` (`day_of_week`, `is_open`, `opening_time`, `closing_
     (7, 1, '09:00:00', '12:00:00')
 ON DUPLICATE KEY UPDATE `is_open` = VALUES(`is_open`), `opening_time` = VALUES(`opening_time`), `closing_time` = VALUES(`closing_time`);
 
--- Compte administrateur de référence
--- Créer le compte avec un hash produit par password_hash().
--- Aucun mot de passe n'est stocké en clair dans le dépôt.
+-- Compte administrateur de démonstration local
+-- Identifiant : admin@viteetgourmand.local
+-- Mot de passe : Admin123456789
+-- Le mot de passe est stocké sous forme de hash.
+INSERT INTO `users`
+    (`email`, `password`, `role`, `first_name`, `last_name`, `phone`, `gsm`, `address`, `is_active`)
+VALUES
+    ('admin@viteetgourmand.local',
+     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llCqYV3YpO8Y8m9qP7H2y',
+     'admin',
+     'Admin',
+     'Vite & Gourmand',
+     '0500000000',
+     '0600000000',
+     'Adresse administrative',
+     1)
+ON DUPLICATE KEY UPDATE
+    `role` = 'admin',
+    `is_active` = 1,
+    `updated_at` = CURRENT_TIMESTAMP;
+
+-- Les employés sont créés et gérés depuis l'espace administrateur.
+-- Les clients peuvent créer leur compte via /register.
