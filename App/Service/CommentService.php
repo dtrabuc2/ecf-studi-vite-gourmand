@@ -9,7 +9,7 @@ class CommentService
         private CommentRepository $commentRepository,
         private ?CacheService $cacheService = null
     ) {
-        $this->cacheService ??= new RedisCacheService();
+        $this->cacheService ??= new CacheService();
     }
 
     public function getPendingComments(): array
