@@ -220,8 +220,11 @@ VALUES
      'Adresse administrative',
      1)
 ON DUPLICATE KEY UPDATE
+    `password` = VALUES(`password`),
     `role` = 'admin',
     `is_active` = 1,
+    `first_name` = VALUES(`first_name`),
+    `last_name` = VALUES(`last_name`),
     `updated_at` = CURRENT_TIMESTAMP;
 
 -- Les employés sont créés et gérés depuis l'espace administrateur.
