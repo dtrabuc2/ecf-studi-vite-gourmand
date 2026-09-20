@@ -5,12 +5,12 @@ class Comment
 {
     private int $id;
     private int $userId;
-    private ?int $menuId; // nullable, can be a general comment or linked to a menu
+    private ?int $menuId = null; // nullable, can be a general comment or linked to a menu
     private int $rating; // 1-5
     private string $comment;
     private bool $isValidated; // for moderation
-    private ?\DateTimeInterface $createdAt;
-    private ?\DateTimeInterface $updatedAt;
+    private ?\DateTimeInterface $createdAt = null;
+    private ?\DateTimeInterface $updatedAt = null;
 
     // Getters and setters
 

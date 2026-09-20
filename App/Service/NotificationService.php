@@ -5,10 +5,10 @@ namespace App\Service;
 
 use App\Repository\NotificationRepository;
 
-final class NotificationService
+final readonly class NotificationService
 {
     public function __construct(
-        private readonly NotificationRepository $notificationRepository
+        private NotificationRepository $notificationRepository
     ) {
     }
 

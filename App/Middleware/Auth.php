@@ -7,10 +7,10 @@ use App\Core\Response;
 use App\Core\Session;
 use App\Repository\UserRepository;
 
-final class Auth
+final readonly class Auth
 {
     public function __construct(
-        private readonly UserRepository $repository
+        private UserRepository $repository
     ) {
     }
 

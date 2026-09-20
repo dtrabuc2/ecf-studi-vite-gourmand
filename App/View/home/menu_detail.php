@@ -13,7 +13,7 @@
                 <a href="/menus">Retour au catalogue</a>
             </div>
         <?php else: ?>
-            <?php $details = $details ?? ['dishes' => [], 'allergens' => []]; ?>
+            <?php $details ??= ['dishes' => [], 'allergens' => []]; ?>
             <div class="row justify-content-center">
                 <div class="col-xl-10">
                     <article class="card border-0 shadow-sm overflow-hidden">

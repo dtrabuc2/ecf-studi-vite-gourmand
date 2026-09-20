@@ -6,11 +6,11 @@ namespace App\Service;
 use App\Core\Database;
 use InvalidArgumentException;
 
-final class QuoteService
+final readonly class QuoteService
 {
     public function __construct(
-        private readonly MailService $mailService,
-        private readonly NotificationService $notificationService
+        private MailService $mailService,
+        private NotificationService $notificationService
     ) {
     }
 

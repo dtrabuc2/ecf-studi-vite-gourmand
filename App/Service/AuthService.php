@@ -8,10 +8,10 @@ use App\Repository\UserRepository;
 use DateTimeImmutable;
 use InvalidArgumentException;
 
-final class AuthService
+final readonly class AuthService
 {
     public function __construct(
-        private readonly UserRepository $userRepository
+        private UserRepository $userRepository
     ) {
     }
 

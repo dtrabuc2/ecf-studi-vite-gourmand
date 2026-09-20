@@ -13,8 +13,7 @@ abstract class BaseController
     protected function render(string $template, array $data = []): void
     {
         try {
-            $data['openingHours'] = $data['openingHours']
-                ?? (new OpeningHoursRepository())->findAll();
+            $data['openingHours'] ??= (new OpeningHoursRepository())->findAll();
         } catch (\Throwable $exception) {
             error_log('Impossible de charger les horaires : ' . $exception->getMessage());
             $data['openingHours'] = [];

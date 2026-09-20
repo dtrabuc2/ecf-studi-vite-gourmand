@@ -5,11 +5,11 @@ namespace App\Service;
 
 use App\Repository\CommentRepository;
 
-final class CommentService
+final readonly class CommentService
 {
     public function __construct(
-        private readonly CommentRepository $commentRepository,
-        private readonly CacheService $cacheService
+        private CommentRepository $commentRepository,
+        private CacheService $cacheService
     ) {
     }
 

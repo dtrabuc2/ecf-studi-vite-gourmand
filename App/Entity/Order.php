@@ -13,16 +13,16 @@ class Order
     private string $deliveryAddress;
     private string $deliveryCity;
     private string $deliveryPostalCode;
-    private ?float $deliveryDistanceKm;
+    private ?float $deliveryDistanceKm = null;
     private float $deliveryCost;
     private float $menuPrice;
     private float $discountRate;
     private float $totalPrice;
     private string $status;
     private bool $equipmentLoaned = false;
-    private ?string $cancellationReason;
-    private ?\DateTimeInterface $createdAt;
-    private ?\DateTimeInterface $updatedAt;
+    private ?string $cancellationReason = null;
+    private ?\DateTimeInterface $createdAt = null;
+    private ?\DateTimeInterface $updatedAt = null;
 
     public function getId(): int { return $this->id; }
     public function setId(int $id): void { $this->id = $id; }

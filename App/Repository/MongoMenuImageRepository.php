@@ -19,7 +19,7 @@ final class MongoMenuImageRepository
     public function findByMenuIds(array $menuIds): array
     {
         $menuIds = array_values(array_unique(array_filter(
-            array_map('intval', $menuIds),
+            array_map(intval(...), $menuIds),
             static fn (int $id): bool => $id > 0
         )));
 

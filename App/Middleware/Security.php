@@ -5,7 +5,7 @@ use App\Service\CacheService;
 
 class Security
 {
-    private CacheService $cacheService;
+    private readonly CacheService $cacheService;
 
     private array $securityHeaders = [
         'X-Frame-Options' => 'DENY',
@@ -75,7 +75,7 @@ class Security
         $endpoint = null;
 
         foreach (array_keys($this->rateLimitRules) as $path) {
-            if ($uri === $path || strpos($uri, $path . '/') === 0) {
+            if ($uri === $path || str_starts_with($uri, $path . '/')) {
                 $endpoint = $path;
                 break;
             }

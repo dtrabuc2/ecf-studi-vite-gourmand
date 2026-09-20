@@ -70,7 +70,7 @@ final class PublicController extends BaseController
         ]);
     }
 
-    public function getMenus(): void
+    public function getMenus(): never
     {
         $this->json([
             'success' => true,
@@ -121,7 +121,7 @@ final class PublicController extends BaseController
     private function serializeMenus(array $menus): array
     {
         return array_map(
-            fn (Menu $menu): array => $this->serializeMenu($menu),
+            $this->serializeMenu(...),
             $menus
         );
     }

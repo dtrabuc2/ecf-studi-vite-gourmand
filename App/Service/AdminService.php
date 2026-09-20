@@ -9,13 +9,13 @@ use App\Repository\OrderRepository;
 use App\Repository\UserRepository;
 use InvalidArgumentException;
 
-final class AdminService
+final readonly class AdminService
 {
     public function __construct(
-        private readonly UserRepository $userRepository,
-        private readonly OrderRepository $orderRepository,
-        private readonly MenuRepository $menuRepository,
-        private readonly MenuStatisticsService $menuStatisticsService
+        private UserRepository $userRepository,
+        private OrderRepository $orderRepository,
+        private MenuRepository $menuRepository,
+        private MenuStatisticsService $menuStatisticsService
     ) {
     }
 

@@ -12,12 +12,12 @@ class User
     private string $phone;
     private string $gsm; // separate field for GSM as per ECF
     private string $address;
-    private ?\DateTimeInterface $createdAt;
-    private ?\DateTimeInterface $updatedAt;
+    private ?\DateTimeInterface $createdAt = null;
+    private ?\DateTimeInterface $updatedAt = null;
     private int $failedAttempts = 0;
-    private ?\DateTimeInterface $lockedUntil;
-    private ?string $resetTokenHash;
-    private ?\DateTimeInterface $resetTokenExpiresAt;
+    private ?\DateTimeInterface $lockedUntil = null;
+    private ?string $resetTokenHash = null;
+    private ?\DateTimeInterface $resetTokenExpiresAt = null;
 
     // Getters and setters
 

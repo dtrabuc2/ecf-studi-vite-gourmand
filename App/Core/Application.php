@@ -5,7 +5,7 @@ namespace App\Core;
 
 use RuntimeException;
 
-final class Application
+final readonly class Application
 {
     private Router $router;
     private Container $container;
@@ -78,7 +78,7 @@ final class Application
             }
 
             [$key, $value] = array_map(
-                'trim',
+                trim(...),
                 explode('=', $line, 2)
             );
 

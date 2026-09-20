@@ -6,10 +6,10 @@ namespace App\Middleware;
 use App\Core\Response;
 use App\Core\Session;
 
-final class Admin
+final readonly class Admin
 {
     public function __construct(
-        private readonly Auth $auth
+        private Auth $auth
     ) {
     }
 

@@ -3,11 +3,11 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-final class CacheService
+final readonly class CacheService
 {
     public function __construct(
-        private readonly ?string $cacheDir = null,
-        private readonly int $defaultTtl = 3600
+        private ?string $cacheDir = null,
+        private int $defaultTtl = 3600
     ) {
     }
 
@@ -49,7 +49,7 @@ final class CacheService
         mixed $value,
         ?int $ttl = null
     ): bool {
-        $ttl = $ttl ?? $this->defaultTtl;
+        $ttl ??= $this->defaultTtl;
         $directory = $this->directory();
 
         if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {

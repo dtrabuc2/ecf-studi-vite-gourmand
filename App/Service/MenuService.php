@@ -7,12 +7,12 @@ use App\Entity\Menu;
 use App\Repository\MenuRepository;
 use App\Repository\MongoMenuImageRepository;
 
-final class MenuService
+final readonly class MenuService
 {
     public function __construct(
-        private readonly MenuRepository $menuRepository,
-        private readonly MongoMenuImageRepository $imageRepository,
-        private readonly CacheService $cacheService
+        private MenuRepository $menuRepository,
+        private MongoMenuImageRepository $imageRepository,
+        private CacheService $cacheService
     ) {
     }
 

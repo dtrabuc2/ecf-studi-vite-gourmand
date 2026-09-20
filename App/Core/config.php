@@ -3,13 +3,10 @@ declare(strict_types=1);
 
 namespace App\Core;
 
-final class Config
+final readonly class Config
 {
-    private array $items;
-
-    public function __construct(array $items)
+    public function __construct(private array $items)
     {
-        $this->items = $items;
     }
 
     public function get(string $key, mixed $default = null): mixed

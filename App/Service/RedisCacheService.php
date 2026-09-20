@@ -96,9 +96,7 @@ class RedisCacheService extends CacheService
      */
     public function set(string $key, $value, ?int $ttl = null): bool
     {
-        if ($ttl === null) {
-            $ttl = $this->defaultTtl;
-        }
+        $ttl ??= $this->defaultTtl;
         
         $serialized = serialize($value);
         $success = false;

@@ -174,7 +174,7 @@ final class AuthController extends BaseController
         $this->redirect('/profile');
     }
 
-    public function logout(): void
+    public function logout(): never
     {
         Session::logout();
         $this->redirect('/login');

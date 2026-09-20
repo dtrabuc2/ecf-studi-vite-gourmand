@@ -120,7 +120,7 @@ final class Router
 
         foreach ($names as $index => $name) {
             $parameters[$name] = rawurldecode(
-                (string) ($matches[$index] ?? '')
+                $matches[$index] ?? ''
             );
         }
 

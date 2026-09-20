@@ -155,7 +155,7 @@ class MenuRepository
 
     private function hydrateMany(array $rows): array
     {
-        return array_map(fn(array $row): Menu => $this->hydrate($row), $rows);
+        return array_map($this->hydrate(...), $rows);
     }
 
     private function hydrate(array $row): Menu

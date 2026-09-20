@@ -20,7 +20,7 @@
 <div class="col-md-3"><label class="form-label">Code postal</label><input class="form-control" name="delivery_postal_code" value="<?= $escape($order->getDeliveryPostalCode()) ?>"></div>
 <div class="col-md-6"><label class="form-label">Adresse</label><input class="form-control" name="delivery_address" value="<?= $escape($order->getDeliveryAddress()) ?>" required></div>
 <div class="col-md-3"><label class="form-label">Ville</label><input class="form-control" name="delivery_city" value="<?= $escape($order->getDeliveryCity()) ?>" required></div>
-<div class="col-md-3"><label class="form-label">Distance (km)</label><input class="form-control" type="number" step="0.01" min="0" name="delivery_distance_km" value="<?= $order->getDeliveryDistanceKm() !== null ? $order->getDeliveryDistanceKm() : '' ?>"></div>
+<div class="col-md-3"><label class="form-label">Distance (km)</label><input class="form-control" type="number" step="0.01" min="0" name="delivery_distance_km" value="<?= $order->getDeliveryDistanceKm() ?? '' ?>"></div>
 <div class="col-12"><button class="btn btn-outline-primary btn-sm">Enregistrer les modifications</button></div>
 </form></details>
 <?php endif; ?>

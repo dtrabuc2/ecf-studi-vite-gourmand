@@ -3,13 +3,8 @@ namespace App\Service;
 
 class MailService
 {
-    private string $fromAddress;
-    private string $fromName;
-
-    public function __construct(string $fromAddress = 'noreply@viteetgourmand.com', string $fromName = 'Vite & Gourmand')
+    public function __construct(private readonly string $fromAddress = 'noreply@viteetgourmand.com', private readonly string $fromName = 'Vite & Gourmand')
     {
-        $this->fromAddress = $fromAddress;
-        $this->fromName = $fromName;
     }
 
     /**

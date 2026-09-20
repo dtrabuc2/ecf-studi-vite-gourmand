@@ -10,15 +10,15 @@ use App\Repository\OrderRepository;
 use App\Repository\UserRepository;
 use InvalidArgumentException;
 
-final class OrderService
+final readonly class OrderService
 {
     public function __construct(
-        private readonly OrderRepository $orderRepository,
-        private readonly UserRepository $userRepository,
-        private readonly MenuRepository $menuRepository,
-        private readonly MailService $mailService,
-        private readonly MenuStatisticsService $menuStatisticsService,
-        private readonly NotificationService $notificationService
+        private OrderRepository $orderRepository,
+        private UserRepository $userRepository,
+        private MenuRepository $menuRepository,
+        private MailService $mailService,
+        private MenuStatisticsService $menuStatisticsService,
+        private NotificationService $notificationService
     ) {
     }
 
@@ -191,7 +191,7 @@ final class OrderService
             throw new InvalidArgumentException('L’heure de livraison est invalide.');
         }
 
-        $timeParts = array_map('intval', explode(':', $deliveryTime));
+        $timeParts = array_map(intval(...), explode(':', $deliveryTime));
 
         if ($timeParts[0] > 23 || $timeParts[1] > 59) {
             throw new InvalidArgumentException('L’heure de livraison est invalide.');

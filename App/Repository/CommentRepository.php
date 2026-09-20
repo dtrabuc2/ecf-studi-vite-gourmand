@@ -9,10 +9,10 @@ use DateTimeImmutable;
 use MongoDB\BSON\ObjectId;
 use MongoDB\BSON\UTCDateTime;
 
-final class CommentRepository
+final readonly class CommentRepository
 {
     public function __construct(
-        private readonly UserRepository $userRepository
+        private UserRepository $userRepository
     ) {
     }
 

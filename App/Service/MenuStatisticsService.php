@@ -7,13 +7,8 @@ use App\Core\Database;
 
 class MenuStatisticsService
 {
-    private OrderRepository $orderRepository;
-    private MenuRepository $menuRepository;
-
-    public function __construct(OrderRepository $orderRepository, MenuRepository $menuRepository)
+    public function __construct(private readonly OrderRepository $orderRepository, private readonly MenuRepository $menuRepository)
     {
-        $this->orderRepository = $orderRepository;
-        $this->menuRepository = $menuRepository;
     }
 
     public function aggregateAndStore(?string $periodStart = null, ?string $periodEnd = null): void

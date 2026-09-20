@@ -181,7 +181,7 @@ final class AdminController extends BaseController
         $this->redirect('/admin/dishes');
     }
 
-    public function updateDish(int $id): void
+    public function updateDish(int $id): never
     {
         $this->dishRepository->update(
             $id,
@@ -200,7 +200,7 @@ final class AdminController extends BaseController
         try {
             $this->dishRepository->delete($id);
             Session::flash('admin_success', 'Plat supprimé.');
-        } catch (Throwable $exception) {
+        } catch (Throwable) {
             Session::flash('admin_error', 'Impossible de supprimer ce plat : il est peut-être encore associé à un menu.');
         }
 
@@ -214,7 +214,7 @@ final class AdminController extends BaseController
         ]);
     }
 
-    public function updateOpeningHours(): void
+    public function updateOpeningHours(): never
     {
         for ($day = 1; $day <= 7; $day++) {
             $isOpen = isset($_POST['is_open'][$day]);
@@ -247,13 +247,13 @@ final class AdminController extends BaseController
         ]);
     }
 
-    public function disableCustomer(int $id): void
+    public function disableCustomer(int $id): never
     {
         $this->adminService->disableCustomer($id);
         $this->redirect('/admin/customers');
     }
 
-    public function enableCustomer(int $id): void
+    public function enableCustomer(int $id): never
     {
         $this->adminService->enableCustomer($id);
         $this->redirect('/admin/customers');
@@ -289,13 +289,13 @@ final class AdminController extends BaseController
         ]);
     }
 
-    public function disableEmployee(int $id): void
+    public function disableEmployee(int $id): never
     {
         $this->adminService->disableEmployee($id);
         $this->json(['success' => true]);
     }
 
-    public function enableEmployee(int $id): void
+    public function enableEmployee(int $id): never
     {
         $this->adminService->enableEmployee($id);
         $this->json(['success' => true]);
@@ -349,13 +349,13 @@ final class AdminController extends BaseController
         ]);
     }
 
-    public function validateComment(string $id): void
+    public function validateComment(string $id): never
     {
         $this->commentService->validateComment($id);
         $this->json(['success' => true]);
     }
 
-    public function rejectComment(string $id): void
+    public function rejectComment(string $id): never
     {
         $this->commentService->rejectComment($id);
         $this->json(['success' => true]);
@@ -382,7 +382,7 @@ final class AdminController extends BaseController
         ]);
     }
 
-    public function revenueByMenu(): void
+    public function revenueByMenu(): never
     {
         $from = isset($_GET['from']) ? trim((string) $_GET['from']) : null;
         $to = isset($_GET['to']) ? trim((string) $_GET['to']) : null;
