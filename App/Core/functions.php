@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 use App\Core\Config;
 
-function config(string $key = null, mixed $default = null): mixed
+function config(?string $key = null, mixed $default = null): mixed
 {
     static $config;
 
