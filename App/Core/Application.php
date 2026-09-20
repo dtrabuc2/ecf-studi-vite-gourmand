@@ -82,7 +82,7 @@ final class Application
                 explode('=', $line, 2)
             );
 
-            $value = trim($value, "\""'");
+            $value = trim($value, "\"'");
 
             $_ENV[$key] = $value;
             $_SERVER[$key] = $value;
