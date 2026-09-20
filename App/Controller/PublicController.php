@@ -71,6 +71,12 @@ final class PublicController extends BaseController
 
     public function menuDetail(int $id): void
     {
+        if ($id < 1) {
+            http_response_code(404);
+            $this->render('home/menu_detail', ['menu' => null]);
+            return;
+        }
+
         $menu = $this->menuService->getMenuById($id);
 
         if ($menu === null) {
@@ -95,8 +101,12 @@ final class PublicController extends BaseController
         ]);
     }
 
-    public function getMenuById(int $id): void
+    public function getMenuById(int $id): never
     {
+        if ($id < 1) {
+            $this->json(['success' => false, 'error' => 'Menu introuvable.'], 404);
+        }
+
         $menu = $this->menuService->getMenuById($id);
 
         if ($menu === null) {
