@@ -30,7 +30,7 @@ class OrderController extends BaseController
 
     public function index(): void
     {
-(new \App\Middleware\Auth())();
+
         $userId = (int) ($_SESSION['user_id'] ?? 0);
         if ($userId === 0) {
             header('Location: /login');
@@ -180,7 +180,7 @@ $orderId = $id;
 
     public function updateCustomerOrder(int $id): void
     {
-(new \App\Middleware\Auth())();
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); return; }
         $orderId = $id;
         $userId = (int)($_SESSION['user_id'] ?? 0);
@@ -201,7 +201,7 @@ $orderId = $id;
 
     public function review(int $id): void
     {
-(new \App\Middleware\Auth())();
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); return; }
 
         $orderId = $id;
