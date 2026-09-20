@@ -10,6 +10,11 @@ final class Router
 {
     private array $routes = [];
 
+    public function __construct(
+        private readonly Container $container
+    ) {
+    }
+
     public function setRoutes(array $routes): void
     {
         $this->routes = [];
@@ -25,8 +30,16 @@ final class Router
 
         usort(
             $this->routes,
-            static fn (array $left, array $right): int =>
-                substr_count($left['uri'], '{') <=> substr_count($right['uri'], '{')
+            static function (array $left, array $right): int {
+                $leftVariables = substr_count($left['uri'], '{');
+                $rightVariables = substr_count($right['uri'], '{');
+
+                if ($leftVariables !== $rightVariables) {
+                    return $leftVariables <=> $rightVariables;
+                }
+
+                return strlen($right['uri']) <=> strlen($left['uri']);
+            }
         );
     }
 
@@ -47,9 +60,16 @@ final class Router
     public function dispatch(): void
     {
         $path = $this->normalizePath(
-            (string) (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/')
+            (string) (
+                parse_url(
+                    $_SERVER['REQUEST_URI'] ?? '/',
+                    PHP_URL_PATH
+                ) ?: '/'
+            )
         );
-        $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+        $method = strtoupper(
+            (string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')
+        );
 
         foreach ($this->routes as $route) {
             if ($route['method'] !== $method) {
@@ -67,7 +87,10 @@ final class Router
             return;
         }
 
-        Response::json(['success' => false, 'error' => 'Page introuvable.'], 404);
+        Response::json(
+            ['success' => false, 'error' => 'Page introuvable.'],
+            404
+        );
     }
 
     private function match(string $routeUri, string $requestPath): ?array
@@ -94,8 +117,11 @@ final class Router
         array_shift($matches);
 
         $parameters = [];
+
         foreach ($names as $index => $name) {
-            $parameters[$name] = rawurldecode((string) ($matches[$index] ?? ''));
+            $parameters[$name] = rawurldecode(
+                (string) ($matches[$index] ?? '')
+            );
         }
 
         return $parameters;
@@ -108,14 +134,12 @@ final class Router
                 ? $middleware
                 : 'App\\Middleware\\' . $middleware;
 
-            if (!class_exists($class)) {
-                throw new RuntimeException('Middleware introuvable : ' . $class);
-            }
-
-            $instance = new $class();
+            $instance = $this->resolve($class);
 
             if (!is_callable($instance)) {
-                throw new RuntimeException('Middleware non appelable : ' . $class);
+                throw new RuntimeException(
+                    'Middleware non appelable : ' . $class
+                );
             }
 
             $instance();
@@ -125,7 +149,9 @@ final class Router
     private function runAction(string $action, array $parameters): void
     {
         if (!str_contains($action, '@')) {
-            throw new RuntimeException('Action de route invalide : ' . $action);
+            throw new RuntimeException(
+                'Action de route invalide : ' . $action
+            );
         }
 
         [$controller, $method] = explode('@', $action, 2);
@@ -134,14 +160,12 @@ final class Router
             ? $controller
             : 'App\\Controller\\' . $controller;
 
-        if (!class_exists($class)) {
-            throw new RuntimeException('Contrôleur introuvable : ' . $class);
-        }
-
-        $instance = new $class();
+        $instance = $this->resolve($class);
 
         if (!method_exists($instance, $method)) {
-            throw new RuntimeException('Action introuvable : ' . $class . '@' . $method);
+            throw new RuntimeException(
+                'Action introuvable : ' . $class . '@' . $method
+            );
         }
 
         $reflection = new ReflectionMethod($instance, $method);
@@ -171,12 +195,49 @@ final class Router
         $reflection->invokeArgs($instance, $arguments);
     }
 
-    private function castParameter(string $value, ?string $type): mixed
+    private function resolve(string $class): object
     {
+        if (!class_exists($class)) {
+            throw new RuntimeException(
+                'Classe introuvable : ' . $class
+            );
+        }
+
+        if (str_starts_with($class, 'App\\')) {
+            try {
+                return $this->container->get($class);
+            } catch (RuntimeException $exception) {
+                throw new RuntimeException(
+                    'Dépendance non configurée dans le conteneur : ' . $class,
+                    0,
+                    $exception
+                );
+            }
+        }
+
+        return new $class();
+    }
+
+    private function castParameter(
+        string $value,
+        ?string $type
+    ): mixed {
         return match ($type) {
-            'int' => filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE),
-            'float' => filter_var($value, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE),
-            'bool' => filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE),
+            'int' => filter_var(
+                $value,
+                FILTER_VALIDATE_INT,
+                FILTER_NULL_ON_FAILURE
+            ),
+            'float' => filter_var(
+                $value,
+                FILTER_VALIDATE_FLOAT,
+                FILTER_NULL_ON_FAILURE
+            ),
+            'bool' => filter_var(
+                $value,
+                FILTER_VALIDATE_BOOL,
+                FILTER_NULL_ON_FAILURE
+            ),
             default => $value,
         };
     }

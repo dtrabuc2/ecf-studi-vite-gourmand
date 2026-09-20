@@ -1,15 +1,16 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Service;
 
 use App\Repository\CommentRepository;
 
-class CommentService
+final class CommentService
 {
     public function __construct(
-        private CommentRepository $commentRepository,
-        private ?CacheService $cacheService = null
+        private readonly CommentRepository $commentRepository,
+        private readonly CacheService $cacheService
     ) {
-        $this->cacheService ??= new CacheService();
     }
 
     public function getPendingComments(): array
@@ -94,8 +95,7 @@ class CommentService
 
     public function rejectComment(string $id): void
     {
-        // Sinon l'avis reste dans la liste en attente.
-        $this->commentRepository->delete($id);
+            $this->commentRepository->delete($id);
         $this->clearCommentCache();
     }
 
