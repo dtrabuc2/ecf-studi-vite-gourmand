@@ -5,6 +5,8 @@ namespace App\Repository;
 
 use App\Core\Database;
 use App\Entity\User;
+use DateTimeImmutable;
+use DateTimeInterface;
 
 final class UserRepository
 {
