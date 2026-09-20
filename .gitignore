@@ -1,63 +1,41 @@
-# Created by https://www.toptal.com/developers/gitignore/api/php,composer,laravel,symfony
-# Edit at https://www.toptal.com/developers/gitignore?templates=php,composer,laravel,symfony
-
-### PHP Composer ###
+# PHP / Composer
 composer.phar
 vendor/
 *.lock
 
-# Environment variables
+# Environment
 .env
 .env.*
-!env.example
+!.env.example
 
-# Logs and runtime
+# Runtime
 storage/
 bootstrap/cache/
 *.log
 
-# IDEs and editors
+# IDE
 .idea/
 .vscode/
 *.sublime-project
 *.sublime-workspace
 
-# OS generated files
+# OS
 .DS_Store
 Thumbs.db
 
-# Reports and documentation (optional)
-# RAPPORT-V1.MD
-# database.sql
-
-# Exclude compiled source files
+# Archives and binaries
 *.phar
-
-# Exclude binary executables
 *.exe
-
-# Exclude packaged files
 *.tar
 *.zip
 
-# Exclude test files
-tests/
+# Tests and coverage
+/tests/
 phpunit.xml
-
-# Exclude coverage reports
 coverage/
 *.cov
 
-# Exclude node modules (if any)
+# JavaScript dependencies/build
 node_modules/
-
-# Exclude build artifacts
 build/
 dist/
-
-# Exclude Docker
-Dockerfile
-docker-compose.yml
-.dockerignore
-
-# End of https://www.toptal.com/developers/gitignore/api/php,composer,laravel,symfony
