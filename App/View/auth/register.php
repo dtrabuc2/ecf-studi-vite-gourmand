@@ -1,6 +1,6 @@
 <?php
-$oldInput = AppCoreSession::pullFlash('register_old_input') ?? [];
-$errors = AppCoreSession::pullFlash('register_errors') ?? [];
+$oldInput = \App\Core\Session::pullFlash('register_old_input') ?? [];
+$errors = \App\Core\Session::pullFlash('register_errors') ?? [];
 ?>
 <main class="py-5">
     <div class="container">
