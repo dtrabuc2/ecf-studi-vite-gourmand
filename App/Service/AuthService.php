@@ -1,165 +1,195 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Service;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use InvalidArgumentException;
 
-class AuthService
+final class AuthService
 {
-    private UserRepository $userRepository;
-
-    public function __construct(UserRepository $userRepository)
+    public function __construct(private readonly UserRepository $userRepository)
     {
-        $this->userRepository = $userRepository;
     }
 
     public function validatePassword(string $password): ?array
     {
         $errors = [];
+
         if (strlen($password) < 10) {
-            $errors[] = 'Le mot de passe doit contenir au moins 10 caractères';
+            $errors[] = 'Le mot de passe doit contenir au moins 10 caractères.';
         }
         if (!preg_match('/[A-Z]/', $password)) {
-            $errors[] = 'Le mot de passe doit contenir au moins une majuscule';
+            $errors[] = 'Le mot de passe doit contenir au moins une majuscule.';
         }
         if (!preg_match('/[a-z]/', $password)) {
-            $errors[] = 'Le mot de passe doit contenir au moins une minuscule';
+            $errors[] = 'Le mot de passe doit contenir au moins une minuscule.';
         }
         if (!preg_match('/[0-9]/', $password)) {
-            $errors[] = 'Le mot de passe doit contenir au moins un chiffre';
+            $errors[] = 'Le mot de passe doit contenir au moins un chiffre.';
         }
         if (!preg_match('/[^A-Za-z0-9]/', $password)) {
-            $errors[] = 'Le mot de passe doit contenir au moins un caractère spécial';
+            $errors[] = 'Le mot de passe doit contenir au moins un caractère spécial.';
         }
-        return empty($errors) ? null : $errors;
+
+        return $errors === [] ? null : $errors;
     }
 
     public function register(array $data): int
     {
-        $password = (string) ($data['password'] ?? '');
-        $passwordErrors = $this->validatePassword($password);
-        if ($passwordErrors !== null) {
-            throw new \InvalidArgumentException(implode("\n", $passwordErrors));
+        $email = mb_strtolower(trim((string) ($data['email'] ?? '')));
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException('Adresse email invalide.');
         }
 
-        // Valider puis hacher le mot de passe
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        if ($this->userRepository->findByEmail($email) !== null) {
+            throw new InvalidArgumentException('Cette adresse email est déjà utilisée.');
+        }
 
-        $userData = [
-            'email' => $data['email'],
-            'password' => $hashedPassword,
+        $password = (string) ($data['password'] ?? '');
+        $errors = $this->validatePassword($password);
+
+        if ($errors !== null) {
+            throw new InvalidArgumentException(implode(' ', $errors));
+        }
+
+        return $this->userRepository->create([
+            'email' => $email,
+            'password' => password_hash($password, PASSWORD_DEFAULT),
             'role' => 'user',
-            'first_name' => $data['first_name'],
-            'last_name' => $data['last_name'],
-            'phone' => $data['phone'],
-            'gsm' => $data['gsm'],
-            'address' => $data['address'],
-        ];
-
-        return $this->userRepository->create($userData);
+            'first_name' => trim((string) ($data['first_name'] ?? '')),
+            'last_name' => trim((string) ($data['last_name'] ?? '')),
+            'phone' => trim((string) ($data['phone'] ?? '')),
+            'gsm' => trim((string) ($data['gsm'] ?? '')),
+            'address' => trim((string) ($data['address'] ?? '')),
+        ]);
     }
 
     public function login(string $email, string $password): ?User
     {
-        $user = $this->userRepository->findByEmail($email);
+        $user = $this->userRepository->findByEmail(mb_strtolower(trim($email)));
 
         if ($user === null || !$this->userRepository->isActive($user->getId())) {
             return null;
         }
 
-        // Check if account is locked
-        if ($user->getLockedUntil() !== null && $user->getLockedUntil() > new \DateTimeImmutable()) {
-            return null; // Locked
+        $lockedUntil = $user->getLockedUntil();
+
+        if ($lockedUntil !== null && $lockedUntil > new DateTimeImmutable()) {
+            return null;
         }
 
-        if (password_verify($password, $user->getPasswordHash())) {
-            $this->userRepository->updateFailedAttempts($user->getId(), 0, null);
-            return $user;
+        if (!password_verify($password, $user->getPasswordHash())) {
+            $failedAttempts = $user->getFailedAttempts() + 1;
+
+            $this->userRepository->updateFailedAttempts(
+                $user->getId(),
+                $failedAttempts,
+                $failedAttempts >= 5 ? new DateTimeImmutable('+15 minutes') : null
+            );
+
+            return null;
         }
 
-        $newFailedAttempts = $user->getFailedAttempts() + 1;
-        $lockedUntil = null;
-        if ($newFailedAttempts >= 5) {
-            $lockedUntil = (new \DateTimeImmutable())->modify('+15 minutes');
+        if (password_needs_rehash($user->getPasswordHash(), PASSWORD_DEFAULT)) {
+            $this->userRepository->updatePassword(
+                $user->getId(),
+                password_hash($password, PASSWORD_DEFAULT)
+            );
         }
-        $this->userRepository->updateFailedAttempts($user->getId(), $newFailedAttempts, $lockedUntil);
 
-        return null;
+        $this->userRepository->updateFailedAttempts($user->getId(), 0, null);
+
+        return $user;
     }
 
-    public function changePassword(int $userId, string $currentPassword, string $newPassword): bool
+    public function changePassword(int $userId, string $currentPassword, string $newPassword): void
     {
         $user = $this->userRepository->findById($userId);
 
-        if ($user === null) {
-            return false;
+        if ($user === null || !password_verify($currentPassword, $user->getPasswordHash())) {
+            throw new InvalidArgumentException('Mot de passe actuel incorrect.');
         }
 
-        if (!password_verify($currentPassword, $user->getPasswordHash())) {
-            return false;
+        $errors = $this->validatePassword($newPassword);
+
+        if ($errors !== null) {
+            throw new InvalidArgumentException(implode(' ', $errors));
         }
 
-        $passwordErrors = $this->validatePassword($newPassword);
-        if ($passwordErrors !== null) {
-            throw new \InvalidArgumentException(implode("\n", $passwordErrors));
-        }
-
-        $hashedNewPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-        $this->userRepository->updatePassword($userId, $hashedNewPassword);
-
+        $this->userRepository->updatePassword(
+            $userId,
+            password_hash($newPassword, PASSWORD_DEFAULT)
+        );
         $this->userRepository->updateFailedAttempts($userId, 0, null);
-
-        return true;
     }
 
     public function updateProfile(int $userId, array $data): void
     {
+        $email = mb_strtolower(trim((string) ($data['email'] ?? '')));
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException('Adresse email invalide.');
+        }
+
+        $existing = $this->userRepository->findByEmail($email);
+
+        if ($existing !== null && $existing->getId() !== $userId) {
+            throw new InvalidArgumentException('Cette adresse email est déjà utilisée.');
+        }
+
+        $data['email'] = $email;
         $this->userRepository->update($userId, $data);
     }
 
     public function createResetToken(string $email): ?string
     {
-        $user = $this->userRepository->findByEmail($email);
+        $user = $this->userRepository->findByEmail(mb_strtolower(trim($email)));
 
-        if ($user === null) {
+        if ($user === null || !$this->userRepository->isActive($user->getId())) {
             return null;
         }
 
         $token = bin2hex(random_bytes(32));
-        $hashedToken = hash('sha256', $token);
 
-        $expiresAt = (new \DateTimeImmutable())->modify('+1 hour');
-
-        $this->userRepository->updateResetToken($user->getId(), $hashedToken, $expiresAt);
+        $this->userRepository->updateResetToken(
+            $user->getId(),
+            hash('sha256', $token),
+            new DateTimeImmutable('+1 hour')
+        );
 
         return $token;
     }
 
     public function validateResetToken(string $token): ?User
     {
-        $hashedToken = hash('sha256', $token);
-        $user = $this->userRepository->findByResetTokenHash($hashedToken);
+        if (!preg_match('/^[a-f0-9]{64}$/', $token)) {
+            return null;
+        }
 
-        return $user;
+        return $this->userRepository->findByResetTokenHash(hash('sha256', $token));
     }
 
-    public function resetPassword(string $token, string $newPassword): bool
+    public function resetPassword(string $token, string $newPassword): void
     {
         $user = $this->validateResetToken($token);
+
         if ($user === null) {
-            return false;
+            throw new InvalidArgumentException('Le lien de réinitialisation est invalide ou expiré.');
         }
 
-        $passwordErrors = $this->validatePassword($newPassword);
-        if ($passwordErrors !== null) {
-            return false;
+        $errors = $this->validatePassword($newPassword);
+
+        if ($errors !== null) {
+            throw new InvalidArgumentException(implode(' ', $errors));
         }
 
-        $hashedNewPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-
-        $this->userRepository->updatePassword($user->getId(), $hashedNewPassword);
+        $this->userRepository->updatePassword(
+            $user->getId(),
+            password_hash($newPassword, PASSWORD_DEFAULT)
+        );
         $this->userRepository->clearResetToken($user->getId());
-
-        return true;
     }
 }
