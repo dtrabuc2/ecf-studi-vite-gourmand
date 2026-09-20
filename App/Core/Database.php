@@ -112,12 +112,12 @@ final class Database
 
     public static function mongoDatabase(): MongoDatabase
     {
-        $databaseName = (string) config(
-            'database.mongodb.database',
-            'viteetgourmand'
+        return self::mongo()->getDatabase(
+            (string) config(
+                'database.mongodb.database',
+                'viteetgourmand'
+            )
         );
-
-        return self::mongo()->getDatabase($databaseName);
     }
 
     public static function getPDO(): PDO
