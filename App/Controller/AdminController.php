@@ -10,6 +10,7 @@ use App\Repository\UserRepository;
 use App\Repository\OrderRepository;
 use App\Repository\MenuRepository;
 use App\Repository\CommentRepository;
+use App\Core\Session;
 
 class AdminController extends BaseController
 {
@@ -32,46 +33,28 @@ class AdminController extends BaseController
 
     public function showLogin(): void
     {
-        // Apply guest middleware
-        (new \App\Middleware\Guest())();
-
         $this->render('auth/admin_login');
     }
 
     public function login(): void
     {
-        // Apply guest middleware
-        (new \App\Middleware\Guest())();
+        $user = $this->authService->login(
+            mb_strtolower(trim((string) ($_POST['email'] ?? ''))),
+            (string) ($_POST['password'] ?? '')
+        );
 
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            echo 'Method Not Allowed';
-            return;
+        if ($user === null || !in_array($user->getRole(), ['employee', 'admin'], true)) {
+            Session::flash('login_error', 'Identifiants invalides ou droits insuffisants.');
+            $this->redirect('/admin/login');
         }
 
-        $email = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
+        Session::login($user->getId(), $user->getRole(), [
+            'email' => $user->getEmail(),
+            'first_name' => $user->getFirstName(),
+            'last_name' => $user->getLastName(),
+        ]);
 
-        $user = $this->authService->login($email, $password);
-
-        if ($user === null || !in_array($user->getRole(), ['employee', 'admin'])) {
-            // Redirect back with error
-            $_SESSION['login_error'] = 'Identifiants invalides ou insuffisants de privilèges';
-            header('Location: /admin/login');
-            exit;
-        }
-
-        // Set session
-        session_regenerate_id(true);
-        $_SESSION['user_id'] = $user->getId();
-        $_SESSION['email'] = $user->getEmail();
-        $_SESSION['role'] = $user->getRole();
-        $_SESSION['first_name'] = $user->getFirstName();
-        $_SESSION['last_name'] = $user->getLastName();
-
-        // Redirect according to role
-        header('Location: ' . ($user->getRole() === 'admin' ? '/admin/dashboard' : '/admin/orders'));
-        exit;
+        $this->redirect($user->getRole() === 'admin' ? '/admin/dashboard' : '/admin/orders');
     }
 
     public function dashboard(): void
@@ -112,13 +95,13 @@ class AdminController extends BaseController
         header('Location: /admin/dishes'); exit;
     }
 
-    public function updateDish(array $params): void
+    public function updateDish(int $id): void
     {
         (new \App\Middleware\Staff())();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); return; }
         try {
             (new \App\Repository\DishRepository())->update(
-                (int)($params[0]??0), trim((string)$_POST['name']), trim((string)$_POST['description']),
+                (int)$id, trim((string)$_POST['name']), trim((string)$_POST['description']),
                 isset($_POST['menu_id']) && is_numeric($_POST['menu_id']) ? (int)$_POST['menu_id'] : null,
                 $_POST['category'] ?? null
             );
@@ -127,11 +110,11 @@ class AdminController extends BaseController
         header('Location: /admin/dishes'); exit;
     }
 
-    public function deleteDish(array $params): void
+    public function deleteDish(int $id): void
     {
         (new \App\Middleware\Staff())();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); return; }
-        try { (new \App\Repository\DishRepository())->delete((int)($params[0]??0)); $_SESSION['admin_success']='Plat supprimé.'; }
+        try { (new \App\Repository\DishRepository())->delete((int)$id); $_SESSION['admin_success']='Plat supprimé.'; }
         catch(\Throwable $e) { $_SESSION['admin_error']='Impossible de supprimer ce plat : il est peut-être encore associé à un menu.'; }
         header('Location: /admin/dishes'); exit;
     }
@@ -166,11 +149,11 @@ class AdminController extends BaseController
         $this->render('admin/orders', ['orders' => $orders, 'selectedStatus' => $status, 'customer' => $customer]);
     }
 
-    public function updateOrderStatus(array $params): void
+    public function updateOrderStatus(int $id): void
     {
         (new \App\Middleware\Staff())();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); return; }
-        $orderId = (int)($params[0] ?? 0);
+        $orderId = (int)$id;
         $status = trim((string)($_POST['status'] ?? ''));
         $reason = trim((string)($_POST['cancellation_reason'] ?? ''));
         $contactMode = trim((string)($_POST['contact_mode'] ?? ''));
@@ -211,7 +194,7 @@ class AdminController extends BaseController
         ]);
     }
 
-    public function disableCustomer(array $params): void
+    public function disableCustomer(int $id): void
     {
         (new \App\Middleware\Staff())();
 
@@ -220,12 +203,12 @@ class AdminController extends BaseController
             return;
         }
 
-        $this->adminService->disableCustomer((int) ($params[0] ?? 0));
+        $this->adminService->disableCustomer((int) $id);
         header('Location: /admin/customers');
         exit;
     }
 
-    public function enableCustomer(array $params): void
+    public function enableCustomer(int $id): void
     {
         (new \App\Middleware\Staff())();
 
@@ -234,7 +217,7 @@ class AdminController extends BaseController
             return;
         }
 
-        $this->adminService->enableCustomer((int) ($params[0] ?? 0));
+        $this->adminService->enableCustomer((int) $id);
         header('Location: /admin/customers');
         exit;
     }
@@ -337,7 +320,7 @@ class AdminController extends BaseController
         $this->render('admin/employees', ['employees' => $employees]);
     }
 
-    public function disableEmployee(array $params): void
+    public function disableEmployee(int $id): void
     {
         // Apply auth middleware
         (new \App\Middleware\Auth())();
@@ -350,7 +333,7 @@ class AdminController extends BaseController
             return;
         }
 
-        $id = (int)$params[0] ?? 0;
+        $id = (int)$id;
         if ($id <= 0) {
             http_response_code(400);
             echo 'Invalid employee ID';
@@ -368,7 +351,7 @@ class AdminController extends BaseController
         }
     }
 
-    public function enableEmployee(array $params): void
+    public function enableEmployee(int $id): void
     {
         // Apply auth middleware
         (new \App\Middleware\Auth())();
@@ -381,7 +364,7 @@ class AdminController extends BaseController
             return;
         }
 
-        $id = (int)$params[0] ?? 0;
+        $id = (int)$id;
         if ($id <= 0) {
             http_response_code(400);
             echo 'Invalid employee ID';
@@ -515,7 +498,7 @@ class AdminController extends BaseController
         }
     }
 
-    public function updateMenu(array $params): void
+    public function updateMenu(int $id): void
     {
         // Apply auth middleware
         (new \App\Middleware\Auth())();
@@ -531,7 +514,7 @@ class AdminController extends BaseController
             }
         }
 
-        $id = (int)$params[0] ?? 0;
+        $id = (int)$id;
         if ($id <= 0) {
             http_response_code(400);
             echo 'Invalid menu ID';
@@ -589,7 +572,7 @@ class AdminController extends BaseController
         }
     }
 
-    public function deleteMenu(array $params): void
+    public function deleteMenu(int $id): void
     {
         // Apply auth middleware
         (new \App\Middleware\Auth())();
@@ -602,7 +585,7 @@ class AdminController extends BaseController
             return;
         }
 
-        $id = (int)$params[0] ?? 0;
+        $id = (int)$id;
         if ($id <= 0) {
             http_response_code(400);
             echo 'Invalid menu ID';
@@ -638,7 +621,7 @@ class AdminController extends BaseController
         $this->render('admin/comments', ['comments' => $comments]);
     }
 
-    public function validateComment(array $params): void
+    public function validateComment(string $id): void
     {
         // Apply auth middleware
         (new \App\Middleware\Auth())();
@@ -654,7 +637,7 @@ class AdminController extends BaseController
             }
         }
 
-        $id = (int)$params[0] ?? 0;
+        $id = (int)$id;
         if ($id <= 0) {
             http_response_code(400);
             echo 'Invalid comment ID';
@@ -672,7 +655,7 @@ class AdminController extends BaseController
         }
     }
 
-    public function rejectComment(array $params): void
+    public function rejectComment(string $id): void
     {
         // Apply auth middleware
         (new \App\Middleware\Auth())();
@@ -688,7 +671,7 @@ class AdminController extends BaseController
             }
         }
 
-        $id = (int)$params[0] ?? 0;
+        $id = (int)$id;
         if ($id <= 0) {
             http_response_code(400);
             echo 'Invalid comment ID';
