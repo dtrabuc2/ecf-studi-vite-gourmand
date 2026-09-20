@@ -10,7 +10,7 @@ return [
         'mariadb' => [
             'host' => $_ENV['DB_HOST'] ?? 'localhost',
             'port' => (int)($_ENV['DB_PORT'] ?? 3306),
-            'database' => $_ENV['DB_DATABASE'] ?? 'vitegourmand',
+            'database' => $_ENV['DB_DATABASE'] ?? 'viteetgourmand',
             'username' => $_ENV['DB_USERNAME'] ?? '',
             'password' => $_ENV['DB_PASSWORD'] ?? '',
             'charset' => 'utf8mb4',
@@ -18,7 +18,7 @@ return [
         'mongodb' => [
             'host' => $_ENV['MONGO_HOST'] ?? 'localhost',
             'port' => (int)($_ENV['MONGO_PORT'] ?? 27017),
-            'database' => $_ENV['MONGO_DATABASE'] ?? 'vitegourmand',
+            'database' => $_ENV['MONGO_DATABASE'] ?? 'viteetgourmand',
             'username' => $_ENV['MONGO_USERNAME'] ?? '',
             'password' => $_ENV['MONGO_PASSWORD'] ?? '',
         ],
