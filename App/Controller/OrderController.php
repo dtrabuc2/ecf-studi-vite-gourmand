@@ -30,7 +30,7 @@ class OrderController extends BaseController
 
     public function index(): void
     {
-        (new \App\Middleware\Auth())();
+(new \App\Middleware\Auth())();
         $userId = (int) ($_SESSION['user_id'] ?? 0);
         if ($userId === 0) {
             header('Location: /login');
@@ -53,7 +53,7 @@ class OrderController extends BaseController
 
     public function create(): void
     {
-                if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo 'Method Not Allowed';
             return;
@@ -145,7 +145,7 @@ class OrderController extends BaseController
 
     public function new(): void
     {
-                $menus = (new MenuRepository())->findAll();
+$menus = (new MenuRepository())->findAll();
         $selectedMenuId = isset($_GET['menu']) ? (int) $_GET['menu'] : 0;
         $user = (new UserRepository())->findById((int) ($_SESSION['user_id'] ?? 0));
 
@@ -158,7 +158,7 @@ class OrderController extends BaseController
 
     public function confirmation(int $id): void
     {
-                $orderId = $id;
+$orderId = $id;
         if ($orderId <= 0) {
             header('Location: /');
             exit;
@@ -180,7 +180,7 @@ class OrderController extends BaseController
 
     public function updateCustomerOrder(int $id): void
     {
-        (new \App\Middleware\Auth())();
+(new \App\Middleware\Auth())();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); return; }
         $orderId = $id;
         $userId = (int)($_SESSION['user_id'] ?? 0);
@@ -201,7 +201,7 @@ class OrderController extends BaseController
 
     public function review(int $id): void
     {
-        (new \App\Middleware\Auth())();
+(new \App\Middleware\Auth())();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); return; }
 
         $orderId = $id;
@@ -231,7 +231,7 @@ class OrderController extends BaseController
 
     public function updateStatus(int $id): void
     {
-                $orderId = $id;
+$orderId = $id;
         $status = trim((string) ($_POST['status'] ?? ''));
         $userId = (int) ($_SESSION['user_id'] ?? 0);
         $role = (string) ($_SESSION['role'] ?? '');
