@@ -36,7 +36,13 @@ class PublicController extends BaseController
 
     public function menusPage(): void
     {
-        $menus = $this->menuService->getAllMenus();
+        try {
+            $menus = $this->menuService->getAllMenus();
+        } catch (\Throwable $exception) {
+            error_log('Impossible de charger le catalogue : ' . $exception->getMessage());
+            $menus = [];
+        }
+
         $this->render('home/menus', ['menus' => $menus]);
     }
 
