@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `order_number` VARCHAR(30) NULL,
     `user_id` INT UNSIGNED NOT NULL,
     `menu_id` INT UNSIGNED NOT NULL,
-    `number_of_people` SMALLINT UNSIGNED NOT NULL,
+    `number_of_people` INT UNSIGNED NOT NULL,
     `order_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `delivery_date` DATE NOT NULL,
     `delivery_time` TIME NOT NULL,
