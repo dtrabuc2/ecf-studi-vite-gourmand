@@ -1,6 +1,7 @@
 <?php
+declare(strict_types=1);
+
 return [
-    // Routes publiques
     ['GET', '/', 'PublicController@index', ['Security']],
     ['GET', '/menus', 'PublicController@menusPage', ['Security']],
     ['GET', '/menus/{id}', 'PublicController@menuDetail', ['Security']],
@@ -12,32 +13,29 @@ return [
     ['GET', '/legal', 'PublicController@legal', ['Security']],
     ['GET', '/cgv', 'PublicController@cgv', ['Security']],
 
-    // Authentification
-    ['GET', '/login', 'AuthController@showLogin', ['Security']],
-    ['POST', '/login', 'AuthController@login', ['Security']],
-    ['GET', '/register', 'AuthController@showRegister', ['Security']],
-    ['POST', '/register', 'AuthController@register', ['Security']],
-    ['GET', '/profile', 'AuthController@profile', ['Security']],
-    ['POST', '/profile', 'AuthController@updateProfile', ['Security']],
-    ['POST', '/password', 'AuthController@changePassword', ['Security']],
-    ['POST', '/logout', 'AuthController@logout', ['Security']],
-    ['GET', '/forgot-password', 'AuthController@showForgotPassword', ['Security']],
-    ['POST', '/forgot-password', 'AuthController@forgotPassword', ['Security']],
-    ['GET', '/reset-password/{token}', 'AuthController@showResetPassword', ['Security']],
-    ['POST', '/reset-password/{token}', 'AuthController@resetPassword', ['Security']],
+    ['GET', '/login', 'AuthController@showLogin', ['Security', 'Guest']],
+    ['POST', '/login', 'AuthController@login', ['Security', 'Guest']],
+    ['GET', '/register', 'AuthController@showRegister', ['Security', 'Guest']],
+    ['POST', '/register', 'AuthController@register', ['Security', 'Guest']],
+    ['GET', '/profile', 'AuthController@profile', ['Security', 'Auth']],
+    ['POST', '/profile', 'AuthController@updateProfile', ['Security', 'Auth']],
+    ['POST', '/password', 'AuthController@changePassword', ['Security', 'Auth']],
+    ['POST', '/logout', 'AuthController@logout', ['Security', 'Auth']],
+    ['GET', '/forgot-password', 'AuthController@showForgotPassword', ['Security', 'Guest']],
+    ['POST', '/forgot-password', 'AuthController@forgotPassword', ['Security', 'Guest']],
+    ['GET', '/reset-password/{token}', 'AuthController@showResetPassword', ['Security', 'Guest']],
+    ['POST', '/reset-password/{token}', 'AuthController@resetPassword', ['Security', 'Guest']],
 
-    // Commandes utilisateur
-    ['GET', '/orders', 'OrderController@index', ['Security']],
-    ['GET', '/orders/new', 'OrderController@new', ['Security']],
-    ['POST', '/orders', 'OrderController@create', ['Security']],
-    ['GET', '/orders/confirmation/{id}', 'OrderController@confirmation', ['Security']],
-    ['POST', '/orders/{id}/review', 'OrderController@review', ['Security']],
-    ['POST', '/orders/{id}/edit', 'OrderController@updateCustomerOrder', ['Security']],
-    ['POST', '/orders/{id}/status', 'OrderController@updateStatus', ['Security']],
+    ['GET', '/orders', 'OrderController@index', ['Security', 'Auth']],
+    ['GET', '/orders/new', 'OrderController@new', ['Security', 'Auth']],
+    ['POST', '/orders', 'OrderController@create', ['Security', 'Auth']],
+    ['GET', '/orders/confirmation/{id}', 'OrderController@confirmation', ['Security', 'Auth']],
+    ['POST', '/orders/{id}/review', 'OrderController@review', ['Security', 'Auth']],
+    ['POST', '/orders/{id}/edit', 'OrderController@updateCustomerOrder', ['Security', 'Auth']],
+    ['POST', '/orders/{id}/status', 'OrderController@updateStatus', ['Security', 'Auth']],
 
-    // Espace employé / administrateur
-    ['GET', '/admin/login', 'AdminController@showLogin', ['Security']],
-    ['POST', '/admin/login', 'AdminController@login', ['Security']],
+    ['GET', '/admin/login', 'AdminController@showLogin', ['Security', 'Guest']],
+    ['POST', '/admin/login', 'AdminController@login', ['Security', 'Guest']],
     ['GET', '/admin/dashboard', 'AdminController@dashboard', ['Security', 'Admin']],
     ['GET', '/admin/orders', 'AdminController@orders', ['Security', 'Staff']],
     ['POST', '/admin/orders/{id}/status', 'AdminController@updateOrderStatus', ['Security', 'Staff']],
