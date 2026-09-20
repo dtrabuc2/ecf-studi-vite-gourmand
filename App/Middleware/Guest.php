@@ -17,9 +17,11 @@ final class Guest
         }
 
         Response::redirect(
-            in_array($role, ['employee', 'admin'], true)
-                ? '/admin/dashboard'
-                : '/'
+            match ($role) {
+                'admin' => '/admin/dashboard',
+                'employee' => '/admin/orders',
+                default => '/',
+            }
         );
     }
 }
