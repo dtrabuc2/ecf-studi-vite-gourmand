@@ -9,6 +9,11 @@ use App\Repository\UserRepository;
 
 final class Auth
 {
+    public function __construct(
+        private readonly UserRepository $repository
+    ) {
+    }
+
     public function __invoke(): void
     {
         $userId = Session::id();
@@ -17,10 +22,9 @@ final class Auth
             Response::redirect('/login');
         }
 
-        $repository = new UserRepository();
-        $user = $repository->findById($userId);
+        $user = $this->repository->findById($userId);
 
-        if ($user === null || !$repository->isActive($userId)) {
+        if ($user === null || !$this->repository->isActive($userId)) {
             Session::logout();
             Response::redirect('/login');
         }
