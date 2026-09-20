@@ -35,6 +35,8 @@ return [
     ['POST', '/orders/{id}/review', 'OrderController@review', ['Security', 'Auth']],
     ['POST', '/orders/{id}/edit', 'OrderController@updateCustomerOrder', ['Security', 'Auth']],
     ['POST', '/orders/{id}/status', 'OrderController@updateStatus', ['Security', 'Auth']],
+    ['GET', '/notifications', 'NotificationController@index', ['Security', 'Auth']],
+    ['POST', '/notifications/{id}/read', 'NotificationController@read', ['Security', 'Auth']],
 
     ['GET', '/admin/login', 'AdminController@showLogin', ['Security', 'Guest']],
     ['POST', '/admin/login', 'AdminController@login', ['Security', 'Guest']],
