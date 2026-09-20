@@ -11,10 +11,11 @@
     return div.innerHTML;
   };
 
-  const imageUrl = (path) => {
-    const value = String(path ?? '').trim();
+  const imageUrl = (image) => {
+    if (!image || typeof image !== 'object') return '';
+    const value = String(image.url ?? image.path ?? '').trim();
     if (!value) return '';
-    if (/^https?:\/\//i.test(value) || value.startsWith('/')) return value;
+    if (/^(https?:)?\/\//i.test(value) || value.startsWith('/')) return value;
     return '/uploads/' + value.replace(/^uploads\//i, '').replace(/^\/+/, '');
   };
 
@@ -29,7 +30,7 @@
       const theme = escapeHtml(menu.theme);
       const title = escapeHtml(menu.title);
       const description = escapeHtml(menu.description);
-      const image = imageUrl(menu.images?.[0]?.path);
+      const image = imageUrl(menu.images?.[0]);
       const price = Number(menu.base_price || 0).toLocaleString('fr-FR', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
