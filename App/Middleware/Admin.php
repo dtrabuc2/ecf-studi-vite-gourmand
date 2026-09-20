@@ -15,7 +15,7 @@ final readonly class Admin
 
     public function __invoke(): void
     {
-        $this->auth();
+        ($this->auth)();
 
         if (Session::role() !== 'admin') {
             Response::redirect('/admin/login');
