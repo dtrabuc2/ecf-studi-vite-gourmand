@@ -53,9 +53,7 @@ class OrderController extends BaseController
 
     public function create(): void
     {
-        (new \App\Middleware\Auth())();
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo 'Method Not Allowed';
             return;
@@ -147,9 +145,7 @@ class OrderController extends BaseController
 
     public function new(): void
     {
-        (new \App\Middleware\Auth())();
-
-        $menus = (new MenuRepository())->findAll();
+                $menus = (new MenuRepository())->findAll();
         $selectedMenuId = isset($_GET['menu']) ? (int) $_GET['menu'] : 0;
         $user = (new UserRepository())->findById((int) ($_SESSION['user_id'] ?? 0));
 
@@ -160,11 +156,9 @@ class OrderController extends BaseController
         ]);
     }
 
-    public function confirmation(array $params): void
+    public function confirmation(int $id): void
     {
-        (new \App\Middleware\Auth())();
-
-        $orderId = (int) ($params[0] ?? 0);
+                $orderId = $id;
         if ($orderId <= 0) {
             header('Location: /');
             exit;
@@ -184,11 +178,11 @@ class OrderController extends BaseController
         ]);
     }
 
-    public function updateCustomerOrder(array $params): void
+    public function updateCustomerOrder(int $id): void
     {
         (new \App\Middleware\Auth())();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); return; }
-        $orderId = (int)($params[0] ?? 0);
+        $orderId = $id;
         $userId = (int)($_SESSION['user_id'] ?? 0);
         try {
             $distance = ($_POST['delivery_distance_km'] ?? '') !== '' ? (float)$_POST['delivery_distance_km'] : null;
@@ -205,12 +199,12 @@ class OrderController extends BaseController
         exit;
     }
 
-    public function review(array $params): void
+    public function review(int $id): void
     {
         (new \App\Middleware\Auth())();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); return; }
 
-        $orderId = (int)($params[0] ?? 0);
+        $orderId = $id;
         $userId = (int)($_SESSION['user_id'] ?? 0);
         $order = $this->orderService->getOrderById($orderId);
         if ($order === null || $order->getUserId() !== $userId) { http_response_code(403); return; }
@@ -235,11 +229,9 @@ class OrderController extends BaseController
         exit;
     }
 
-    public function updateStatus(array $params): void
+    public function updateStatus(int $id): void
     {
-        (new \App\Middleware\Auth())();
-
-        $orderId = (int) ($params[0] ?? 0);
+                $orderId = $id;
         $status = trim((string) ($_POST['status'] ?? ''));
         $userId = (int) ($_SESSION['user_id'] ?? 0);
         $role = (string) ($_SESSION['role'] ?? '');
