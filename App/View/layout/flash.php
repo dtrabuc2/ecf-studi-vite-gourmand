@@ -23,6 +23,8 @@ $flashKeys = [
     'reset_errors' => 'danger',
     'contact_success' => 'success',
     'contact_errors' => 'danger',
+    'quote_success' => 'success',
+    'quote_error' => 'danger',
 ];
 
 $formatMessage = static function (mixed $value): string {
