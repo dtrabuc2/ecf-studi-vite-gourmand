@@ -5,6 +5,7 @@ use App\Service\MenuService;
 use App\Service\CommentService;
 use App\Repository\MenuRepository;
 use App\Repository\CommentRepository;
+use App\Entity\Menu;
 
 class PublicController extends BaseController
 {
@@ -37,6 +38,7 @@ class PublicController extends BaseController
             'reviews' => $reviews,
             'menus' => $menus,
             'menuDetails' => $this->loadMenuDetails($menus),
+            'user' => $_SESSION['user_id'] ?? null,
         ]);
     }
 
@@ -52,6 +54,7 @@ class PublicController extends BaseController
         $this->render('home/menus', [
             'menus' => $menus,
             'menuDetails' => $this->loadMenuDetails($menus),
+            'user' => $_SESSION['user_id'] ?? null,
         ]);
     }
 
