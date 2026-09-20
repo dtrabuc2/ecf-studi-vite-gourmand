@@ -5,6 +5,7 @@ use App\Repository\UserRepository;
 use App\Repository\OrderRepository;
 use App\Repository\MenuRepository;
 use App\Core\Database;
+use App\Service\MenuStatisticsService;
 
 class AdminService
 {
