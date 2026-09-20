@@ -49,11 +49,7 @@ final class AuthController extends BaseController
             'last_name' => $user->getLastName(),
         ]);
 
-        $this->redirect(match ($user->getRole()) {
-            'admin' => '/admin/dashboard',
-            'employee' => '/admin/orders',
-            default => '/',
-        });
+        $this->redirect('/');
     }
 
     public function showRegister(): void
