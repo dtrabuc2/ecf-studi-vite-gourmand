@@ -159,6 +159,32 @@ CREATE TABLE IF NOT EXISTS `contact_messages` (
     KEY `idx_contact_status_date` (`status`, `created_at`)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS `quote_requests` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id` INT UNSIGNED NULL,
+    `email` VARCHAR(255) NOT NULL,
+    `first_name` VARCHAR(100) NULL,
+    `last_name` VARCHAR(100) NULL,
+    `phone` VARCHAR(30) NULL,
+    `company` VARCHAR(150) NULL,
+    `event_date` DATE NOT NULL,
+    `number_of_people` SMALLINT UNSIGNED NOT NULL,
+    `service_type` ENUM('pickup', 'delivery', 'on_site') NOT NULL,
+    `event_location` VARCHAR(255) NULL,
+    `postal_code` VARCHAR(10) NULL,
+    `request_details` TEXT NULL,
+    `status` ENUM('new', 'in_review', 'quoted', 'accepted', 'declined', 'closed') NOT NULL DEFAULT 'new',
+    `employee_reply` TEXT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_quote_status_date` (`status`, `event_date`),
+    KEY `idx_quote_email` (`email`),
+    CONSTRAINT `fk_quote_user`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+
 -- ================================================================
 -- Données de départ du catalogue
 -- Les menus, plats, régimes, thèmes et relations restent relationnels.
