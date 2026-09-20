@@ -43,6 +43,12 @@ final class OrderService
             throw new InvalidArgumentException('Menu non trouvé ou indisponible.');
         }
 
+        if ($numberOfPeople >= 50) {
+            throw new InvalidArgumentException(
+                'Pour 50 personnes ou plus, une demande de devis est nécessaire.'
+            );
+        }
+
         if ($numberOfPeople < $menu->getMinPeople()) {
             throw new InvalidArgumentException(
                 'Le nombre de personnes doit être supérieur ou égal au minimum requis pour ce menu ('
