@@ -174,11 +174,13 @@ TEXT;
             'closed' => 'Demande clôturée',
         ];
 
+        $statusLabel = $labels[$status] ?? $status;
+
         $body = <<<TEXT
 Bonjour {$firstName},
 
 Concernant votre demande de devis #{$requestId}, son statut est désormais :
-{$labels[$status] ?? $status}
+{$statusLabel}
 
 Réponse de l'équipe :
 {$reply}
