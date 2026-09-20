@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `delivery_postal_code` VARCHAR(10) NULL,
     `delivery_distance_km` DECIMAL(7,2) NULL,
     `delivery_cost` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    `customization` TEXT NULL,
     `menu_price` DECIMAL(10,2) NOT NULL,
     `discount_rate` DECIMAL(5,2) NOT NULL DEFAULT 0.00 COMMENT 'Pourcentage, par exemple 10.00',
     `total_price` DECIMAL(10,2) NOT NULL,
@@ -303,6 +304,10 @@ ON DUPLICATE KEY UPDATE
     `position` = VALUES(`position`);
 
 INSERT INTO `allergens` (`id`, `name`) VALUES
+    (1,'Gluten'),
+    (2,'Lait'),
+    (3,'Œufs'),
+    (4,'Crustacés'),
     (5,'Fruits à coque'),(6,'Soja'),(7,'Sésame'),(8,'Moutarde')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
 
@@ -313,14 +318,6 @@ INSERT INTO `dish_allergens` (`dish_id`, `allergen_id`) VALUES
     (32,1),(32,3),(33,1),(33,2),(34,1),(34,3),(38,7),(39,6),(42,3),(45,4),(46,4),
     (47,2),(51,2),(52,7),(53,1),(54,2),(54,3),(55,2),(55,5),(56,2)
 ON DUPLICATE KEY UPDATE `allergen_id` = VALUES(`allergen_id`);
-
-ON DUPLICATE KEY UPDATE
-    `password` = VALUES(`password`),
-    `role` = 'admin',
-    `is_active` = 1,
-    `first_name` = VALUES(`first_name`),
-    `last_name` = VALUES(`last_name`),
-    `updated_at` = CURRENT_TIMESTAMP;
 
 -- Les employés sont créés et gérés depuis l’espace administrateur.
 -- Les clients peuvent créer leur compte via /register.

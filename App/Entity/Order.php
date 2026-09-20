@@ -14,6 +14,7 @@ class Order
     private string $deliveryCity;
     private string $deliveryPostalCode;
     private ?float $deliveryDistanceKm = null;
+    private ?string $customization = null;
     private float $deliveryCost;
     private float $menuPrice;
     private float $discountRate;
@@ -46,6 +47,8 @@ class Order
     public function setDeliveryPostalCode(string $deliveryPostalCode): void { $this->deliveryPostalCode = $deliveryPostalCode; }
     public function getDeliveryDistanceKm(): ?float { return $this->deliveryDistanceKm; }
     public function setDeliveryDistanceKm(?float $deliveryDistanceKm): void { $this->deliveryDistanceKm = $deliveryDistanceKm; }
+    public function getCustomization(): ?string { return $this->customization; }
+    public function setCustomization(?string $customization): void { $this->customization = $customization; }
     public function getDeliveryCost(): float { return $this->deliveryCost; }
     public function setDeliveryCost(float $deliveryCost): void { $this->deliveryCost = $deliveryCost; }
     public function getMenuPrice(): float { return $this->menuPrice; }

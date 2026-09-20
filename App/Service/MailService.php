@@ -28,7 +28,13 @@ class MailService
         $headers .= "MIME-Version: 1.0\r\n";
         $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
 
-        return mail($to, $subject, $body, $headers);
+        $sent = @mail($to, $subject, $body, $headers);
+
+        if (!$sent) {
+            error_log('Email non envoyé à ' . $to . ' : serveur SMTP indisponible.');
+        }
+
+        return $sent;
     }
 
     public function sendWelcomeEmail(string $to, string $firstName): bool

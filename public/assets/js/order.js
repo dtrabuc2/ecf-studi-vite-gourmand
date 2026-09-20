@@ -12,6 +12,8 @@
   const serviceField = document.getElementById('selected_service_type');
   const finalForm = document.getElementById('orderFinalForm');
   const finalMenuSelect = document.getElementById('menu_id');
+  const recapOptions = document.getElementById('selected_options');
+  const continueButton = document.getElementById('btnVersRecap');
 
   let menus = [];
   let serviceType = 'menu';
@@ -38,10 +40,15 @@
     }
 
     target.innerHTML = items.map((item, index) => {
-      const safe = escapeHtml(item);
+      const itemName = typeof item === 'string' ? item : (item.name || '');
+      const itemDescription = typeof item === 'string' ? '' : (item.description || '');
+      const safe = escapeHtml(itemName);
+      const description = itemDescription
+        ? '<span class="d-block text-muted small">' + escapeHtml(itemDescription) + '</span>'
+        : '';
       return '<div class="form-check mb-2">' +
         '<input class="form-check-input" type="radio" name="' + name + '" id="' + id + '-' + index + '" value="' + safe + '"' + (index === 0 ? ' checked' : '') + '>' +
-        '<label class="form-check-label small" for="' + id + '-' + index + '">' + safe + '</label>' +
+      '<label class="form-check-label small" for="' + id + '-' + index + '">' + safe + description + '</label>' +
       '</div>';
     }).join('');
   };
@@ -82,7 +89,7 @@
 
     const dishes = { starter: [], main: [], dessert: [] };
     (selected.dishes || []).forEach((dish) => {
-      if (dishes[dish.category]) dishes[dish.category].push(dish.name);
+      if (dishes[dish.category]) dishes[dish.category].push(dish);
     });
 
     if (serviceType === 'menu') {
@@ -91,10 +98,10 @@
       renderChoiceList('listDesserts', 'dessert', dishes.dessert);
     } else {
       renderChoiceList('listEntrees', 'entree', []);
-      renderChoiceList('listPlats', 'plat', [selected.title]);
+      renderChoiceList('listPlats', 'plat', [{ name: selected.title, description: selected.description }]);
       const desserts = [];
       menus.forEach((menu) => (menu.dishes || []).forEach((dish) => {
-        if (dish.category === 'dessert' && !desserts.includes(dish.name)) desserts.push(dish.name);
+        if (dish.category === 'dessert' && !desserts.some((item) => item.name === dish.name)) desserts.push(dish);
       }));
       renderChoiceList('listDesserts', 'dessert', desserts);
     }
@@ -153,6 +160,27 @@
       renderSelected();
     }
   };
+
+  const buildOptionsSummary = () => {
+    const selectedOptions = Array.from(document.querySelectorAll('#sectionPersonnalisation input:checked'))
+      .map((input) => input.value)
+      .filter(Boolean);
+    const digestif = document.getElementById('selectDigestif')?.value || '';
+    if (digestif) selectedOptions.push(digestif);
+    return selectedOptions.join(' | ');
+  };
+
+  continueButton?.addEventListener('click', () => {
+    if (!selected) {
+      window.alert('Sélectionnez une formule avant de continuer.');
+      return;
+    }
+
+    if (finalMenuSelect) finalMenuSelect.value = String(selected.id);
+    if (recapOptions) recapOptions.value = buildOptionsSummary();
+    finalForm?.classList.remove('d-none');
+    finalForm?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 
   document.addEventListener('DOMContentLoaded', () => {
     loadMenus().catch((error) => {

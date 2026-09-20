@@ -103,6 +103,7 @@ $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
             <form method="post" action="/orders" class="card border-0 shadow-sm p-4 p-lg-5">
                 <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
                 <input type="hidden" id="selected_service_type" name="service_type" value="menu">
+                <input type="hidden" id="selected_options" name="selected_options" value="">
                 <div class="row g-3">
                     <div class="col-12"><h2 class="h3 text-primary">Récapitulatif de la commande</h2><p class="text-muted">Le montant final est recalculé et validé par le serveur.</p></div>
                     <div class="col-md-6"><label class="form-label">Nom</label><input class="form-control" value="<?= $escape($orderUser?->getLastName() ?? '') ?>" readonly></div>

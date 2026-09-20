@@ -27,35 +27,40 @@ final class MongoMenuImageRepository
             return [];
         }
 
-        $collection = Database::mongoDatabase()->selectCollection('menu_images');
+        try {
+            $collection = Database::mongoDatabase()->selectCollection('menu_images');
 
-        $cursor = $collection->find(
-            ['menuId' => ['$in' => $menuIds]],
-            [
-                'sort' => ['menuId' => 1, 'position' => 1],
-                'typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array'],
-            ]
-        );
+            $cursor = $collection->find(
+                ['menuId' => ['$in' => $menuIds]],
+                [
+                    'sort' => ['menuId' => 1, 'position' => 1],
+                    'typeMap' => ['root' => 'array', 'document' => 'array', 'array' => 'array'],
+                ]
+            );
 
-        $images = [];
+            $images = [];
 
-        foreach ($cursor as $document) {
-            $menuId = (int) ($document['menuId'] ?? 0);
-            $url = trim((string) ($document['url'] ?? $document['path'] ?? ''));
+            foreach ($cursor as $document) {
+                $menuId = (int) ($document['menuId'] ?? 0);
+                $url = trim((string) ($document['url'] ?? $document['path'] ?? ''));
 
-            if ($menuId < 1 || $url === '') {
-                continue;
+                if ($menuId < 1 || $url === '') {
+                    continue;
+                }
+
+                $images[$menuId][] = [
+                    'url' => $url,
+                    'path' => $url,
+                    'href' => (string) ($document['href'] ?? $url),
+                    'alt_text' => (string) ($document['altText'] ?? $document['alt_text'] ?? 'Image du menu'),
+                    'position' => (int) ($document['position'] ?? 1),
+                ];
             }
 
-            $images[$menuId][] = [
-                'url' => $url,
-                'path' => $url,
-                'href' => (string) ($document['href'] ?? $url),
-                'alt_text' => (string) ($document['altText'] ?? $document['alt_text'] ?? 'Image du menu'),
-                'position' => (int) ($document['position'] ?? 1),
-            ];
+            return $images;
+        } catch (\Throwable $exception) {
+            error_log('Images MongoDB indisponibles : ' . $exception->getMessage());
+            return [];
         }
-
-        return $images;
     }
 }

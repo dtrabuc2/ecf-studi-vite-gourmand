@@ -32,8 +32,8 @@ final readonly class CommentRepository
 
             $reviews[] = [
                 'id' => (string) $document['_id'],
-                'rating' => (int) $document['rating'],
-                'comment' => (string) $document['comment'],
+                'rating' => (int) ($document['rating'] ?? 0),
+                'comment' => (string) ($document['comment'] ?? $document['content'] ?? ''),
                 'first_name' => $user?->getFirstName() ?? '',
                 'last_name' => $user?->getLastName() ?? '',
                 'created_at' => $this->dateFromMongo($document['createdAt'] ?? null),
@@ -70,10 +70,10 @@ final readonly class CommentRepository
             'id' => (string) $document['_id'],
             'order_id' => (int) ($document['orderId'] ?? 0),
             'user_id' => (int) $document['userId'],
-            'rating' => (int) $document['rating'],
-            'comment' => (string) $document['comment'],
+            'rating' => (int) ($document['rating'] ?? 0),
+            'comment' => (string) ($document['comment'] ?? $document['content'] ?? ''),
             'created_at' => $this->dateFromMongo($document['createdAt'] ?? null),
-            'is_validated' => (bool) $document['isValidated'],
+            'is_validated' => (bool) ($document['isValidated'] ?? false),
         ];
     }
 
@@ -132,9 +132,9 @@ final readonly class CommentRepository
                 'menu_id' => isset($document['menuId'])
                     ? (string) $document['menuId']
                     : null,
-                'rating' => (int) $document['rating'],
-                'comment' => (string) $document['comment'],
-                'is_validated' => (bool) $document['isValidated'],
+                'rating' => (int) ($document['rating'] ?? 0),
+                'comment' => (string) ($document['comment'] ?? $document['content'] ?? ''),
+                'is_validated' => (bool) ($document['isValidated'] ?? false),
                 'created_at' => $this->dateFromMongo($document['createdAt'] ?? null),
                 'updated_at' => $this->dateFromMongo($document['updatedAt'] ?? null),
                 'first_name' => $user?->getFirstName() ?? '',

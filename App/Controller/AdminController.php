@@ -45,7 +45,9 @@ final class AdminController extends BaseController
             $this->redirect('/admin/login');
         }
 
-        if (!in_array($user->getRole(), ['employee', 'admin'], true)) {
+        $role = $user->getRole();
+
+        if ($role === 'user') {
             Session::flash(
                 'login_error',
                 'Ce compte est un compte client. Utilisez la connexion client.'
@@ -53,13 +55,21 @@ final class AdminController extends BaseController
             $this->redirect('/login');
         }
 
-        Session::login($user->getId(), $user->getRole(), [
+        if (!in_array($role, ['employee', 'admin'], true)) {
+            Session::flash(
+                'login_error',
+                'Le rôle de ce compte ne permet pas d’accéder à l’espace équipe.'
+            );
+            $this->redirect('/admin/login');
+        }
+
+        Session::login($user->getId(), $role, [
             'email' => $user->getEmail(),
             'first_name' => $user->getFirstName(),
             'last_name' => $user->getLastName(),
         ]);
 
-        $this->redirect($user->getRole() === 'admin' ? '/admin/dashboard' : '/admin/orders');
+        $this->redirect($role === 'admin' ? '/admin/dashboard' : '/admin/orders');
     }
 
     public function dashboard(): void

@@ -5,8 +5,6 @@ namespace App\Core;
 
 final class Config
 {
-    private array $items;
-
     public function __construct(private readonly array $items)
     {
     }

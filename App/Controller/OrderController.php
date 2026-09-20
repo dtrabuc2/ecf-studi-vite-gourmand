@@ -149,7 +149,8 @@ final class OrderController extends BaseController
                 $deliveryAddress,
                 $deliveryCity,
                 $deliveryPostalCode,
-                $deliveryDistanceKm
+                $deliveryDistanceKm,
+                trim((string) ($_POST['selected_options'] ?? '')) ?: null
             );
 
             $this->redirect('/orders/confirmation/' . $result['order_id']);

@@ -37,6 +37,9 @@ use App\Middleware\Staff;
 
 use RuntimeException;
 
+// The application classes are loaded by Composer at runtime. Keep the
+// container independent from the editor's class-indexing state.
+/** @noinspection PhpUndefinedClassInspection */
 final class Container
 {
     private array $factories = [];
@@ -125,7 +128,7 @@ final class Container
 
         $this->set(
             MailService::class,
-            static fn (Container $container): MailService => new MailService(
+            static fn (): MailService => new MailService(
                 (string) config('mail.from_address', 'noreply@viteetgourmand.com'),
                 (string) config('mail.from_name', 'Vite & Gourmand')
             )
@@ -151,6 +154,7 @@ final class Container
             CommentService::class,
             static fn (Container $container): CommentService => new CommentService(
                 $container->get(CommentRepository::class),
+                $container->get(OrderRepository::class),
                 $container->get(CacheService::class)
             )
         );
@@ -298,7 +302,7 @@ final class Container
 
         $this->set(
             Guest::class,
-            static fn (Container $container): Guest => new Guest()
+            static fn (): Guest => new Guest()
         );
     }
 }

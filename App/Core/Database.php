@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace App\Core;
 
-use MongoDB\Client as MongoClient;
-use MongoDB\Database as MongoDatabase;
 use PDO;
 use PDOException;
 use RuntimeException;
@@ -12,7 +10,7 @@ use RuntimeException;
 final class Database
 {
     private static ?PDO $pdo = null;
-    private static ?MongoClient $mongoClient = null;
+    private static ?\MongoDB\Client $mongoClient = null;
 
     public static function pdo(): PDO
     {
@@ -52,9 +50,9 @@ final class Database
         return self::$pdo;
     }
 
-    public static function mongo(): MongoClient
+    public static function mongo(): \MongoDB\Client
     {
-        if (self::$mongoClient instanceof MongoClient) {
+        if (self::$mongoClient instanceof \MongoDB\Client) {
             return self::$mongoClient;
         }
 
@@ -90,7 +88,8 @@ final class Database
         }
 
         try {
-            self::$mongoClient = new MongoClient(
+            $mongoClientClass = 'MongoDB\\Client';
+            self::$mongoClient = new $mongoClientClass(
                 $uri,
                 [
                     'serverSelectionTimeoutMS' => (int) config(
@@ -110,7 +109,7 @@ final class Database
         return self::$mongoClient;
     }
 
-    public static function mongoDatabase(): MongoDatabase
+    public static function mongoDatabase(): \MongoDB\Database
     {
         return self::mongo()->getDatabase(
             (string) config(
@@ -125,12 +124,12 @@ final class Database
         return self::pdo();
     }
 
-    public static function getMongo(): MongoClient
+    public static function getMongo(): \MongoDB\Client
     {
         return self::mongo();
     }
 
-    public static function getMongoDatabase(): MongoDatabase
+    public static function getMongoDatabase(): \MongoDB\Database
     {
         return self::mongoDatabase();
     }

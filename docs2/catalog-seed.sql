@@ -4,6 +4,8 @@
 -- Les images de galerie sont gérées dans MongoDB.
 -- ================================================================
 
+USE `viteetgourmand`;
+
 INSERT INTO `menus`
     (`id`, `title`, `description`, `theme`, `dietary_regime`, `min_people`, `base_price`, `conditions`, `available_stock`)
 VALUES
@@ -24,6 +26,19 @@ ON DUPLICATE KEY UPDATE
     `available_stock` = VALUES(`available_stock`),
     `is_active` = 1,
     `updated_at` = CURRENT_TIMESTAMP;
+
+INSERT INTO `opening_hours` (`day_of_week`, `is_open`, `opening_time`, `closing_time`) VALUES
+    (1, 1, '09:00:00', '18:00:00'),
+    (2, 1, '09:00:00', '18:00:00'),
+    (3, 1, '09:00:00', '18:00:00'),
+    (4, 1, '09:00:00', '18:00:00'),
+    (5, 1, '09:00:00', '19:00:00'),
+    (6, 1, '10:00:00', '16:00:00'),
+    (7, 0, NULL, NULL)
+ON DUPLICATE KEY UPDATE
+    `is_open` = VALUES(`is_open`),
+    `opening_time` = VALUES(`opening_time`),
+    `closing_time` = VALUES(`closing_time`);
 
 INSERT INTO `dishes` (`id`, `name`, `description`) VALUES
     (10, 'Foie gras maison, chutney de figues', 'Foie gras de canard et chutney de figues.'),
@@ -81,6 +96,7 @@ INSERT INTO `dishes` (`id`, `name`, `description`) VALUES
     (63, 'Armagnac XO', 'Armagnac de caractère servi en digestif.'),
     (64, 'Limoncello', 'Liqueur italienne de citron servie fraîche.')
 ON DUPLICATE KEY UPDATE
+    `name` = VALUES(`name`),
     `description` = VALUES(`description`),
     `updated_at` = CURRENT_TIMESTAMP;
 
@@ -96,7 +112,14 @@ ON DUPLICATE KEY UPDATE
     `position` = VALUES(`position`);
 
 INSERT INTO `allergens` (`id`, `name`) VALUES
-    (5,'Fruits à coque'),(6,'Soja'),(7,'Sésame'),(8,'Moutarde')
+    (1,'Gluten'),
+    (2,'Lait'),
+    (3,'Œufs'),
+    (4,'Crustacés'),
+    (5,'Fruits à coque'),
+    (6,'Soja'),
+    (7,'Sésame'),
+    (8,'Moutarde')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
 
 INSERT INTO `dish_allergens` (`dish_id`, `allergen_id`) VALUES
@@ -106,14 +129,6 @@ INSERT INTO `dish_allergens` (`dish_id`, `allergen_id`) VALUES
     (32,1),(32,3),(33,1),(33,2),(34,1),(34,3),(38,7),(39,6),(42,3),(45,4),(46,4),
     (47,2),(51,2),(52,7),(53,1),(54,2),(54,3),(55,2),(55,5),(56,2)
 ON DUPLICATE KEY UPDATE `allergen_id` = VALUES(`allergen_id`);
-
-ON DUPLICATE KEY UPDATE
-    `password` = VALUES(`password`),
-    `role` = 'admin',
-    `is_active` = 1,
-    `first_name` = VALUES(`first_name`),
-    `last_name` = VALUES(`last_name`),
-    `updated_at` = CURRENT_TIMESTAMP;
 
 -- Les employés sont créés et gérés depuis l’espace administrateur.
 -- Les clients peuvent créer leur compte via /register.

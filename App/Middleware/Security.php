@@ -71,6 +71,10 @@ class Security
 
     private function handleRateLimiting(): void
     {
+        if (!in_array($_SERVER['REQUEST_METHOD'] ?? '', ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+            return;
+        }
+
         $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
         $endpoint = null;
 

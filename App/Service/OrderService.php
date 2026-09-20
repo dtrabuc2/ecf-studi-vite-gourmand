@@ -31,7 +31,8 @@ final readonly class OrderService
         string $deliveryAddress,
         string $deliveryCity,
         string $deliveryPostalCode,
-        ?float $deliveryDistanceKm = null
+        ?float $deliveryDistanceKm = null,
+        ?string $customization = null
     ): array {
         $user = $this->userRepository->findById($userId);
         $menu = $this->menuRepository->findById($menuId);
@@ -84,6 +85,7 @@ final readonly class OrderService
             'delivery_postal_code' => trim($deliveryPostalCode),
             'delivery_distance_km' => $deliveryDistanceKm,
             'delivery_cost' => $deliveryCost,
+            'customization' => $customization,
             'menu_price' => $menuPrice,
             'discount_rate' => $discountRate,
             'total_price' => round($menuPrice + $deliveryCost, 2),

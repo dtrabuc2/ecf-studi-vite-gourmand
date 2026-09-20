@@ -39,7 +39,7 @@ final class QuoteController extends BaseController
             $id = $this->quoteService->create($data, Session::id());
             Session::flash(
                 'quote_success',
-                'Votre demande de devis a bien été enregistrée. Un accusé de réception vous a été envoyé par email.'
+                'Votre demande de devis a bien été enregistrée. Notre équipe va vous répondre par email.'
             );
             $this->redirect('/quote?sent=' . $id);
         } catch (Throwable $exception) {

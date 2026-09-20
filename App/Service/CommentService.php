@@ -4,11 +4,13 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Repository\CommentRepository;
+use App\Repository\OrderRepository;
 
 final readonly class CommentService
 {
     public function __construct(
         private CommentRepository $commentRepository,
+        private OrderRepository $orderRepository,
         private CacheService $cacheService
     ) {
     }
@@ -70,8 +72,12 @@ final readonly class CommentService
         }
 
         $orderId = (int) ($data['order_id'] ?? 0);
-        if ($orderId <= 0 || $this->commentRepository->findByOrderId($orderId) !== null) {
-            throw new \InvalidArgumentException('Un avis existe déjà pour cette commande ou la commande est invalide.');
+        if ($orderId <= 0 || $this->orderRepository->findById($orderId) === null) {
+            throw new \InvalidArgumentException('Une commande valide est requise pour laisser un avis.');
+        }
+
+        if ($this->commentRepository->findByOrderId($orderId) !== null) {
+            throw new \InvalidArgumentException('Un avis existe déjà pour cette commande.');
         }
 
         $id = $this->commentRepository->create([
