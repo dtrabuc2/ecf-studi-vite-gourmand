@@ -1,5 +1,60 @@
-<?php $errors = $_SESSION['profile_errors'] ?? []; $oldInput = $_SESSION['profile_old_input'] ?? []; unset($_SESSION['profile_errors'], $_SESSION['profile_old_input']); $value = static fn (string $key): string => $oldInput[$key] ?? $user[$key] ?? ''; ?>
-<main class="py-5"><div class="container"><div class="row justify-content-center"><div class="col-lg-8"><section class="card border-0 shadow-sm"><div class="card-body p-4 p-md-5"><h1 class="h2 text-primary">Mon profil</h1><form method="post" action="/profile" class="row g-3"><input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>"><input type="hidden" name="_method" value="PUT">
-<?php foreach (['first_name' => 'Prénom', 'last_name' => 'Nom', 'email' => 'Email', 'phone' => 'Téléphone', 'gsm' => 'GSM'] as $field => $label): ?><div class="col-md-6"><label class="form-label" for="<?= $field ?>"><?= $label ?></label><input class="form-control <?= isset($errors[$field]) ? 'is-invalid' : '' ?>" id="<?= $field ?>" name="<?= $field ?>" type="<?= $field === 'email' ? 'email' : 'text' ?>" value="<?= $escape($value($field)) ?>" required></div><?php endforeach; ?>
-<div class="col-12"><label class="form-label" for="address">Adresse</label><textarea class="form-control" id="address" name="address" required><?= $escape($value('address')) ?></textarea></div><div class="col-12"><button class="btn btn-primary">Enregistrer</button></div>
-</form></div></section></div></div></div></main>
+<?php
+$errors = AppCoreSession::pullFlash('profile_errors') ?? [];
+$oldInput = AppCoreSession::pullFlash('profile_old_input') ?? [];
+$value = static fn (string $key): string => (string) ($oldInput[$key] ?? $user[$key] ?? '');
+?>
+<main class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <section class="card border-0 shadow-sm">
+                    <div class="card-body p-4 p-md-5">
+                        <h1 class="h2 text-primary">Mon profil</h1>
+
+                        <form method="post" action="/profile" class="row g-3">
+                            <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
+
+                            <?php foreach ([
+                                'first_name' => 'Prénom',
+                                'last_name' => 'Nom',
+                                'email' => 'Email',
+                                'phone' => 'Téléphone',
+                                'gsm' => 'GSM',
+                            ] as $field => $label): ?>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="<?= $escape($field) ?>"><?= $escape($label) ?></label>
+                                    <input class="form-control <?= isset($errors[$field]) ? 'is-invalid' : '' ?>"
+                                           id="<?= $escape($field) ?>" name="<?= $escape($field) ?>"
+                                           type="<?= $field === 'email' ? 'email' : 'text' ?>"
+                                           value="<?= $escape($value($field)) ?>" required>
+                                    <?php if (isset($errors[$field])): ?>
+                                        <div class="invalid-feedback"><?= $escape($errors[$field]) ?></div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+
+                            <div class="col-12">
+                                <label class="form-label" for="address">Adresse</label>
+                                <textarea class="form-control <?= isset($errors['address']) ? 'is-invalid' : '' ?>"
+                                          id="address" name="address" required><?= $escape($value('address')) ?></textarea>
+                                <?php if (isset($errors['address'])): ?>
+                                    <div class="invalid-feedback"><?= $escape($errors['address']) ?></div>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if (isset($errors['general'])): ?>
+                                <div class="col-12">
+                                    <div class="alert alert-danger"><?= $escape($errors['general']) ?></div>
+                                </div>
+                            <?php endif; ?>
+
+                            <div class="col-12">
+                                <button class="btn btn-primary" type="submit">Enregistrer</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</main>
