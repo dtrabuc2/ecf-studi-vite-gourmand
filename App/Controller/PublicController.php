@@ -104,7 +104,9 @@ class PublicController extends BaseController
 
     public function getMenuById(int $id): void
     {
-        if ($id <= 0) { http_response_code(400); $this->json(['success' => false, 'error' => 'Identifiant invalide'], 400); }
+        if ($id <= 0) {
+            $this->json(['success' => false, 'error' => 'Identifiant invalide'], 400);
+        }
         $menu = $this->menuService->getMenuById($id);
         if ($menu === null) {
             http_response_code(404);
@@ -119,7 +121,6 @@ class PublicController extends BaseController
             $details = ['dishes' => [], 'allergens' => []];
         }
 
-        header('Content-Type: application/json');
         $this->json(['success' => true, 'data' => $this->menuToArray($menu, $details)]);
     }
 
@@ -162,7 +163,6 @@ class PublicController extends BaseController
             }
         }
 
-        header('Content-Type: application/json');
         $this->json(['success' => true, 'data' => $payload]);
     }
 
