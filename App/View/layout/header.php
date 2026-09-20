@@ -29,11 +29,12 @@ $isAuthenticated = !empty($user);
                     <li class="nav-item"><a class="nav-link" href="/orders/new">Commander</a></li>
                     <li class="nav-item"><a class="nav-link" href="/orders">Mes commandes</a></li>
                     <li class="nav-item"><a class="nav-link" href="/profile">Mon profil</a></li>
-                    <?php if ($role === 'user'): ?>
-                        <li class="nav-item"><a class="nav-link" href="/notifications">Notifications</a></li>
-                    <?php endif; ?>
 
-                    <?php if ($role === 'admin'): ?>
+                    <?php if ($role === 'user'): ?>
+                    <li class="nav-item"><a class="nav-link" href="/notifications">Notifications</a></li>
+                <?php endif; ?>
+
+                <?php if ($role === 'admin'): ?>
                         <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Administration</a></li>
                     <?php elseif ($role === 'employee'): ?>
                         <li class="nav-item"><a class="nav-link" href="/admin/orders">Commandes</a></li>
