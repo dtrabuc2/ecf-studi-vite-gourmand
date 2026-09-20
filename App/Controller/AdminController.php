@@ -11,8 +11,6 @@ use App\Service\AuthService;
 use App\Service\CommentService;
 use App\Service\MenuService;
 use App\Service\OrderService;
-use App\Core\Response;
-use InvalidArgumentException;
 use Throwable;
 
 final class AdminController extends BaseController
@@ -360,10 +358,5 @@ final class AdminController extends BaseController
         $this->json(
             $this->adminService->getRevenueByMenu($from, $to, $menuId)
         );
-    }
-
-    public function json(array $data): never
-    {
-        Response::json($data);
     }
 }
