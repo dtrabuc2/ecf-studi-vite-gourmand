@@ -12,6 +12,7 @@
                             <a href="/orders/new" class="btn btn-primary btn-lg fw-bold">Démarrer une commande</a>
                         <?php else: ?>
                             <a href="/login" class="btn btn-outline-light btn-lg fw-bold">Se connecter</a>
+                            <a href="/quote" class="btn btn-outline-light btn-lg fw-bold">Demander un devis</a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -31,6 +32,32 @@
                                 <div class="summary-box p-3">
                                     <strong class="d-block mb-1">Zone d'intervention</strong>
                                     <span class="small text-muted">Bordeaux et sa métropole, avec extension sur demande en Gironde.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-10">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4 p-lg-5">
+                            <div class="row align-items-center g-4">
+                                <div class="col-lg-8">
+                                    <span class="badge bg-primary-subtle text-primary">50 personnes et plus</span>
+                                    <h2 class="h3 text-primary mt-3">Un mariage, un séminaire ou une grande réception ?</h2>
+                                    <p class="text-muted mb-0">
+                                        Pour les événements importants, nous préférons établir un devis adapté
+                                        plutôt que vous faire passer par une commande standard.
+                                    </p>
+                                </div>
+                                <div class="col-lg-4 text-lg-end">
+                                    <a href="/quote" class="btn btn-primary">Demander un devis</a>
                                 </div>
                             </div>
                         </div>
