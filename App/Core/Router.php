@@ -35,6 +35,12 @@ final class Router
                 $route[3] ?? []
             );
         }
+
+        usort(
+            $this->routes,
+            static fn (array $left, array $right): int =>
+                substr_count($left['uri'], '{') <=> substr_count($right['uri'], '{')
+        );
     }
 
     public function dispatch(): void
