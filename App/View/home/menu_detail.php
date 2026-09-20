@@ -10,12 +10,15 @@
             <div class="row justify-content-center">
                 <div class="col-xl-10">
                     <article class="card border-0 shadow-sm overflow-hidden">
-                        <?php if ($details['images'] !== []): ?>
+                        <?php if (!empty($menuImages)): ?>
                             <div class="row g-0">
-                                <?php foreach ($details['images'] as $image): ?>
-                                    <div class="col-md-6">
-                                        <img src="/uploads/<?= $escape($image['path']) ?>" class="img-fluid w-100 h-100 object-fit-cover" alt="<?= $escape($image['alt_text']) ?>">
-                                    </div>
+                                <?php foreach ($menuImages as $image): ?>
+                                    <?php $imageUrl = $image['url'] ?? $image['path'] ?? ''; ?>
+                                    <?php if ($imageUrl): ?>
+                                        <div class="col-md-6">
+                                            <img src="<?= $escape($imageUrl) ?>" class="img-fluid w-100 h-100 object-fit-cover" alt="<?= $escape($image['alt_text'] ?? 'Image du menu') ?>">
+                                        </div>
+                                    <?php endif; ?>
                                 <?php endforeach; ?>
                             </div>
                         <?php endif; ?>
