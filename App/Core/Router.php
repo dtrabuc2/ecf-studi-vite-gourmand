@@ -207,7 +207,11 @@ final class Router
             try {
                 return $this->container->get($class);
             } catch (RuntimeException $exception) {
-                return new $class();
+                throw new RuntimeException(
+                    'Dépendance non configurée dans le conteneur : ' . $class,
+                    0,
+                    $exception
+                );
             }
         }
 
