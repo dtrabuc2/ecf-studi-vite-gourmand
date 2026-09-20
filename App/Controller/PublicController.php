@@ -54,10 +54,17 @@ final class PublicController extends BaseController
             $menus = [];
         }
 
+        $menuImages = [];
+        try {
+            $menuImages = $this->menuService->getMenusImages($menus);
+        } catch (\Throwable $exception) {
+            error_log('Impossible de charger les images du catalogue : ' . $exception->getMessage());
+        }
+
         $this->render('home/menus', [
             'menus' => $menus,
             'menuDetails' => $this->loadDetails($menus),
-            'menuImages' => $this->menuService->getMenusImages($menus),
+            'menuImages' => $menuImages,
             'user' => Session::id(),
         ]);
     }
