@@ -17,7 +17,8 @@ final class OrderService
         private readonly UserRepository $userRepository,
         private readonly MenuRepository $menuRepository,
         private readonly MailService $mailService,
-        private readonly MenuStatisticsService $menuStatisticsService
+        private readonly MenuStatisticsService $menuStatisticsService,
+        private readonly NotificationService $notificationService
     ) {
     }
 
@@ -123,6 +124,14 @@ final class OrderService
         } catch (\Throwable $exception) {
             error_log('Order confirmation email error: ' . $exception->getMessage());
         }
+
+        $this->notificationService->notify(
+            $userId,
+            'order',
+            'Commande enregistrée',
+            'Votre commande #' . $orderId . ' a bien été enregistrée et attend la confirmation de l’équipe.',
+            $orderId
+        );
 
         return [
             'success' => true,
@@ -318,6 +327,15 @@ final class OrderService
             $status,
             $changedByUserId,
             $notes
+        );
+
+        $this->notificationService->notify(
+            $order->getUserId(),
+            'order',
+            'Mise à jour de votre commande',
+            'La commande #' . $orderId . ' est maintenant « ' . $status . ' ».'
+                . ($notes !== '' ? ' ' . $notes : ''),
+            $orderId
         );
 
         $user = $this->userRepository->findById($order->getUserId());
