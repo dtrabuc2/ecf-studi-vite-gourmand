@@ -31,8 +31,9 @@ use App\Service\QuoteService;
 use App\Service\NotificationService;
 use App\Middleware\Admin;
 use App\Middleware\Auth;
-use App\Middleware\Staff;
 use App\Middleware\Guest;
+use App\Middleware\Security;
+use App\Middleware\Staff;
 
 use RuntimeException;
 
@@ -271,6 +272,13 @@ final class Container
             Auth::class,
             static fn (Container $container): Auth => new Auth(
                 $container->get(UserRepository::class)
+            )
+        );
+
+        $this->set(
+            Security::class,
+            static fn (Container $container): Security => new Security(
+                $container->get(CacheService::class)
             )
         );
 
