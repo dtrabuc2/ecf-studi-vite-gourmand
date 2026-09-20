@@ -3,15 +3,23 @@ declare(strict_types=1);
 
 namespace App\Middleware;
 
+use App\Core\Response;
 use App\Core\Session;
 
 final class Guest
 {
     public function __invoke(): void
     {
-        if (Session::id() !== null) {
-            header('Location: /');
-            exit;
+        $role = Session::role();
+
+        if (Session::id() === null) {
+            return;
         }
+
+        Response::redirect(
+            in_array($role, ['employee', 'admin'], true)
+                ? '/admin/dashboard'
+                : '/'
+        );
     }
 }
