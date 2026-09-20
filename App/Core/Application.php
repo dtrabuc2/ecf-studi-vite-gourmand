@@ -106,7 +106,7 @@ final readonly class Application
             return;
         }
 
-        $session = config('session', []);
+        $session = is_array(config('session', [])) ? config('session', []) : [];
 
         session_name(
             (string) ($session['name'] ?? 'viteetgourmand_session')
@@ -118,7 +118,9 @@ final readonly class Application
             'domain' => (string) ($session['domain'] ?? ''),
             'secure' => (bool) ($session['secure'] ?? false),
             'httponly' => true,
-            'samesite' => $session['samesite'] ?? 'Lax',
+            'samesite' => isset($session['samesite']) && is_string($session['samesite'])
+                ? $session['samesite']
+                : 'Lax',
         ]);
 
         ini_set('session.use_strict_mode', '1');
