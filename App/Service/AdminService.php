@@ -25,22 +25,33 @@ class AdminService
 
     public function createEmployee(array $data): int
     {
-        $passwordErrors = $this->validatePassword($data['password']);
-        if ($passwordErrors !== null) { throw new \InvalidArgumentException(implode("\n", $passwordErrors)); }
-        $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
+        $password = (string) ($data['password'] ?? '');
+        $errors = $this->validatePassword($password);
 
-        $userData = [
-            'email' => $data['email'],
-            'password' => $hashedPassword,
+        if ($errors !== null) {
+            throw new \InvalidArgumentException(implode(' ', $errors));
+        }
+
+        $email = mb_strtolower(trim((string) ($data['email'] ?? '')));
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new \InvalidArgumentException('Adresse email invalide.');
+        }
+
+        if ($this->userRepository->findByEmail($email) !== null) {
+            throw new \InvalidArgumentException('Cette adresse email est déjà utilisée.');
+        }
+
+        return $this->userRepository->create([
+            'email' => $email,
+            'password' => password_hash($password, PASSWORD_DEFAULT),
             'role' => 'employee',
-            'first_name' => $data['first_name'],
-            'last_name' => $data['last_name'],
-            'phone' => $data['phone'],
-            'gsm' => $data['gsm'],
-            'address' => $data['address'],
-        ];
-
-        return $this->userRepository->create($userData);
+            'first_name' => trim((string) $data['first_name']),
+            'last_name' => trim((string) $data['last_name']),
+            'phone' => trim((string) $data['phone']),
+            'gsm' => trim((string) $data['gsm']),
+            'address' => trim((string) $data['address']),
+        ]);
     }
 
     public function getCustomers(?string $search = null, ?bool $active = null): array
