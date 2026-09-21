@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `service_type` ENUM('delivery','on_site','pickup') NOT NULL DEFAULT 'delivery',
     `payment_method` ENUM('cash_on_site') NOT NULL DEFAULT 'cash_on_site',
     `delivery_instructions` TEXT NULL,
+    `contact_phone` VARCHAR(20) NOT NULL,
     `menu_price` DECIMAL(10,2) NOT NULL,
     `discount_rate` DECIMAL(5,2) NOT NULL DEFAULT 0.00 COMMENT 'Pourcentage, par exemple 10.00',
     `total_price` DECIMAL(10,2) NOT NULL,
