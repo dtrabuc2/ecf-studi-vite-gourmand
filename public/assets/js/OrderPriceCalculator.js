@@ -16,13 +16,17 @@ class OrderPriceCalculator {
             return null;
         }
 
-        // Le serveur est la source de vérité : prix de base par personne × convives.
+        // Le serveur reste la source de vérité.
+        // Règle ECF : remise de 10 % à partir de 5 personnes au-dessus du minimum.
         const grossPrice = Math.round(this.basePrice * people * 100) / 100;
+        const hasDiscount = people >= this.minimumPeople + 5;
+        const discountRate = hasDiscount ? 10 : 0;
+        const menuPrice = Math.round(grossPrice * (1 - (discountRate / 100)) * 100) / 100;
 
         return {
             grossPrice,
-            discountRate: 0,
-            menuPrice: grossPrice
+            discountRate,
+            menuPrice
         };
     }
 }
