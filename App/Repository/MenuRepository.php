@@ -94,7 +94,41 @@ class MenuRepository
 
     public function findDetails(int $menuId): array
     {
-        return [];
+        $pdo = Database::getPDO();
+        $stmt = $pdo->prepare(
+            'SELECT
+                d.id,
+                d.name,
+                d.description,
+                d.category,
+                d.dietary_regime,
+                md.position
+             FROM menu_dishes md
+             INNER JOIN dishes d ON d.id = md.dish_id
+             WHERE md.menu_id = :menu_id
+               AND d.is_active = 1
+             ORDER BY md.position, d.id'
+        );
+        $stmt->execute(['menu_id' => $menuId]);
+        $rows = $stmt->fetchAll();
+
+        $allergenStmt = $pdo->prepare(
+            'SELECT DISTINCT a.name
+             FROM menu_dishes md
+             INNER JOIN dish_allergens da ON da.dish_id = md.dish_id
+             INNER JOIN allergens a ON a.id = da.allergen_id
+             WHERE md.menu_id = :menu_id
+             ORDER BY a.name'
+        );
+        $allergenStmt->execute(['menu_id' => $menuId]);
+
+        return [
+            'dishes' => $rows,
+            'allergens' => array_map(
+                static fn (array $row): string => (string) $row['name'],
+                $allergenStmt->fetchAll()
+            ),
+        ];
     }
 
     public function create(Menu $menu): int
