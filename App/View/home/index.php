@@ -83,9 +83,9 @@
                     <div class="col-md-6 col-lg-4">
                         <article class="card h-100 border-0 shadow-sm overflow-hidden">
                             <?php if ($cover && !empty($cover['url'])): ?>
-                                <img src="<?= $escape($cover['url']) ?>" class="card-img-top" alt="<?= $escape($cover['alt_text'] ?? $menu->getTitle()) ?>" style="height:250px;object-fit:cover;">
+                                <img src="<?= $escape($cover['url']) ?>" class="card-img-top" alt="<?= $escape($cover['alt_text'] ?? $menu->getTitle()) ?>" class="home-menu-image">
                             <?php else: ?>
-                                <div class="bg-light d-flex align-items-center justify-content-center text-muted" style="height:250px;">Aucune image disponible</div>
+                                <div class="bg-light d-flex align-items-center justify-content-center text-muted" class="home-menu-placeholder">Aucune image disponible</div>
                             <?php endif; ?>
                             <div class="card-body d-flex flex-column">
                                 <span class="badge bg-primary-subtle text-primary align-self-start mb-2"><?= $escape($menu->getTheme()) ?></span>
