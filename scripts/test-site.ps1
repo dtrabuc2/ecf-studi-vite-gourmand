@@ -5,7 +5,14 @@ param(
     [int]$Port = 8080
 )
 $ErrorActionPreference = "Stop"
-$ProjectRoot = Split-Path -Parent $PSScriptRoot
+$CurrentDirectory = (Get-Location).Path
+if (Test-Path (Join-Path $CurrentDirectory "composer.json")) {
+    $ProjectRoot = $CurrentDirectory
+} elseif ($PSScriptRoot) {
+    $ProjectRoot = Split-Path -Parent $PSScriptRoot
+} else {
+    throw "Impossible de déterminer la racine du projet. Lancez le script depuis le projet ou exécutez scripts\test-site.ps1."
+}
 $DocsDir = Join-Path $ProjectRoot "docs"
 $ReportPath = Join-Path $DocsDir "rapport-tests.php"
 $PublicDir = Join-Path $ProjectRoot "public"
