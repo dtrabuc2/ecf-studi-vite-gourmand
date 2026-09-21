@@ -51,15 +51,13 @@ final readonly class OrderService
             throw new InvalidArgumentException('Menu non trouvé ou indisponible.');
         }
 
+        if ($numberOfPeople < 1) {
+            throw new InvalidArgumentException('Le nombre de personnes doit être supérieur à 0.');
+        }
+
         if ($numberOfPeople > 30) {
             throw new InvalidArgumentException(
                 'Au-delà de 30 personnes, une demande de devis traiteur est obligatoire.'
-            );
-        }
-
-        if ($numberOfPeople < 15 || $numberOfPeople > 30) {
-            throw new InvalidArgumentException(
-                'Une commande traiteur directe doit comprendre entre 15 et 30 convives.'
             );
         }
 
@@ -459,10 +457,8 @@ final readonly class OrderService
             throw new InvalidArgumentException('Menu indisponible.');
         }
 
-        if ($numberOfPeople < 15) {
-            throw new InvalidArgumentException(
-                'Le parcours traiteur direct est disponible à partir de 15 convives.'
-            );
+        if ($numberOfPeople < 1 || $numberOfPeople > 30) {
+            throw new InvalidArgumentException('Le nombre de convives est invalide pour une commande directe.');
         }
 
         [$menuPrice, $discountRate] = $this->calculateMenuPrice(
@@ -522,14 +518,9 @@ final readonly class OrderService
             throw new InvalidArgumentException('Paramètres de tarification invalides.');
         }
 
-        $effectiveMinPeople = max(1, $minPeople);
-        if ($numberOfPeople < $effectiveMinPeople && $numberOfPeople < 15) {
-            throw new InvalidArgumentException('Le nombre de convives ne permet pas de calculer ce tarif.');
-        }
-
-        // Le catalogue indique le prix pour le nombre minimal de personnes.
-        // On ramène donc ce prix à un tarif unitaire avant de recalculer la commande.
-        // Règle ECF : remise de 10 % à partir de 5 personnes au-dessus du minimum.
+        // Le prix catalogue correspond à la formule pour le minimum du menu.
+        // Le serveur ramène ce montant à un prix unitaire puis le multiplie
+        // par le nombre réel de convives.
         $grossPrice = round(($basePrice / $minPeople) * $numberOfPeople, 2);
         $discountRate = $numberOfPeople >= ($minPeople + 5) ? 10.0 : 0.0;
         $price = round($grossPrice * (1 - ($discountRate / 100)), 2);
