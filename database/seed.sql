@@ -10,18 +10,21 @@ USE `viteetgourmand`;
 -- Horaires d'ouverture de référence
 -- ================================================================
 
-INSERT INTO `opening_hours` (`day_of_week`, `is_open`, `opening_time`, `closing_time`) VALUES
-    (1, 1, '09:00:00', '18:00:00'),
-    (2, 1, '09:00:00', '18:00:00'),
-    (3, 1, '09:00:00', '18:00:00'),
-    (4, 1, '09:00:00', '18:00:00'),
-    (5, 1, '09:00:00', '19:00:00'),
-    (6, 1, '10:00:00', '16:00:00'),
-    (7, 0, NULL, NULL)
+INSERT INTO `opening_hours`
+    (`day_of_week`, `is_open`, `opening_time`, `closing_time`, `opening_time_2`, `closing_time_2`) VALUES
+    (1, 0, NULL, NULL, NULL, NULL),
+    (2, 1, '11:30:00', '15:30:00', '18:00:00', '23:00:00'),
+    (3, 1, '11:30:00', '15:30:00', '18:00:00', '23:00:00'),
+    (4, 1, '12:00:00', '20:00:00', NULL, NULL),
+    (5, 1, '11:30:00', '15:30:00', '18:00:00', '23:00:00'),
+    (6, 1, '11:30:00', '15:30:00', '18:00:00', '23:00:00'),
+    (7, 1, '12:00:00', '20:00:00', NULL, NULL)
 ON DUPLICATE KEY UPDATE
     `is_open` = VALUES(`is_open`),
     `opening_time` = VALUES(`opening_time`),
-    `closing_time` = VALUES(`closing_time`);
+    `closing_time` = VALUES(`closing_time`),
+    `opening_time_2` = VALUES(`opening_time_2`),
+    `closing_time_2` = VALUES(`closing_time_2`);
 
 INSERT INTO `menus`
     (`id`, `title`, `description`, `theme`, `dietary_regime`, `min_people`, `base_price`, `conditions`, `available_stock`)
