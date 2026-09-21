@@ -51,16 +51,15 @@ final readonly class OrderService
             throw new InvalidArgumentException('Menu non trouvé ou indisponible.');
         }
 
-        if ($numberOfPeople >= 50) {
+        if ($numberOfPeople > 30) {
             throw new InvalidArgumentException(
-                'Pour 50 personnes ou plus, une demande de devis est nécessaire.'
+                'Au-delà de 30 personnes, une demande de devis traiteur est obligatoire.'
             );
         }
 
-        if ($numberOfPeople < $menu->getMinPeople()) {
+        if ($numberOfPeople < 15 || $numberOfPeople > 30) {
             throw new InvalidArgumentException(
-                'Le nombre de personnes doit être supérieur ou égal au minimum requis pour ce menu ('
-                . $menu->getMinPeople() . ' personnes).'
+                'Une commande traiteur directe doit comprendre entre 15 et 30 convives.'
             );
         }
 
@@ -394,7 +393,7 @@ final readonly class OrderService
             throw new InvalidArgumentException('Le nombre de convives doit être supérieur à 0.');
         }
 
-        if ($numberOfPeople >= 50) {
+        if ($numberOfPeople > 30) {
             return [];
         }
 
@@ -403,13 +402,13 @@ final readonly class OrderService
 
         foreach ($menus as $menu) {
             $stockAvailable = $menu->getAvailableStock() > 0;
-            $peopleAvailable = $numberOfPeople >= $menu->getMinPeople();
+            $peopleAvailable = $numberOfPeople >= 1;
             $available = $stockAvailable && $peopleAvailable;
             $reason = $available
                 ? null
                 : (!$stockAvailable
                     ? 'Stock indisponible.'
-                    : 'Minimum de ' . $menu->getMinPeople() . ' convives.');
+                    : 'Menu indisponible pour ce nombre de convives.');
 
             $menuPrice = null;
             $discountRate = null;
@@ -445,7 +444,7 @@ final readonly class OrderService
         string $deliveryCity = '',
         ?float $deliveryDistanceKm = null
     ): array {
-        if ($numberOfPeople < 1 || $numberOfPeople >= 50) {
+        if ($numberOfPeople < 1 || $numberOfPeople > 30) {
             throw new InvalidArgumentException('Le nombre de convives est invalide pour une commande directe.');
         }
 
@@ -459,10 +458,8 @@ final readonly class OrderService
             throw new InvalidArgumentException('Menu indisponible.');
         }
 
-        if ($numberOfPeople < $menu->getMinPeople()) {
-            throw new InvalidArgumentException(
-                'Le menu nécessite au minimum ' . $menu->getMinPeople() . ' convives.'
-            );
+        if ($numberOfPeople < 1) {
+            throw new InvalidArgumentException('Le nombre de convives est invalide.');
         }
 
         [$menuPrice, $discountRate] = $this->calculateMenuPrice(
@@ -518,8 +515,13 @@ final readonly class OrderService
 
     private function calculateMenuPrice(float $basePrice, int $minPeople, int $numberOfPeople): array
     {
-        if ($basePrice < 0 || $minPeople < 1 || $numberOfPeople < $minPeople) {
+        if ($basePrice < 0 || $minPeople < 1 || $numberOfPeople < 1) {
             throw new InvalidArgumentException('Paramètres de tarification invalides.');
+        }
+
+        $effectiveMinPeople = max(1, $minPeople);
+        if ($numberOfPeople < $effectiveMinPeople && $numberOfPeople < 15) {
+            throw new InvalidArgumentException('Le nombre de convives ne permet pas de calculer ce tarif.');
         }
 
         // Le catalogue indique le prix pour le nombre minimal de personnes.
@@ -584,8 +586,8 @@ final readonly class OrderService
 
         $menu = $this->menuRepository->findById($order->getMenuId());
 
-        if ($menu === null || $numberOfPeople < $menu->getMinPeople()) {
-            throw new InvalidArgumentException('Le nombre de personnes est inférieur au minimum du menu.');
+        if ($menu === null) {
+            throw new InvalidArgumentException('Le menu de la commande est introuvable.');
         }
 
         [$menuPrice, $discountRate] = $this->calculateMenuPrice(
