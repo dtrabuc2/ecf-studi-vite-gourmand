@@ -30,17 +30,9 @@ final class PublicController extends BaseController
         $menus ??= [];
         $reviews ??= [];
 
-        $menuImages = [];
-        try {
-            $menuImages = $this->menuService->getMenusImages($menus);
-        } catch (\Throwable $exception) {
-            error_log('Impossible de charger les images des menus : ' . $exception->getMessage());
-        }
-
         $this->render('home/index', [
             'reviews' => $reviews,
             'menus' => $menus,
-            'menuImages' => $menuImages,
             'user' => Session::id(),
         ]);
     }
@@ -54,17 +46,9 @@ final class PublicController extends BaseController
             $menus = [];
         }
 
-        $menuImages = [];
-        try {
-            $menuImages = $this->menuService->getMenusImages($menus);
-        } catch (\Throwable $exception) {
-            error_log('Impossible de charger les images du catalogue : ' . $exception->getMessage());
-        }
-
         $this->render('home/menus', [
             'menus' => $menus,
             'menuDetails' => $this->loadDetails($menus),
-            'menuImages' => $menuImages,
             'user' => Session::id(),
         ]);
     }
@@ -88,7 +72,6 @@ final class PublicController extends BaseController
         $this->render('home/menu_detail', [
             'menu' => $menu,
             'details' => $this->menuService->getMenuDetails($id),
-            'menuImages' => $this->menuService->getMenuImages($id),
             'user' => Session::id(),
         ]);
     }
@@ -169,7 +152,6 @@ final class PublicController extends BaseController
             'available_stock' => $menu->getAvailableStock(),
             'dishes' => $details['dishes'] ?? [],
             'allergens' => $details['allergens'] ?? [],
-            'images' => $this->menuService->getMenuImages($menu->getId()),
         ];
     }
 
