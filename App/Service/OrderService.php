@@ -227,11 +227,13 @@ final readonly class OrderService
             throw new InvalidArgumentException('Paramètres de tarification invalides.');
         }
 
-        // Le catalogue Vite & Gourmand affiche un prix par personne.
-        // La commande applique strictement : prix unitaire × nombre de convives.
-        $price = round($basePrice * $numberOfPeople, 2);
+        // Le prix de base est un prix par personne.
+        // Règle ECF : remise de 10 % à partir de 5 personnes au-dessus du minimum.
+        $grossPrice = round($basePrice * $numberOfPeople, 2);
+        $discountRate = $numberOfPeople >= ($minPeople + 5) ? 10.0 : 0.0;
+        $price = round($grossPrice * (1 - ($discountRate / 100)), 2);
 
-        return [$price, 0.0];
+        return [$price, $discountRate];
     }
 
     public function getUserOrders(int $userId): array
