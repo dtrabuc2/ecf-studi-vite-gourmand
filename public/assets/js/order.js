@@ -71,7 +71,7 @@
 
       const data = payload?.data || {};
       if (data.quote_required) {
-        form.submit();
+        window.location.assign(data.quote_url || '/quote');
         return;
       }
 
@@ -263,8 +263,8 @@
       return;
     }
 
-    if (people >= 50) {
-      form.submit();
+    if (people > 30) {
+      window.location.assign('/quote?number_of_people=' + encodeURIComponent(people));
       return;
     }
 
@@ -272,7 +272,9 @@
 
     if (menuOptions.length === 0) {
       if (message) {
-        message.textContent = 'Aucun menu n’est disponible pour ce nombre de convives.';
+        message.textContent = people >= 15
+          ? 'Aucun menu disponible pour cette prestation traiteur.'
+          : 'Aucun menu disponible pour ce nombre de convives.';
         message.classList.remove('d-none');
       }
       return;
