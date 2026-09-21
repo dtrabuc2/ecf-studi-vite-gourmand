@@ -13,10 +13,21 @@
                 <a href="/menus">Retour au catalogue</a>
             </div>
         <?php else: ?>
-            <?php $details ??= ['dishes' => [], 'allergens' => []]; ?>
+            <?php
+            $details ??= ['dishes' => [], 'allergens' => []];
+            $cover ??= null;
+            ?>
             <div class="row justify-content-center">
                 <div class="col-xl-10">
                     <article class="card border-0 shadow-sm overflow-hidden">
+                        <?php if ($cover && !empty($cover['url'])): ?>
+                            <img
+                                src="<?= $escape($cover['url']) ?>"
+                                class="card-img-top menu-detail-image"
+                                alt="<?= $escape($cover['alt_text'] ?? $menu->getTitle()) ?>"
+                            >
+                        <?php endif; ?>
+
                         <div class="card-body p-4 p-md-5">
                             <span class="badge bg-primary-subtle text-primary"><?= $escape($menu->getTheme()) ?></span>
                             <h2 class="display-6 text-primary mt-3"><?= $escape($menu->getTitle()) ?></h2>
@@ -26,7 +37,7 @@
                                 <dt class="col-sm-5">Prix du menu</dt>
                                 <dd class="col-sm-7"><?= number_format($menu->getBasePrice(), 2, ',', ' ') ?> €</dd>
                                 <dt class="col-sm-5">Minimum</dt>
-                                <dd class="col-sm-7"><?= $menu->getMinPeople() ?> personnes</dd>
+                                <dd class="col-sm-7"><?= $menu->getMinPeople() ?> personne<?= $menu->getMinPeople() > 1 ? 's' : '' ?></dd>
                                 <dt class="col-sm-5">Régime alimentaire</dt>
                                 <dd class="col-sm-7"><?= $escape($menu->getDietaryRegime()) ?></dd>
                                 <dt class="col-sm-5">Stock disponible</dt>
@@ -37,7 +48,7 @@
                                 <section class="mt-4">
                                     <h3 class="h4 text-primary">Composition du menu</h3>
                                     <div class="row g-3 mt-1">
-                                        <?php foreach (['starter' => 'Entrée', 'main' => 'Plat', 'dessert' => 'Dessert'] as $category => $label): ?>
+                                        <?php foreach (['starter' => 'Entrée', 'main' => 'Plat / accompagnement', 'dessert' => 'Dessert'] as $category => $label): ?>
                                             <div class="col-md-4">
                                                 <h4 class="h6 fw-bold"><?= $label ?></h4>
                                                 <?php foreach ($details['dishes'] as $dish): ?>
