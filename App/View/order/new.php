@@ -144,7 +144,7 @@ $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
                     <div class="col-md-4"><label class="form-label" for="delivery_date">Date</label><input class="form-control" id="delivery_date" name="delivery_date" type="date" min="<?= date('Y-m-d') ?>" value="<?= $old('delivery_date') ?>" required></div>
                     <div class="col-md-4"><label class="form-label" for="delivery_time" id="serviceTimeLabel">Heure de livraison</label><input class="form-control" id="delivery_time" name="delivery_time" type="time" value="<?= $old('delivery_time') ?>" required><div class="form-text" id="serviceTimeHelp">Heure prévue de remise au client.</div></div>
                     <div id="deliveryFields" class="row g-3">
-                        <div class="col-12" id="pickupLocationNotice">
+                        <div class="col-12 d-none" id="pickupLocationNotice">
                             <div class="alert alert-info mb-0">
                                 <strong>Retrait / sur place :</strong> Vite &amp; Gourmand, Bordeaux. L’adresse exacte du restaurant est reprise dans le récapitulatif de commande.
                             </div>
@@ -176,7 +176,18 @@ $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
                             <input type="hidden" name="payment_method" value="cash_on_site">
                         </div>
                     </div>
-                    <div class="col-12"><section class="card bg-light border-0"><div class="card-body"><h3 class="h5 text-primary">Prix indicatif</h3><dl class="row mb-0"><dt class="col-8">Prix menu</dt><dd class="col-4 text-end" id="orderMenuPrice">0,00 €</dd><dt class="col-8">Livraison</dt><dd class="col-4 text-end" id="orderDeliveryPrice">0,00 €</dd><dt class="col-8 fw-bold">Total</dt><dd class="col-4 text-end fw-bold" id="orderTotalPrice">0,00 €</dd></dl></div></section></div>
+                    <div class="col-12">
+                        <section class="card bg-light border-0">
+                            <div class="card-body">
+                                <h3 class="h5 text-primary">Prix indicatif</h3>
+                                <dl class="row mb-0">
+                                    <dt class="col-8">Prix menu</dt><dd class="col-4 text-end" id="orderMenuPrice">0,00 €</dd>
+                                    <dt class="col-8" id="orderDeliveryLabel">Livraison</dt><dd class="col-4 text-end" id="orderDeliveryPrice">0,00 €</dd>
+                                    <dt class="col-8 fw-bold">Total</dt><dd class="col-4 text-end fw-bold" id="orderTotalPrice">0,00 €</dd>
+                                </dl>
+                            </div>
+                        </section>
+                    </div>
                     <div class="col-12"><button class="btn btn-primary" type="submit">Valider la commande</button><a class="btn btn-outline-secondary ms-2" href="/menus">Retour aux menus</a></div>
                 </div>
             </form>
