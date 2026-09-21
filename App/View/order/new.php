@@ -143,6 +143,11 @@ $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
                     <div class="col-md-4"><label class="form-label" for="number_of_people">Nombre de personnes</label><input class="form-control" id="number_of_people" name="number_of_people" type="number" min="1" value="<?= $old('number_of_people') ?>" required></div>
                     <div class="col-md-4"><label class="form-label" for="delivery_date">Date</label><input class="form-control" id="delivery_date" name="delivery_date" type="date" min="<?= date('Y-m-d') ?>" value="<?= $old('delivery_date') ?>" required></div>
                     <div class="col-md-4"><label class="form-label" for="delivery_time" id="serviceTimeLabel">Heure de livraison</label><input class="form-control" id="delivery_time" name="delivery_time" type="time" value="<?= $old('delivery_time') ?>" required><div class="form-text" id="serviceTimeHelp">Heure prévue de remise au client.</div></div>
+                    <div class="col-12 mb-3">
+                        <div id="serviceContactHelp" class="alert alert-secondary mb-0">
+                            <strong>Téléphone de contact :</strong> requis pour la livraison, le retrait et l’arrivée sur place.
+                        </div>
+                    </div>
                     <div id="deliveryFields" class="row g-3">
                         <div class="col-12 d-none" id="pickupLocationNotice">
                             <div class="alert alert-info mb-0">
