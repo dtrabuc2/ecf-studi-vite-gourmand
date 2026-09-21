@@ -1,24 +1,23 @@
-const dbName = "viteetgourmand";
+// Initialisation idempotente de MongoDB pour Vite & Gourmand.
+// MariaDB reste la source des menus, plats, thèmes, régimes, allergènes et commandes.
+// MongoDB stocke les galeries d'images, les avis validés/en attente et les statistiques.
 
-// Pour l’import local, remplacez mongoPassword par une valeur secrète avant exécution.
-// Le compte PHP doit utiliser le même couple utilisateur/mot de passe avec authSource=viteetgourmand.
+const dbName = "viteetgourmand";
 const database = db.getSiblingDB(dbName);
 const adminDb = db.getSiblingDB("admin");
-const collectionNames = [
-    "comments",
-    "menu_statistics",
-    "menu_images"
-];
+
 // -----------------------------------------------------------------------------
 // Création de l'utilisateur MongoDB
 // -----------------------------------------------------------------------------
-// On évite une erreur si l'utilisateur existe déjà.
-const mongoUser = "vgt_app";
-const mongoPassword = "CHANGE_ME_STRONG_PASSWORD";
-const existingUser = database.getUser(mongoUser);
+// L'utilisateur est créé dans la base admin pour pouvoir ensuite se connecter
+// avec authSource=admin dans Compass.
+const mongoUser = "dylan";
+const mongoPassword = "trabuc31";
+
+const existingUser = adminDb.getUser(mongoUser);
 
 if (!existingUser) {
-    database.createUser({
+    adminDb.createUser({
         user: mongoUser,
         pwd: mongoPassword,
         roles: [
@@ -33,17 +32,25 @@ if (!existingUser) {
 // -----------------------------------------------------------------------------
 // Création explicite des collections
 // -----------------------------------------------------------------------------
+const collectionNames = [
+    "comments",
+    "menu_statistics",
+    "menu_images"
+];
+
 collectionNames.forEach((name) => {
     if (!database.getCollectionNames().includes(name)) {
         database.createCollection(name);
         print("Collection créée : " + name);
     }
 });
+
 // -----------------------------------------------------------------------------
 // Données de départ pour menu_images
 // -----------------------------------------------------------------------------
 // On supprime puis réinsère les images des menus 1 à 6 pour rester idempotent.
 const menuIds = [1, 2, 3, 4, 5, 6];
+
 const menuImages = [
     {
         menuId: 1,
@@ -124,13 +131,16 @@ const menuImages = [
         altText: "Poisson et fruits de mer du menu"
     }
 ];
+
 database.menu_images.deleteMany({
     menuId: { $in: menuIds }
 });
+
 if (menuImages.length > 0) {
     database.menu_images.insertMany(menuImages);
     print("Images insérées : " + menuImages.length);
 }
+
 // -----------------------------------------------------------------------------
 // Index de la collection comments
 // -----------------------------------------------------------------------------
@@ -138,10 +148,12 @@ database.comments.createIndex(
     { isValidated: 1, createdAt: -1 },
     { name: "comments_validation_createdAt" }
 );
+
 database.comments.createIndex(
     { userId: 1, orderId: 1 },
     { name: "comments_user_order_unique", unique: true }
 );
+
 // -----------------------------------------------------------------------------
 // Index de la collection menu_images
 // -----------------------------------------------------------------------------
@@ -149,13 +161,15 @@ database.menu_images.createIndex(
     { menuId: 1, position: 1 },
     { name: "menu_images_menu_position_unique", unique: true }
 );
+
 // -----------------------------------------------------------------------------
 // Index de la collection menu_statistics
 // -----------------------------------------------------------------------------
 database.menu_statistics.createIndex(
     { menuId: 1, periodIdentifier: 1 },
-    { name: "menu_statistics_menu_period_unique", unique: true }
+    { name: "menu_statistics_menu_period_unique" }
 );
+
 print("MongoDB viteetgourmand initialisée.");
 print("Base : " + dbName);
 print("Collections :");
