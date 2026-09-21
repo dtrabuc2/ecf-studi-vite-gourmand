@@ -209,6 +209,24 @@ final readonly class OrderService
         ];
     }
 
+    private function calculateMenuPrice(float $basePrice, int $minPeople, int $numberOfPeople): array
+    {
+        if ($basePrice < 0 || $minPeople < 1 || $numberOfPeople < $minPeople) {
+            throw new InvalidArgumentException('Paramètres de tarification invalides.');
+        }
+
+        $discountRate = 0.0;
+        if ($numberOfPeople >= 20) {
+            $discountRate = 10.0;
+        } elseif ($numberOfPeople >= 10) {
+            $discountRate = 5.0;
+        }
+
+        $price = $basePrice * $numberOfPeople;
+        $price -= $price * ($discountRate / 100);
+        return [round($price, 2), $discountRate];
+    }
+
     public function getUserOrders(int $userId): array
     {
         return $this->orderRepository->findByUserId($userId);
