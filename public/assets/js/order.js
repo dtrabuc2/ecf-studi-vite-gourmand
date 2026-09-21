@@ -69,13 +69,66 @@
     }
   };
 
-  document.querySelectorAll('input[name="service_type"]').forEach((input) => {
-    input.addEventListener('change', () => {
-      const delivery = input.value === 'delivery' && input.checked;
-      deliveryFields?.classList.toggle('d-none', !delivery);
-      deliveryFields?.querySelectorAll('input, textarea').forEach((field) => { field.required = delivery && field.id !== 'delivery_distance_km'; });
+  const contactPhone = document.getElementById('contact_phone');
+  const serviceTimeLabel = document.getElementById('serviceTimeLabel');
+  const serviceTimeHelp = document.getElementById('serviceTimeHelp');
+  const deliveryInstructionsField = document.getElementById('deliveryInstructionsField');
+  const pickupLocationNotice = document.getElementById('pickupLocationNotice');
+  const onSiteAddressNotice = document.getElementById('onSiteAddressNotice');
+
+  const syncServiceType = () => {
+    const selectedType = document.querySelector('input[name="service_type"]:checked')?.value || 'delivery';
+    const isDelivery = selectedType === 'delivery';
+    const isPickup = selectedType === 'pickup';
+    const isOnSite = selectedType === 'on_site';
+
+    deliveryFields?.classList.toggle('d-none', !isDelivery);
+    pickupLocationNotice?.classList.toggle('d-none', isDelivery);
+    onSiteAddressNotice?.classList.toggle('d-none', !isOnSite);
+
+    deliveryFields?.querySelectorAll('input, textarea').forEach((field) => {
+      field.required = isDelivery && ['delivery_address', 'delivery_postal_code', 'delivery_city'].includes(field.name);
     });
+
+    if (deliveryInstructionsField) {
+      deliveryInstructionsField.classList.toggle('d-none', !isDelivery);
+    }
+
+    if (serviceTimeLabel) {
+      serviceTimeLabel.textContent = isDelivery
+        ? 'Heure de livraison'
+        : isPickup
+          ? 'Heure de retrait'
+          : 'Heure d’arrivée';
+    }
+
+    if (serviceTimeHelp) {
+      serviceTimeHelp.textContent = isDelivery
+        ? 'Heure prévue de remise au client.'
+        : isPickup
+          ? 'Heure à laquelle la commande sera retirée.'
+          : 'Heure prévue d’arrivée au restaurant.';
+    }
+
+    if (contactPhone) {
+      contactPhone.required = true;
+    }
+
+    if (isDelivery) {
+      deliveryFields?.querySelector('#delivery_address')?.setAttribute('placeholder', 'Commencez à saisir une adresse...');
+    }
+
+    if (isPickup || isOnSite) {
+      deliveryFields?.querySelectorAll('input, textarea').forEach((field) => {
+        if (field.name !== 'delivery_instructions') field.required = false;
+      });
+    }
+  };
+
+  document.querySelectorAll('input[name="service_type"]').forEach((input) => {
+    input.addEventListener('change', syncServiceType);
   });
+  syncServiceType();
 
   const renderDigestifs = () => {
     const target = document.getElementById('selectDigestif');
@@ -86,12 +139,62 @@
         .join('');
   };
 
+  const ingredientDictionary = [
+    ['foie gras', 'Foie gras'], ['canard', 'Canard'], ['figue', 'Figue'],
+    ['saint-jacques', 'Saint-Jacques'], ['noix', 'Noix'], ['agrumes', 'Agrumes'],
+    ['herbes', 'Herbes'], ['bœuf', 'Bœuf'], ['boeuf', 'Bœuf'], ['truffe', 'Truffe'],
+    ['homard', 'Homard'], ['chocolat', 'Chocolat'], ['praliné', 'Praliné'], ['praline', 'Praliné'],
+    ['pistache', 'Pistache'], ['vanille', 'Vanille'], ['tomate', 'Tomate'], ['tomates', 'Tomates'],
+    ['avocat', 'Avocat'], ['mangue', 'Mangue'], ['citron', 'Citron'], ['citron vert', 'Citron vert'],
+    ['cèpes', 'Cèpes'], ['cepes', 'Cèpes'], ['parmesan', 'Parmesan'], ['courgette', 'Courgette'],
+    ['poivron', 'Poivron'], ['meringue', 'Meringue'], ['fruits rouges', 'Fruits rouges'],
+    ['saumon', 'Saumon'], ['aneth', 'Aneth'], ['poulet', 'Poulet'], ['soja', 'Soja'],
+    ['sauce soja', 'Sauce soja'], ['gambas', 'Gambas'], ['crevette', 'Crevette'],
+    ['macaron', 'Macaron'], ['jambon', 'Jambon'], ['fromage', 'Fromage'],
+    ['potimarron', 'Potimarron'], ['semoule', 'Semoule'], ['pois chiches', 'Pois chiches'],
+    ['falafel', 'Falafels'], ['tahini', 'Tahini'], ['tofu', 'Tofu'], ['gingembre', 'Gingembre'],
+    ['ratatouille', 'Ratatouille'], ['haricots verts', 'Haricots verts'], ['olive', 'Olives'],
+    ['pommes de terre', 'Pommes de terre'], ['cannelle', 'Cannelle'], ['moules', 'Moules'],
+    ['fruits de mer', 'Fruits de mer'], ['riz', 'Riz'], ['quinoa', 'Quinoa'],
+    ['champignons', 'Champignons'], ['lait de coco', 'Lait de coco'], ['pâtes', 'Pâtes'],
+    ['pates', 'Pâtes'], ['bolognaise', 'Bolognaise'], ['poisson', 'Poisson'],
+    ['purée', 'Purée'], ['puree', 'Purée'], ['œuf', 'Œuf'], ['oeuf', 'Œuf'],
+    ['lait', 'Lait'], ['crème', 'Crème'], ['creme', 'Crème'], ['noisette', 'Noisette'],
+    ['café', 'Café'], ['cafe', 'Café'], ['alcool', 'Alcool']
+  ];
+
+  const extractIngredientsFromText = (text) => {
+    const normalized = String(text || '').toLocaleLowerCase('fr-FR');
+    return ingredientDictionary
+      .filter(([token]) => normalized.includes(token))
+      .map(([, label]) => label);
+  };
+
   const renderIngredients = () => {
     if (!ingredients) return;
-    const values = selected?.allergens || [];
+
+    const sourceDishes = serviceType === 'plat'
+      ? (selectedDish ? [selectedDish] : [])
+      : (selected?.dishes || []);
+
+    const extracted = sourceDishes.flatMap((dish) => [
+      dish.name || '',
+      dish.description || ''
+    ]).flatMap(extractIngredientsFromText);
+
+    const combined = [...(selected?.allergens || []), ...extracted];
+    const values = [...new Map(combined.map((item) => [String(item).toLocaleLowerCase('fr-FR'), item])).values()];
+
     ingredients.innerHTML = values.length
-      ? values.map((item, index) => '<div class="col-sm-6"><label class="form-check"><input class="form-check-input" type="checkbox" name="excluded_ingredients[]" value="' + escapeHtml(item) + '"> <span>' + escapeHtml(item) + '</span></label></div>').join('')
-      : '<p class="small text-muted mb-0">Aucun ingrédient signalé pour cette formule.</p>';
+      ? values.map((item, index) =>
+          '<div class="col-12 col-sm-6 col-lg-4">' +
+          '<label class="form-check border rounded p-2 h-100">' +
+          '<input class="form-check-input me-2" type="checkbox" name="excluded_ingredients[]" value="' + escapeHtml(item) + '">' +
+          '<span>' + escapeHtml(item) + '</span>' +
+          '</label>' +
+          '</div>'
+        ).join('')
+      : '<p class="small text-muted mb-0">Aucun ingrédient identifiable dans les plats sélectionnés.</p>';
   };
 
   const renderSelected = () => {
