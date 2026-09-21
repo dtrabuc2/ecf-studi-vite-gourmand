@@ -4,6 +4,10 @@ $oldInput = $_SESSION['order_old_input'] ?? [];
 unset($_SESSION['order_errors'], $_SESSION['order_old_input']);
 $old = static fn(string $key, string $default = ''): string => htmlspecialchars((string) ($oldInput[$key] ?? $default), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
+$selectedServiceType = (string) ($oldInput['service_type'] ?? 'delivery');
+if (!in_array($selectedServiceType, ['delivery', 'pickup', 'on_site'], true)) {
+    $selectedServiceType = 'delivery';
+}
 ?>
 <main class="py-5">
     <div class="container">
@@ -101,7 +105,18 @@ $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
         </section>
 
         <section id="orderFinalForm" class="d-none mt-5">
-            <?php if (isset($errors['general'])): ?><div class="alert alert-danger"><?= $escape($errors['general']) ?></div><?php endif; ?>
+            <?php if ($errors !== []): ?>
+                <div class="alert alert-danger" role="alert">
+                    <strong>La commande n’a pas pu être enregistrée.</strong>
+                    <ul class="mb-0 mt-2">
+                        <?php foreach ($errors as $error): ?>
+                            <?php if (is_string($error) && trim($error) !== ''): ?>
+                                <li><?= $escape($error) ?></li>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
             <form method="post" action="/orders" class="card border-0 shadow-sm p-4 p-lg-5">
                 <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
                 <input type="hidden" id="selected_options" name="selected_options" value="">
@@ -114,21 +129,21 @@ $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
                             <div class="row g-2">
                                 <div class="col-12 col-md-4">
                                     <label class="form-check h-100 border rounded p-3 service-type-option">
-                                        <input class="form-check-input me-2" type="radio" name="service_type" value="delivery" checked>
+                                        <input class="form-check-input me-2" type="radio" name="service_type" value="delivery" <?= $selectedServiceType === 'delivery' ? 'checked' : '' ?>>
                                         <strong>Livraison</strong>
                                         <span class="d-block small text-muted mt-1">Adresse et téléphone requis. Les instructions de livraison sont facultatives.</span>
                                     </label>
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label class="form-check h-100 border rounded p-3 service-type-option">
-                                        <input class="form-check-input me-2" type="radio" name="service_type" value="pickup">
+                                        <input class="form-check-input me-2" type="radio" name="service_type" value="pickup" <?= $selectedServiceType === 'pickup' ? 'checked' : '' ?>>
                                         <strong>À emporter</strong>
                                         <span class="d-block small text-muted mt-1">Téléphone et heure de retrait requis.</span>
                                     </label>
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label class="form-check h-100 border rounded p-3 service-type-option">
-                                        <input class="form-check-input me-2" type="radio" name="service_type" value="on_site">
+                                        <input class="form-check-input me-2" type="radio" name="service_type" value="on_site" <?= $selectedServiceType === 'on_site' ? 'checked' : '' ?>>
                                         <strong>Sur place</strong>
                                         <span class="d-block small text-muted mt-1">Téléphone et heure d’arrivée. Adresse du restaurant affichée.</span>
                                     </label>
