@@ -402,13 +402,14 @@ final readonly class OrderService
 
         foreach ($menus as $menu) {
             $stockAvailable = $menu->getAvailableStock() > 0;
-            $peopleAvailable = $numberOfPeople >= 1;
+            $catalogMinimum = $menu->getMinPeople();
+            $peopleAvailable = $numberOfPeople >= $catalogMinimum || $numberOfPeople >= 15;
             $available = $stockAvailable && $peopleAvailable;
             $reason = $available
                 ? null
                 : (!$stockAvailable
                     ? 'Stock indisponible.'
-                    : 'Menu indisponible pour ce nombre de convives.');
+                    : 'Minimum catalogue de ' . $catalogMinimum . ' convives.');
 
             $menuPrice = null;
             $discountRate = null;
@@ -416,7 +417,7 @@ final readonly class OrderService
             if ($peopleAvailable) {
                 [$menuPrice, $discountRate] = $this->calculateMenuPrice(
                     $menu->getBasePrice(),
-                    $menu->getMinPeople(),
+                    $catalogMinimum,
                     $numberOfPeople
                 );
             }
@@ -458,8 +459,10 @@ final readonly class OrderService
             throw new InvalidArgumentException('Menu indisponible.');
         }
 
-        if ($numberOfPeople < 1) {
-            throw new InvalidArgumentException('Le nombre de convives est invalide.');
+        if ($numberOfPeople < 15) {
+            throw new InvalidArgumentException(
+                'Le parcours traiteur direct est disponible à partir de 15 convives.'
+            );
         }
 
         [$menuPrice, $discountRate] = $this->calculateMenuPrice(
