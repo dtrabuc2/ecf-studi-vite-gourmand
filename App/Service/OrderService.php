@@ -154,9 +154,17 @@ final readonly class OrderService
         $pdo->beginTransaction();
 
         try {
+            // Une commande n'est considérée comme reçue par le site
+            // qu'après l'enregistrement de l'ordre, la réservation du stock
+            // et la création de son premier historique dans la même transaction.
             $orderId = $this->orderRepository->create($orderData);
             $this->orderRepository->decreaseMenuStock($menuId);
             $this->orderRepository->addToHistory($orderId, 'pending', $userId, 'Commande créée');
+
+            if ($orderId <= 0) {
+                throw new \RuntimeException('La commande n’a pas pu être enregistrée.');
+            }
+
             $pdo->commit();
         } catch (\Throwable $exception) {
             if ($pdo->inTransaction()) {
