@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Core;
 
 use App\Controller\AdminController;
+use App\Controller\AddressController;
 use App\Controller\AuthController;
 use App\Controller\ContactController;
 use App\Controller\EmailController;
@@ -246,6 +247,11 @@ final class Container
                 $container->get(OpeningHoursRepository::class),
                 $container->get(QuoteService::class)
             )
+        );
+
+        $this->set(
+            AddressController::class,
+            static fn (): AddressController => new AddressController()
         );
 
         $this->set(
