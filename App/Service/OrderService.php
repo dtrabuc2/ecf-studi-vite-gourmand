@@ -74,6 +74,28 @@ final readonly class OrderService
             throw new InvalidArgumentException('Un numéro de téléphone est requis pour la commande.');
         }
 
+        $normalizedPhone = preg_replace('/[\\s().-]+/', '', trim($contactPhone)) ?? '';
+        if (!preg_match('/^(?:\\+33[67]\\d{8}|0[67]\\d{8}|\\+34[6789]\\d{8}|[6789]\\d{8})$/', $normalizedPhone)) {
+            throw new InvalidArgumentException('Numéro de téléphone invalide.');
+        }
+
+        if (!preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $deliveryDate) || $deliveryDate < date('Y-m-d')) {
+            throw new InvalidArgumentException('La date de prestation est invalide.');
+        }
+
+        if (!preg_match('/^\\d{2}:\\d{2}$/', $deliveryTime)) {
+            throw new InvalidArgumentException('L’heure de prestation est invalide.');
+        }
+
+        [$hour, $minute] = array_map('intval', explode(':', $deliveryTime));
+        if ($hour > 23 || $minute > 59) {
+            throw new InvalidArgumentException('L’heure de prestation est invalide.');
+        }
+
+        if ($deliveryDistanceKm !== null && (!is_finite($deliveryDistanceKm) || $deliveryDistanceKm < 0)) {
+            throw new InvalidArgumentException('La distance de livraison est invalide.');
+        }
+
         if ($serviceType === 'delivery' && (trim($deliveryAddress) === '' || trim($deliveryCity) === '')) {
             throw new InvalidArgumentException('L’adresse et la ville de livraison sont requises.');
         }
