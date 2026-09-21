@@ -47,8 +47,9 @@ $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
                             <select id="selectMenu" class="form-select form-select-lg mb-4">
                                 <option value="">-- Sélectionnez une formule --</option>
                             </select>
+                            <div id="aLaCarteDishField" class="d-none mb-4"><label class="form-label fw-bold" for="selectDish">Plat à la carte</label><select id="selectDish" class="form-select"><option value="">-- Sélectionnez un plat --</option></select></div>
                             <div id="detailMenuSelectionne" class="d-none">
-                                <img id="imageMenu" src="" alt="Sélection en cours" class="rounded mb-3 w-100 shadow-sm" style="height:220px;object-fit:cover;">
+                                <img id="imageMenu" src="" alt="Sélection en cours" class="rounded mb-3 w-100 shadow-sm menu-preview-image">
                                 <h3 id="nomMenuAffiche" class="h4 text-primary fw-bold"></h3>
                                 <p id="descriptionMenu" class="text-muted small mb-3"></p>
                                 <p id="prixMenuAffiche" class="h4 text-primary fw-bold mb-0"></p>
@@ -104,6 +105,7 @@ $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
             <form method="post" action="/orders" class="card border-0 shadow-sm p-4 p-lg-5">
                 <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
                 <input type="hidden" id="selected_options" name="selected_options" value="">
+                <input type="hidden" id="selected_dish_id" name="selected_dish_id" value="">
                 <div class="row g-3">
                     <div class="col-12"><h2 class="h3 text-primary">Récapitulatif de la commande</h2><p class="text-muted">Le montant final est recalculé et validé par le serveur.</p></div>
                     <div class="col-12">
@@ -198,9 +200,4 @@ $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
             </form>
         </section>
     </div>
-
-                    <style>
-                        .service-type-option { cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
-                        .service-type-option:has(input:checked) { border-color: var(--color-primary) !important; background: var(--bs-primary-bg-subtle); }
-                    </style>
 </main>
