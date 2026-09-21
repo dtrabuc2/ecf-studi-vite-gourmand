@@ -46,9 +46,11 @@ final class PublicController extends BaseController
             $menus = [];
         }
 
+        $menuDetails = $this->loadDetails($menus);
+
         $this->render('home/menus', [
             'menus' => $menus,
-            'menuDetails' => $this->loadDetails($menus),
+            'menuDetails' => $menuDetails,
             'user' => Session::id(),
         ]);
     }
