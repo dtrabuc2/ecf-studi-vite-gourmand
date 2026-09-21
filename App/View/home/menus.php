@@ -104,6 +104,9 @@
     </section>
 
     <section class="container pb-5" id="carte-des-plats">
+        <div class="alert alert-info border-0 shadow-sm mb-4" role="note">
+            <strong>Carte des plats :</strong> choisissez un plat individuel et poursuivez votre commande. Les personnalisations et ingrédients non désirés seront disponibles dans l’étape de configuration.
+        </div>
         <div class="text-center mb-4">
             <span class="badge bg-primary-subtle text-primary">À la carte</span>
             <h2 class="section-title d-inline-block mt-3">Composer votre carte</h2>
