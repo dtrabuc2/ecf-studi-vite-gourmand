@@ -15,7 +15,6 @@ use App\Controller\NotificationController;
 use App\Repository\CommentRepository;
 use App\Repository\DishRepository;
 use App\Repository\MenuRepository;
-use App\Repository\MongoMenuImageRepository;
 use App\Repository\OpeningHoursRepository;
 use App\Repository\OrderRepository;
 use App\Repository\NotificationRepository;
@@ -106,11 +105,6 @@ final class Container
         );
 
         $this->set(
-            MongoMenuImageRepository::class,
-            static fn (): MongoMenuImageRepository => new MongoMenuImageRepository()
-        );
-
-        $this->set(
             DishRepository::class,
             static fn (): DishRepository => new DishRepository()
         );
@@ -157,7 +151,6 @@ final class Container
             MenuService::class,
             static fn (Container $container): MenuService => new MenuService(
                 $container->get(MenuRepository::class),
-                $container->get(MongoMenuImageRepository::class),
                 $container->get(CacheService::class)
             )
         );
