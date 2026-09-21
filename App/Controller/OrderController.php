@@ -375,11 +375,11 @@ final class OrderController extends BaseController
     {
         $value = preg_replace('/[\s().-]+/', '', $phone) ?? '';
 
-        if (preg_match('/^\+33[67]\d{8}$/', $value) || preg_match('/^0[67]\d{8}$/', $value)) {
+        if (preg_match('/^(?:\+33[67]\d{8}|0[67]\d{8})$/', $value)) {
             return null;
         }
 
-        if (preg_match('/^\+34[6789]\d{8}$/', $value) || preg_match('/^[6789]\d{8}$/', $value)) {
+        if (preg_match('/^(?:\+34[6789]\d{8}|[6789]\d{8})$/', $value)) {
             return null;
         }
 
