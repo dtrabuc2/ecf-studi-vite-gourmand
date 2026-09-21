@@ -4,14 +4,12 @@
 
   const menuSelect = document.getElementById('selectMenu');
   const detail = document.getElementById('detailMenuSelectionne');
-  const image = document.getElementById('imageMenu');
   const title = document.getElementById('nomMenuAffiche');
   const description = document.getElementById('descriptionMenu');
   const price = document.getElementById('prixMenuAffiche');
   const customization = document.getElementById('sectionPersonnalisation');
   const finalForm = document.getElementById('orderFinalForm');
   const finalMenuSelect = document.getElementById('menu_id');
-  const recapOptions = document.getElementById('selected_options');
   const continueButton = document.getElementById('btnVersRecap');
   const digestif = document.getElementById('selectDigestif');
   const deliveryFields = document.getElementById('deliveryFields');
@@ -175,51 +173,13 @@
       .filter(([token]) => normalized.includes(token))
       .map(([, label]) => label);
   };
-
   const renderIngredients = () => {
     if (!ingredients) return;
-    const source = selectedDish ? [selectedDish] : (selected?.dishes || []);
-    const groups = { "Produits laitiers": [], "Fruits & légumes": [], "Viandes & poissons": [], "Céréales & féculents": [], "Condiments & aromates": [], "Allergènes": [] };
-    const tokens = [
-      [/parmesan|fromage|lait|crème|creme/, "Produits laitiers"],
-      [/tomate|courgette|poivron|citron|cèpes|cepes|avocat|mangue|figue|vanille|pistache/, "Fruits & légumes"],
-      [/boeuf|bœuf|canard|poulet|saumon|gambas|crevette|homard|moules|poisson|jambon|foie gras/, "Viandes & poissons"],
-      [/riz|pâtes|pates|semoule|quinoa|pommes de terre|pois chiches/, "Céréales & féculents"],
-      [/herbes|aneth|gingembre|soja|sauce soja|tahini|olive|cannelle|truffe/, "Condiments & aromates"]
-    ];
-    const add = (label, group) => { if(label && !groups[group].includes(label)) groups[group].push(label); };
-    source.forEach((dish) => {
-      const text = String((dish.name || '') + ' ' + (dish.description || '')).toLocaleLowerCase('fr-FR');
-      tokens.forEach(([rx, group]) => {
-        if (rx.test(text)) text.match(rx)?.forEach?.(() => {});
-      });
-      const labels = [
-        ['cèpes','Cèpes'],['cepes','Cèpes'],['parmesan','Parmesan'],['tomate','Tomate'],['courgette','Courgette'],
-        ['poivron','Poivron'],['citron','Citron'],['avocat','Avocat'],['mangue','Mangue'],['figue','Figue'],
-        ['canard','Canard'],['bœuf','Bœuf'],['boeuf','Bœuf'],['poulet','Poulet'],['saumon','Saumon'],
-        ['gambas','Gambas'],['crevette','Crevette'],['homard','Homard'],['moules','Moules'],['jambon','Jambon'],
-        ['riz','Riz'],['pâtes','Pâtes'],['pates','Pâtes'],['semoule','Semoule'],['quinoa','Quinoa'],
-        ['pois chiches','Pois chiches'],['soja','Soja'],['gingembre','Gingembre'],['truffe','Truffe'],
-        ['olive','Olives'],['cannelle','Cannelle'],['lait','Lait'],['crème','Crème'],['creme','Crème']
-      ];
-      labels.forEach(([token,label]) => {
-        if (text.includes(token)) {
-          const group = /parmesan|fromage|lait|crème|creme/.test(token) ? 'Produits laitiers'
-            : /tomate|courgette|poivron|citron|avocat|mangue|figue|cèpes|cepes/.test(token) ? 'Fruits & légumes'
-            : /canard|bœuf|boeuf|poulet|saumon|gambas|crevette|homard|moules|jambon/.test(token) ? 'Viandes & poissons'
-            : /riz|pâtes|pates|semoule|quinoa|pois chiches/.test(token) ? 'Céréales & féculents'
-            : 'Condiments & aromates';
-          add(label, group);
-        }
-      });
-    });
-    (selected?.allergens || []).forEach((a) => add(a, "Allergènes"));
-    const blocks = Object.entries(groups).filter(([, items]) => items.length);
-    ingredients.innerHTML = blocks.length ? blocks.map(([group,items]) =>
-      '<div class="col-12 ingredient-group p-3"><div class="ingredient-group__title mb-2">' + escapeHtml(group) + '</div><div class="row g-2">' +
-      items.map(item => '<div class="col-12 col-sm-6 col-lg-4"><label class="form-check ingredient-item"><input class="form-check-input me-2" type="checkbox" name="excluded_ingredients[]" value="' + escapeHtml(item) + '"><span>' + escapeHtml(item) + '</span></label></div>').join('') +
-      '</div></div>'
-    ).join('') : '<p class="small text-muted mb-0">Aucun ingrédient identifiable dans la description du plat sélectionné.</p>';
+    const source = selected?.dishes || [];
+    const labels = extractIngredientsFromText(source.map((dish) => (dish.name || '') + ' ' + (dish.description || '')).join(' '));
+    ingredients.innerHTML = labels.length ? labels.map((label) =>
+      '<div class="col-12 col-sm-6 col-lg-4"><label class="form-check ingredient-item"><input class="form-check-input me-2" type="checkbox" name="excluded_ingredients[]" value="' + escapeHtml(label) + '"><span>' + escapeHtml(label) + '</span></label></div>'
+    ).join('') : '<p class="small text-muted mb-0">Aucun ingrédient identifiable dans la description du menu.</p>';
   };
 
   const renderSelected = () => {
@@ -229,12 +189,6 @@
 
     detail?.classList.remove('d-none');
     customization?.classList.remove('d-none');
-
-    if (image) {
-      image.src = src;
-      image.alt = selected.title || 'Image du menu';
-      image.classList.toggle('d-none', !src);
-    }
     if (title) title.textContent = selected.title || '';
     if (description) description.textContent = selected.description || '';
     if (price) price.textContent = formatPrice(selected.base_price);
@@ -272,7 +226,6 @@
     menuSelect?.addEventListener('change', () => {
       const id = Number(menuSelect.value);
       selected = menus.find((item) => Number(item.id) === id) || null;
-      selectedDish = null;
       renderSelected();
     });
 
@@ -301,7 +254,6 @@
     }
 
     if (finalMenuSelect) finalMenuSelect.value = String(selected.id);
-    if (recapOptions) recapOptions.value = buildOptionsSummary();
     finalForm?.classList.remove('d-none');
     finalForm?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
