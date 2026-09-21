@@ -182,4 +182,9 @@ $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
             </form>
         </section>
     </div>
+
+                    <style>
+                        .service-type-option { cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
+                        .service-type-option:has(input:checked) { border-color: var(--color-primary) !important; background: var(--bs-primary-bg-subtle); }
+                    </style>
 </main>
