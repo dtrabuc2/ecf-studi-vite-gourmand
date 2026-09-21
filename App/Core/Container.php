@@ -252,7 +252,8 @@ final class Container
             ContactController::class,
             static fn (Container $container): ContactController => new ContactController(
                 $container->get(ContactService::class),
-                $container->get(MailService::class)
+                $container->get(MailService::class),
+                $container->get(NotificationService::class)
             )
         );
 
