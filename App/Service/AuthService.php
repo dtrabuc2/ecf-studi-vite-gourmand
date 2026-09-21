@@ -241,6 +241,7 @@ final readonly class AuthService
             }
         }
 
+        unset($data['phone_region'], $data['gsm_region']);
         $this->userRepository->update($userId, $data);
     }
 
