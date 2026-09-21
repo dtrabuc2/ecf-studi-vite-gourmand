@@ -55,8 +55,6 @@ return [
     ['POST', '/admin/orders/{id}/status', 'AdminController@updateOrderStatus', ['Security', 'Staff']],
     ['GET', '/admin/hours', 'AdminController@openingHours', ['Security', 'Staff']],
     ['POST', '/admin/hours', 'AdminController@updateOpeningHours', ['Security', 'Staff']],
-    ['GET', '/admin/dishes', 'AdminController@dishes', ['Security', 'Staff']],
-    ['POST', '/admin/dishes', 'AdminController@createDish', ['Security', 'Staff']],
     ['POST', '/admin/dishes/{id}/edit', 'AdminController@updateDish', ['Security', 'Staff']],
     ['POST', '/admin/dishes/{id}/delete', 'AdminController@deleteDish', ['Security', 'Staff']],
     ['GET', '/admin/customers', 'AdminController@customers', ['Security', 'Staff']],
