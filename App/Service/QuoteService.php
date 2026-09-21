@@ -52,8 +52,8 @@ final readonly class QuoteService
             throw new InvalidArgumentException('La date de réception ne peut pas être passée.');
         }
 
-        if ($numberOfPeople === false || $numberOfPeople < 50) {
-            throw new InvalidArgumentException('La demande de devis est prévue pour les prestations d’au moins 50 personnes.');
+        if ($numberOfPeople === false || $numberOfPeople <= 30) {
+            throw new InvalidArgumentException('La demande de devis est prévue pour les prestations de plus de 30 personnes.');
         }
 
         $allowedServices = ['pickup', 'delivery', 'on_site'];
