@@ -1,29 +1,99 @@
-/* Responsive layout corrections for compact screens. */
+/**
+ * Vite & Gourmand — couche responsive personnalisée.
+ *
+ * Bootstrap 5.3 fournit déjà les breakpoints et le système de grille.
+ * Ce fichier reste la couche de finition du projet : il ne remplace pas
+ * bootstrap.min.css ni style.css.
+ */
+
+:root {
+  --vg-mobile-gutter: 1rem;
+  --vg-tablet-gutter: 1.25rem;
+  --vg-desktop-gutter: 1.5rem;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+main,
+.container,
+.container-fluid,
+.card,
+.card-body,
+.row,
+[class*="col-"] {
+  min-width: 0;
+}
+
+.text-break,
+.card-body,
+.form-text,
+.alert {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 1200px) {
+  .hero .container,
+  .menu-detail-hero .container,
+  .menu-hero .container {
+    max-width: 1140px;
+  }
+
+  #orderFinalForm {
+    max-width: 1140px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+}
 
 @media (max-width: 991.98px) {
   .navbar .navbar-nav {
-    padding-top: 0.75rem;
-    gap: 0.15rem;
+    align-items: stretch !important;
+    padding-top: .75rem;
+  }
+
+  .navbar .nav-link {
+    margin-left: 0;
+    padding: .7rem .75rem;
   }
 
   .navbar .btn {
-    margin-top: 0.4rem;
+    width: 100%;
+    margin-top: .5rem;
+  }
+
+  .hero h1,
+  .hero .display-4,
+  .hero .display-5 {
+    font-size: clamp(2.25rem, 6vw, 3rem);
+  }
+
+  .hero .lead {
+    font-size: clamp(1rem, 2.2vw, 1.2rem);
   }
 
   .email-reader__header,
-  .email-outbox-row,
-  .email-folder {
-    flex-wrap: wrap;
+  .email-outbox-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .email-row {
-    grid-template-columns: auto minmax(0, 1fr);
+    align-items: flex-start;
   }
 
   .email-row time {
-    grid-column: 2;
-    justify-self: start;
-    margin-top: 0.2rem;
+    margin-left: auto;
+  }
+
+  .phone-region {
+    flex: 0 1 10.5rem !important;
+    max-width: 10.5rem !important;
   }
 }
 
@@ -34,9 +104,19 @@
     padding-bottom: 2rem !important;
   }
 
+  .container {
+    padding-right: var(--vg-mobile-gutter);
+    padding-left: var(--vg-mobile-gutter);
+  }
+
   .hero .display-4,
   .hero .display-5 {
-    font-size: 2.1rem;
+    font-size: clamp(1.9rem, 8vw, 2.5rem);
+    line-height: 1.15;
+  }
+
+  .section-title {
+    font-size: clamp(1.6rem, 6vw, 2rem);
   }
 
   .card-body.p-lg-5,
@@ -46,11 +126,29 @@
     padding: 1.25rem !important;
   }
 
-  #carte-des-plats .card,
-  #menuGrid .card,
-  #orderBuilder .card,
-  #orderFinalForm.card {
-    border-radius: 0.9rem;
+  .card img,
+  .card-menu img {
+    max-height: 240px;
+  }
+
+  #menuFilters .col-md-3,
+  #menuFilters .col-md-2,
+  #menuFilters .col-md-4 {
+    width: 100%;
+  }
+
+  #menuFilters .btn {
+    flex: 1 1 0;
+  }
+
+  #menuGrid > [class*="col-"],
+  #carte-des-plats > .row > [class*="col-"] {
+    width: 100%;
+  }
+
+  #orderBuilder .card-body,
+  #orderFinalForm {
+    padding: 1rem !important;
   }
 
   #orderFinalForm .btn,
@@ -59,8 +157,8 @@
   }
 
   #orderFinalForm .ms-2 {
+    margin-top: .5rem;
     margin-left: 0 !important;
-    margin-top: 0.5rem;
   }
 
   #deliveryFields {
@@ -68,26 +166,19 @@
     margin-left: 0;
   }
 
-  .input-group .phone-region {
-    max-width: 128px !important;
-    font-size: 0.85rem;
-  }
-
-  .address-suggestions {
-    position: relative;
-    z-index: 20;
+  .email-folders {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .email-folder {
+    justify-content: flex-start;
     min-height: 2.75rem;
   }
 
-  .email-reader__header {
-    gap: 0.75rem;
-  }
-
-  .email-reader__body {
-    overflow-wrap: anywhere;
+  .email-reader__body,
+  .email-reply {
+    padding: 1rem;
   }
 
   .email-reply .d-flex {
@@ -101,25 +192,45 @@
   footer .row {
     text-align: left;
   }
+
+  .admin-access-btn {
+    right: .75rem;
+    bottom: .75rem;
+    width: 48px;
+    height: 48px;
+  }
 }
 
 @media (max-width: 575.98px) {
   .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-right: .875rem;
+    padding-left: .875rem;
   }
 
   .navbar-brand {
-    max-width: 75%;
+    max-width: 70%;
+    font-size: 1.15rem;
     white-space: normal;
+  }
+
+  .hero {
+    padding-top: 2.5rem !important;
+    padding-bottom: 2.5rem !important;
+  }
+
+  .hero .btn-group,
+  .hero .d-flex {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hero .d-flex > .btn {
+    width: 100%;
   }
 
   #menuFilters .btn,
   #menuFilters .form-control,
-  #menuFilters .form-select {
-    width: 100%;
-  }
-
+  #menuFilters .form-select,
   #carte-des-plats .btn,
   #menuGrid .btn {
     width: 100%;
@@ -130,16 +241,56 @@
   }
 
   .phone-region {
-    max-width: 120px !important;
+    flex: 0 0 7.5rem !important;
+    max-width: 7.5rem !important;
+    font-size: .85rem;
   }
 
-  .email-folders {
+  .input-group > .phone-region + .form-control {
+    min-width: 0;
+  }
+
+  #orderFinalForm .row > [class*="col-"] {
+    width: 100%;
+  }
+
+  dl.row > dt,
+  dl.row > dd {
+    width: 100%;
+  }
+
+  dl.row > dd {
+    margin-bottom: .75rem;
+  }
+
+  .email-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
   }
 
-  .email-folder {
-    justify-content: center;
+  .email-row time {
+    grid-column: 2;
+    margin-left: 0;
+    margin-top: .15rem;
+  }
+
+  .table-responsive {
+    border-radius: .5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card-menu,
+  .btn,
+  .email-row {
+    transition: none !important;
+  }
+
+  .card:hover,
+  .card-menu:hover,
+  .email-row:hover {
+    transform: none !important;
   }
 }
