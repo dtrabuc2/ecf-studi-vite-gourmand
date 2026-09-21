@@ -17,19 +17,6 @@
             <div class="row justify-content-center">
                 <div class="col-xl-10">
                     <article class="card border-0 shadow-sm overflow-hidden">
-                        <?php if (!empty($menuImages)): ?>
-                            <div class="row g-0">
-                                <?php foreach ($menuImages as $image): ?>
-                                    <?php $imageUrl = $image['url'] ?? $image['path'] ?? ''; ?>
-                                    <?php if ($imageUrl): ?>
-                                        <div class="col-md-6">
-                                            <img src="<?= $escape($imageUrl) ?>" class="img-fluid w-100 h-100 object-fit-cover" alt="<?= $escape($image['alt_text'] ?? $menu->getTitle()) ?>" style="min-height:260px;">
-                                        </div>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-
                         <div class="card-body p-4 p-md-5">
                             <span class="badge bg-primary-subtle text-primary"><?= $escape($menu->getTheme()) ?></span>
                             <h2 class="display-6 text-primary mt-3"><?= $escape($menu->getTitle()) ?></h2>
