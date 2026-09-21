@@ -401,13 +401,11 @@ final readonly class OrderService
         foreach ($menus as $menu) {
             $stockAvailable = $menu->getAvailableStock() > 0;
             $catalogMinimum = $menu->getMinPeople();
-            $peopleAvailable = $numberOfPeople >= $catalogMinimum || $numberOfPeople >= 15;
+            $peopleAvailable = $numberOfPeople >= 1;
             $available = $stockAvailable && $peopleAvailable;
             $reason = $available
                 ? null
-                : (!$stockAvailable
-                    ? 'Stock indisponible.'
-                    : 'Minimum catalogue de ' . $catalogMinimum . ' convives.');
+                : 'Stock indisponible.';
 
             $menuPrice = null;
             $discountRate = null;
