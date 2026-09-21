@@ -40,9 +40,18 @@ unset($_SESSION['quote_old_input']);
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="quote_phone">Téléphone</label>
-                                <input class="form-control" id="quote_phone" name="phone"
-                                        placeholder="+33 6 12 34 56 78"
-                                       value="<?= $escape($old['phone'] ?? '') ?>" required>
+                                <div class="input-group">
+                                    <select class="form-select phone-region flex-grow-0" name="phone_region" id="quote_phone_region" style="max-width: 170px;" aria-label="Pays du téléphone">
+                                        <option value="FR">France +33</option>
+                                        <option value="ES">Espagne +34</option>
+                                        <option value="BE">Belgique +32</option>
+                                        <option value="GB">Royaume-Uni +44</option>
+                                        <option value="IT">Italie +39</option>
+                                    </select>
+                                    <input class="form-control" id="quote_phone" name="phone" type="tel"
+                                           placeholder="+33 6 12 34 56 78"
+                                           value="<?= $escape($old['phone'] ?? '') ?>" required>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="quote_company">Société</label>
