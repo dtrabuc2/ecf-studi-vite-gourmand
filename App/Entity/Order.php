@@ -18,6 +18,7 @@ class Order
     private string $serviceType = 'delivery';
     private string $paymentMethod = 'cash_on_site';
     private ?string $deliveryInstructions = null;
+    private string $contactPhone = '';
     private float $deliveryCost;
     private float $menuPrice;
     private float $discountRate;
@@ -58,6 +59,8 @@ class Order
     public function setPaymentMethod(string $paymentMethod): void { $this->paymentMethod = $paymentMethod; }
     public function getDeliveryInstructions(): ?string { return $this->deliveryInstructions; }
     public function setDeliveryInstructions(?string $deliveryInstructions): void { $this->deliveryInstructions = $deliveryInstructions; }
+    public function getContactPhone(): string { return $this->contactPhone; }
+    public function setContactPhone(string $contactPhone): void { $this->contactPhone = $contactPhone; }
     public function getDeliveryCost(): float { return $this->deliveryCost; }
     public function setDeliveryCost(float $deliveryCost): void { $this->deliveryCost = $deliveryCost; }
     public function getMenuPrice(): float { return $this->menuPrice; }
