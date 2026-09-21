@@ -17,8 +17,9 @@ class OrderPriceCalculator {
         }
 
         // Le serveur reste la source de vérité.
+        // Le prix catalogue correspond au nombre minimal de personnes.
         // Règle ECF : remise de 10 % à partir de 5 personnes au-dessus du minimum.
-        const grossPrice = Math.round(this.basePrice * people * 100) / 100;
+        const grossPrice = Math.round((this.basePrice / this.minimumPeople) * people * 100) / 100;
         const hasDiscount = people >= this.minimumPeople + 5;
         const discountRate = hasDiscount ? 10 : 0;
         const menuPrice = Math.round(grossPrice * (1 - (discountRate / 100)) * 100) / 100;
