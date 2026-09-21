@@ -101,7 +101,6 @@ final class OrderController extends BaseController
             : null;
         $deliveryInstructions = trim((string) ($_POST['delivery_instructions'] ?? ''));
         $contactPhone = trim((string) ($_POST['contact_phone'] ?? ''));
-        $selectedDishId = isset($_POST['selected_dish_id']) && $_POST['selected_dish_id'] !== '' ? (int) $_POST['selected_dish_id'] : null;
 
         $errors = [];
 
@@ -191,7 +190,7 @@ final class OrderController extends BaseController
                 $deliveryCity,
                 $deliveryPostalCode,
                 $deliveryDistanceKm,
-                trim((string) ($_POST['selected_options'] ?? '')) ?: null,
+                null,
                 $serviceType,
                 'cash_on_site',
                 $deliveryInstructions,
