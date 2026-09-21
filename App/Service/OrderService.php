@@ -403,19 +403,7 @@ final readonly class OrderService
             throw new InvalidArgumentException('Le nombre de personnes doit être supérieur à 0.');
         }
 
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $deliveryDate) || $deliveryDate < date('Y-m-d')) {
-            throw new InvalidArgumentException('La date de livraison est invalide.');
-        }
-
-        if (!preg_match('/^\d{2}:\d{2}$/', $deliveryTime)) {
-            throw new InvalidArgumentException('L’heure de livraison est invalide.');
-        }
-
-        $timeParts = array_map(intval(...), explode(':', $deliveryTime));
-
-        if ($timeParts[0] > 23 || $timeParts[1] > 59) {
-            throw new InvalidArgumentException('L’heure de livraison est invalide.');
-        }
+        $this->validateServiceDateTime($deliveryDate, $deliveryTime);
 
         if (trim($address) === '' || trim($city) === '') {
             throw new InvalidArgumentException('L’adresse et la ville sont requises.');
