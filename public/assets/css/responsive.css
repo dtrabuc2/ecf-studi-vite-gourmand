@@ -1,0 +1,145 @@
+/* Responsive layout corrections for compact screens. */
+
+@media (max-width: 991.98px) {
+  .navbar .navbar-nav {
+    padding-top: 0.75rem;
+    gap: 0.15rem;
+  }
+
+  .navbar .btn {
+    margin-top: 0.4rem;
+  }
+
+  .email-reader__header,
+  .email-outbox-row,
+  .email-folder {
+    flex-wrap: wrap;
+  }
+
+  .email-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .email-row time {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: 0.2rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  main.py-5,
+  main.py-4 {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+  }
+
+  .hero .display-4,
+  .hero .display-5 {
+    font-size: 2.1rem;
+  }
+
+  .card-body.p-lg-5,
+  .card-body.p-md-5,
+  .p-lg-5,
+  .p-md-5 {
+    padding: 1.25rem !important;
+  }
+
+  #carte-des-plats .card,
+  #menuGrid .card,
+  #orderBuilder .card,
+  #orderFinalForm.card {
+    border-radius: 0.9rem;
+  }
+
+  #orderFinalForm .btn,
+  #orderBuilder .btn {
+    width: 100%;
+  }
+
+  #orderFinalForm .ms-2 {
+    margin-left: 0 !important;
+    margin-top: 0.5rem;
+  }
+
+  #deliveryFields {
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  .input-group .phone-region {
+    max-width: 128px !important;
+    font-size: 0.85rem;
+  }
+
+  .address-suggestions {
+    position: relative;
+    z-index: 20;
+  }
+
+  .email-folder {
+    min-height: 2.75rem;
+  }
+
+  .email-reader__header {
+    gap: 0.75rem;
+  }
+
+  .email-reader__body {
+    overflow-wrap: anywhere;
+  }
+
+  .email-reply .d-flex {
+    flex-direction: column;
+  }
+
+  .email-reply .btn {
+    width: 100%;
+  }
+
+  footer .row {
+    text-align: left;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .navbar-brand {
+    max-width: 75%;
+    white-space: normal;
+  }
+
+  #menuFilters .btn,
+  #menuFilters .form-control,
+  #menuFilters .form-select {
+    width: 100%;
+  }
+
+  #carte-des-plats .btn,
+  #menuGrid .btn {
+    width: 100%;
+  }
+
+  .service-selector {
+    padding: 1.1rem !important;
+  }
+
+  .phone-region {
+    max-width: 120px !important;
+  }
+
+  .email-folders {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .email-folder {
+    justify-content: center;
+  }
+}
