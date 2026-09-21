@@ -160,20 +160,12 @@ final class OrderController extends BaseController
             }
         }
 
-        if ($serviceType === 'pickup') {
-            $deliveryAddress = 'Retrait sur place';
-            $deliveryCity = 'Bordeaux';
-            $deliveryPostalCode = '33000';
+        if ($serviceType === 'pickup' || $serviceType === 'on_site') {
+            $deliveryAddress = '';
+            $deliveryCity = '';
+            $deliveryPostalCode = '';
             $deliveryDistanceKm = null;
             $deliveryInstructions = '';
-        }
-
-        if ($serviceType === 'on_site') {
-            $deliveryAddress = 'Vite & Gourmand — Bordeaux';
-            $deliveryCity = 'Bordeaux';
-            $deliveryPostalCode = '33000';
-            $deliveryDistanceKm = null;
-            $deliveryInstructions = trim($deliveryInstructions);
         }
 
         if ($errors !== []) {
