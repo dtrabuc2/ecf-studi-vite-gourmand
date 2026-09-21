@@ -30,9 +30,15 @@ final class PublicController extends BaseController
         $menus ??= [];
         $reviews ??= [];
 
+        $menuCovers = [];
+        foreach ($menus as $menu) {
+            $menuCovers[$menu->getId()] = $this->menuCover($menu->getId());
+        }
+
         $this->render('home/index', [
             'reviews' => $reviews,
             'menus' => $menus,
+            'menuCovers' => $menuCovers,
             'user' => Session::id(),
         ]);
     }
@@ -47,10 +53,15 @@ final class PublicController extends BaseController
         }
 
         $menuDetails = $this->loadDetails($menus);
+        $menuCovers = [];
+        foreach ($menus as $menu) {
+            $menuCovers[$menu->getId()] = $this->menuCover($menu->getId());
+        }
 
         $this->render('home/menus', [
             'menus' => $menus,
             'menuDetails' => $menuDetails,
+            'menuCovers' => $menuCovers,
             'user' => Session::id(),
         ]);
     }
@@ -71,9 +82,11 @@ final class PublicController extends BaseController
             return;
         }
 
+        $details = $this->menuService->getMenuDetails($id);
         $this->render('home/menu_detail', [
             'menu' => $menu,
-            'details' => $this->menuService->getMenuDetails($id),
+            'details' => $details,
+            'cover' => $this->menuCover($id),
             'user' => Session::id(),
         ]);
     }
@@ -132,10 +145,7 @@ final class PublicController extends BaseController
 
     private function serializeMenus(array $menus): array
     {
-        return array_map(
-            $this->serializeMenu(...),
-            $menus
-        );
+        return array_map($this->serializeMenu(...), $menus);
     }
 
     private function serializeMenu(Menu $menu): array
@@ -160,11 +170,28 @@ final class PublicController extends BaseController
     private function loadDetails(array $menus): array
     {
         $details = [];
-
         foreach ($menus as $menu) {
             $details[$menu->getId()] = $this->menuService->getMenuDetails($menu->getId());
         }
-
         return $details;
+    }
+
+    private function menuCover(int $menuId): ?array
+    {
+        try {
+            $collection = \App\Core\Database::mongoDatabase()->selectCollection('menu_images');
+            $document = $collection->findOne(['menuId' => $menuId, 'position' => 1]);
+            if ($document === null || empty($document['url'])) {
+                return null;
+            }
+
+            return [
+                'url' => (string) $document['url'],
+                'alt_text' => (string) ($document['altText'] ?? 'Image du menu'),
+            ];
+        } catch (\Throwable $exception) {
+            error_log('Image de menu indisponible : ' . $exception->getMessage());
+            return null;
+        }
     }
 }
