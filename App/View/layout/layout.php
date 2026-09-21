@@ -7,6 +7,7 @@
     <title><?= $escape($title) ?></title>
     <link rel="stylesheet" href="/assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
 </head>
 <body class="d-flex flex-column min-vh-100 bg-light"
       data-page="<?= $escape(trim((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), '/') ?: 'home') ?>">
