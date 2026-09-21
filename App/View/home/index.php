@@ -23,7 +23,7 @@
                             <div class="d-grid gap-3">
                                 <div class="summary-box p-3">
                                     <strong class="d-block mb-1">Formules lisibles</strong>
-                                    <span class="small text-muted">Menus complets, options végétales, cocktails et plats à la carte.</span>
+                                    <span class="small text-muted">Menus complets, options végétales et cocktails.</span>
                                 </div>
                                 <div class="summary-box p-3">
                                     <strong class="d-block mb-1">Service adapté</strong>
