@@ -20,9 +20,9 @@ Application de commande de menus traiteur développée en PHP Vanilla selon une 
 composer install
 ```
 
-3. Créer la base MariaDB et importer `database.sql`.
+3. Créer la base MariaDB et importer `database/schema.sql`, puis `database/seed.sql`.
 4. Configurer les variables d'environnement utilisées par `config/app.php` et l'envoi d'emails.
-5. Vérifier la connexion MongoDB et importer les données prévues dans `docs/mongodb-comments.seed.json`.
+5. Vérifier la connexion MongoDB et exécuter `database/mongodb-init.js` avec `mongosh`.
 6. Lancer le serveur de développement depuis la racine :
 
 ```bash
@@ -69,4 +69,6 @@ find App config public -type f -name "*.php" -print0 | xargs -0 -n1 php -l
 - `docs/enoncer_ecf.md` : énoncé de référence
 - `docs/RAPPORT-V4.MD` : historique
 - `docs/RAPPORT-V6.MD` : état de la refactorisation actuelle
-- `database.sql` : schéma et données relationnelles
+- `database/schema.sql` : schéma MariaDB
+- `database/seed.sql` : données initiales MariaDB
+- `database/mongodb-init.js` : initialisation MongoDB
