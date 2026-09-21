@@ -26,6 +26,7 @@ final class QuoteController extends BaseController
             'first_name' => trim((string) ($_POST['first_name'] ?? '')),
             'last_name' => trim((string) ($_POST['last_name'] ?? '')),
             'phone' => trim((string) ($_POST['phone'] ?? '')),
+            'phone_region' => strtoupper(trim((string) ($_POST['phone_region'] ?? 'FR'))),
             'company' => trim((string) ($_POST['company'] ?? '')),
             'event_date' => trim((string) ($_POST['event_date'] ?? '')),
             'number_of_people' => $_POST['number_of_people'] ?? null,
