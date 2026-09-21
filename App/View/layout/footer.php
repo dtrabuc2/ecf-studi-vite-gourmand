@@ -49,7 +49,7 @@
     </div>
 </footer>
 
-<!-- Bootstrap 5.3 : le CSS reste local ; le bundle JS officiel est chargé pour le collapse/navbar responsive. -->
+<!-- Bootstrap 5.3 : le CSS reste local ; le bundle JS officiel accompagne la navigation responsive. -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" defer></script>
 <script src="/assets/js/api.js" defer></script>
 <script src="/assets/js/OrderPriceCalculator.js" defer></script>
