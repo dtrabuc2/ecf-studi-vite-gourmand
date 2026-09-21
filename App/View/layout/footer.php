@@ -50,7 +50,7 @@
 </footer>
 
 <!-- Bootstrap 5.3 : le CSS reste local ; le bundle JS officiel est chargé pour le collapse/navbar responsive. -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-Eh5j4JqR2Yh8x2fW2vYkN3m2c8f8a8j8v7j0Z4bY9wF5G5V5G5V5G5V5G5V5G5V5" crossorigin="anonymous" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" defer></script>
 <script src="/assets/js/api.js" defer></script>
 <script src="/assets/js/OrderPriceCalculator.js" defer></script>
 <script src="/assets/js/script.js" defer></script>
