@@ -92,6 +92,20 @@
             </div>
         </div>
 
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-lg-6">
+                <p class="small mb-1"><strong>Référence :</strong> <?= $escape($order->getOrderNumber()) ?></p>
+                <?php if ($order->getCreatedAt() instanceof \DateTimeInterface): ?>
+                    <p class="small mb-1"><strong>Commande reçue :</strong> <?= $escape($order->getCreatedAt()->format('d/m/Y H:i')) ?></p>
+                <?php endif; ?>
+                <p class="small mb-0"><strong>Statut en base :</strong> <?= $escape($labels[$order->getStatus()] ?? $order->getStatus()) ?></p>
+            </div>
+            <div class="col-12 col-lg-6">
+                <p class="small mb-1"><strong>Prix menu enregistré :</strong> <?= number_format($order->getMenuPrice(), 2, ',', ' ') ?> €</p>
+                <p class="small mb-1"><strong>Livraison enregistrée :</strong> <?= number_format($order->getDeliveryCost(), 2, ',', ' ') ?> €</p>
+                <p class="small mb-0"><strong>Remise enregistrée :</strong> <?= number_format($order->getDiscountRate(), 0) ?> %</p>
+            </div>
+        </div>
         <p class="small text-muted mb-3">
             Matériel prêté : <?= $order->isEquipmentLoaned() ? 'Oui' : 'Non' ?>
         </p>
