@@ -1,16 +1,23 @@
 # Base de données
 
-Les scripts de base de données sont séparés pour distinguer la structure, les données initiales et l'initialisation MongoDB.
+Les scripts de base de données sont séparés entre la structure relationnelle, les données initiales et les mises à jour MongoDB.
 
 ## MariaDB
 
 1. Importer `schema.sql`.
 2. Importer `seed.sql`.
 
-Les deux scripts ciblent la base `viteetgourmand` et sont compatibles avec MariaDB/MySQL via phpMyAdmin.
+La base relationnelle reste utilisée par le backend pour les utilisateurs, menus, commandes, horaires et autres données métier structurées.
 
 ## MongoDB
 
-Exécuter `mongodb-init.js` avec `mongosh` ou l'importer selon l'outil utilisé.
+Exécuter `mongodb-init.js` avec `mongosh`.
 
-MongoDB est utilisé pour les images de menus, les avis et les statistiques. MariaDB reste la source des menus, plats, régimes, allergènes et commandes.
+Le script est conçu pour une mise à jour CRUD contrôlée :
+- création des collections manquantes ;
+- création des index ;
+- mise à jour ciblée de documents existants ;
+- aucune suppression globale ;
+- aucune réinsertion massive de la base.
+
+Le principe est de conserver les données existantes et de privilégier les opérations directement vérifiables dans MongoDB Compass ou mongosh.
