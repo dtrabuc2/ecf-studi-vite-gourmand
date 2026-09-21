@@ -15,10 +15,10 @@ const collectionNames = [
 // On évite une erreur si l'utilisateur existe déjà.
 const mongoUser = "vgt_app";
 const mongoPassword = "CHANGE_ME_STRONG_PASSWORD";
-const existingUser = adminDb.getUser(mongoUser);
+const existingUser = database.getUser(mongoUser);
 
 if (!existingUser) {
-    adminDb.createUser({
+    database.createUser({
         user: mongoUser,
         pwd: mongoPassword,
         roles: [
