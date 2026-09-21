@@ -26,6 +26,9 @@ ON DUPLICATE KEY UPDATE
     `opening_time_2` = VALUES(`opening_time_2`),
     `closing_time_2` = VALUES(`closing_time_2`);
 
+-- Référence catalogue utilisée par le calcul tarifaire serveur.
+-- min_people est une donnée descriptive du catalogue ; le parcours de commande
+-- traiteur 15-30 n'est pas bloqué par cette valeur.
 INSERT INTO `menus`
     (`id`, `title`, `description`, `theme`, `dietary_regime`, `min_people`, `base_price`, `conditions`, `available_stock`)
 VALUES
