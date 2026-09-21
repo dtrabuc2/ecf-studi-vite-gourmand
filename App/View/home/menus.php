@@ -121,7 +121,7 @@
                                 <span class="small text-uppercase text-muted"><?= $escape(['starter' => 'Entrée', 'main' => 'Plat', 'dessert' => 'Dessert'][$dish['category']] ?? 'Plat') ?></span>
                                 <h3 class="h5 text-primary mt-2 mb-2"><?= $escape($dish['name']) ?></h3>
                                 <p class="small text-muted mb-0"><?= $escape($dish['description'] ?? '') ?></p>
-                                <a class="btn btn-outline-primary btn-sm mt-3" href="/orders/new?menu=<?= $menu->getId() ?>&service=plat">Choisir ce plat</a>
+                                <a class="btn btn-outline-primary btn-sm mt-3" href="/orders/new?menu=<?= $menu->getId() ?>&dish=<?= (int) $dish['id'] ?>&service=plat">Choisir ce plat</a>
                             </div>
                         </article>
                     </div>
