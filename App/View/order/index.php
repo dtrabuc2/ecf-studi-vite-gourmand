@@ -3,7 +3,13 @@
 <div class="d-flex justify-content-between align-items-center mb-4"><div><h1 class="h2 text-primary mb-1">Mes commandes</h1><p class="text-muted mb-0">Suivez vos prestations, leurs statuts et leurs dates.</p></div><a class="btn btn-primary" href="/orders/new">Nouvelle commande</a></div>
 <?php foreach ($orders as $order): ?>
 <section class="card border-0 shadow-sm mb-4"><div class="card-body">
-<div class="d-flex justify-content-between flex-wrap gap-2"><h2 class="h5 mb-0">Commande #<?= $order->getId() ?></h2><span class="badge text-bg-secondary"><?= $escape($statusLabels[$order->getStatus()] ?? $order->getStatus()) ?></span></div>
+<div class="d-flex justify-content-between flex-wrap gap-2">
+    <div>
+        <h2 class="h5 mb-1">Commande #<?= $order->getId() ?></h2>
+        <p class="small text-muted mb-0">Référence : VG-<?= date('Ymd', strtotime($order->getOrderDate())) ?>-<?= str_pad((string) $order->getId(), 6, '0', STR_PAD_LEFT) ?></p>
+    </div>
+    <span class="badge text-bg-secondary"><?= $escape($statusLabels[$order->getStatus()] ?? $order->getStatus()) ?></span>
+</div>
 <p class="mb-1 mt-3"><strong>Prestation :</strong> <?= $escape($order->getDeliveryDate()) ?> à <?= $escape($order->getDeliveryTime()) ?></p>
 <p class="mb-1"><strong>Personnes :</strong> <?= $order->getNumberOfPeople() ?> — <strong>Prix du menu :</strong> <?= number_format($order->getMenuPrice(),2,',',' ') ?> € — <strong>Total :</strong> <?= number_format($order->getTotalPrice(),2,',',' ') ?> €</p>
 <?php if ($order->getDiscountRate() > 0): ?><p class="small text-success">Remise : <?= number_format($order->getDiscountRate(),0) ?> %</p><?php endif; ?>
