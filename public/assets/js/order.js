@@ -9,6 +9,7 @@
   const description = document.getElementById('descriptionMenu');
   const price = document.getElementById('prixMenuAffiche');
   const customization = document.getElementById('sectionPersonnalisation');
+  const dishField = document.getElementById('aLaCarteDishField');
   const serviceField = document.getElementById('selected_service_type');
   const selectedDishField = document.getElementById('selected_dish_id');
   const dishSelect = document.getElementById('selectDish');
@@ -281,6 +282,7 @@
         serviceType = button.dataset.type || 'menu';
         if (serviceField) serviceField.value = serviceType;
         builder.classList.remove('d-none');
+        dishField?.classList.toggle('d-none', serviceType !== 'plat');
         populate();
       });
     });
