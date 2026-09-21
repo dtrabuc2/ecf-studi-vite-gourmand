@@ -12,10 +12,10 @@ class OrderRepository
         $stmt = $pdo->prepare('INSERT INTO orders
             (user_id, menu_id, number_of_people, order_date, delivery_date, delivery_time,
              delivery_address, delivery_city, delivery_postal_code, delivery_distance_km,
-                 delivery_cost, customization, service_type, payment_method, delivery_instructions, menu_price, discount_rate, total_price, status, equipment_loaned)
+                 delivery_cost, customization, service_type, payment_method, delivery_instructions, contact_phone, menu_price, discount_rate, total_price, status, equipment_loaned)
             VALUES (:user_id, :menu_id, :number_of_people, :order_date, :delivery_date, :delivery_time,
                     :delivery_address, :delivery_city, :delivery_postal_code, :delivery_distance_km,
-                    :delivery_cost, :customization, :service_type, :payment_method, :delivery_instructions, :menu_price, :discount_rate, :total_price, :status, :equipment_loaned)');
+                    :delivery_cost, :customization, :service_type, :payment_method, :delivery_instructions, :contact_phone, :menu_price, :discount_rate, :total_price, :status, :equipment_loaned)');
         $stmt->execute([
             'user_id' => $data['user_id'],
             'menu_id' => $data['menu_id'],
@@ -32,6 +32,7 @@ class OrderRepository
             'service_type' => $data['service_type'] ?? 'delivery',
             'payment_method' => $data['payment_method'] ?? 'cash_on_site',
             'delivery_instructions' => $data['delivery_instructions'] ?? null,
+            'contact_phone' => $data['contact_phone'] ?? null,
             'menu_price' => $data['menu_price'],
             'discount_rate' => $data['discount_rate'] ?? 0,
             'total_price' => $data['total_price'],
