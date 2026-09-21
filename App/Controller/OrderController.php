@@ -113,18 +113,23 @@ final class OrderController extends BaseController
             $errors['number_of_people'] = 'Nombre de personnes requis et supérieur à 0.';
         }
 
-        if ($deliveryDate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $deliveryDate)) {
+        if ($deliveryDate === '') {
             $errors['delivery_date'] = 'Date de prestation invalide.';
-        } elseif ($deliveryDate < date('Y-m-d')) {
-            $errors['delivery_date'] = 'La date de prestation ne peut pas être passée.';
         }
 
-        if ($deliveryTime === '' || !preg_match('/^\d{2}:\d{2}$/', $deliveryTime)) {
+        if ($deliveryTime === '') {
             $errors['delivery_time'] = 'Heure de prestation invalide.';
-        } else {
-            [$hour, $minute] = array_map('intval', explode(':', $deliveryTime));
-            if ($hour > 23 || $minute > 59) {
-                $errors['delivery_time'] = 'Heure de prestation invalide.';
+        }
+
+        if ($deliveryDate !== '' && $deliveryTime !== '') {
+            try {
+                $this->orderService->validateServiceDateTime($deliveryDate, $deliveryTime);
+            } catch (InvalidArgumentException $exception) {
+                if (str_contains($exception->getMessage(), 'heure') || str_contains($exception->getMessage(), 'créneau')) {
+                    $errors['delivery_time'] = $exception->getMessage();
+                } else {
+                    $errors['delivery_date'] = $exception->getMessage();
+                }
             }
         }
 
