@@ -119,8 +119,6 @@ final class AuthController extends BaseController
             'phone_region' => strtoupper(trim((string) ($_POST['phone_region'] ?? 'FR'))),
             'gsm_region' => strtoupper(trim((string) ($_POST['gsm_region'] ?? 'FR'))),
             'address' => trim((string) ($_POST['address'] ?? '')),
-            'phone_region' => strtoupper(trim((string) ($_POST['phone_region'] ?? 'FR'))),
-            'gsm_region' => strtoupper(trim((string) ($_POST['gsm_region'] ?? 'FR'))),
         ];
 
         $errors = [];
