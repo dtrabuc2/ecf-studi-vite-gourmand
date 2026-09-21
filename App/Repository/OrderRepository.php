@@ -182,6 +182,7 @@ class OrderRepository
     {
         $order = new Order();
         $order->setId((int) $row['id']);
+        $order->setOrderNumber($row['order_number'] ?? null);
         $order->setUserId((int) $row['user_id']);
         $order->setMenuId((int) $row['menu_id']);
         $order->setNumberOfPeople((int) $row['number_of_people']);
