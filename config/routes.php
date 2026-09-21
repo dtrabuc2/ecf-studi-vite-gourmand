@@ -31,6 +31,9 @@ return [
 
     ['GET', '/orders', 'OrderController@index', ['Security', 'Auth']],
     ['GET', '/orders/new', 'OrderController@new', ['Security', 'Auth']],
+    ['GET', '/orders/menu-options', 'OrderController@menuOptions', ['Security', 'Auth']],
+    ['GET', '/orders/availability', 'OrderController@availability', ['Security', 'Auth']],
+    ['GET', '/orders/price-preview', 'OrderController@pricePreview', ['Security', 'Auth']],
     ['POST', '/orders', 'OrderController@create', ['Security', 'Auth']],
     ['GET', '/orders/confirmation/{id}', 'OrderController@confirmation', ['Security', 'Auth']],
     ['POST', '/orders/{id}/review', 'OrderController@review', ['Security', 'Auth']],
