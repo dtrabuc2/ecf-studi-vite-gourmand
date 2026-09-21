@@ -22,12 +22,18 @@ final class EmailController extends BaseController
             : 'inbox';
         $selectedId = isset($_GET['message']) ? (int) $_GET['message'] : 0;
 
+        $messages = $this->emailService->listFolder($mailbox, $folder);
+        $outbox = $this->emailService->listOutbox($mailbox);
+        $selectedMessage = $selectedId > 0
+            ? $this->emailService->findFolderMessage($mailbox, $folder, $selectedId)
+            : null;
+
         $this->render('admin/emails', [
             'mailbox' => $mailbox,
             'folder' => $folder,
-            'messages' => $this->emailService->listFolder($mailbox, $folder),
-            'outbox' => $this->emailService->listOutbox($mailbox),
-            'selectedMessage' => $selectedId > 0 ? $this->emailService->findFolderMessage($mailbox, $folder, $selectedId) : null,
+            'messages' => $messages,
+            'outbox' => $outbox,
+            'selectedMessage' => $selectedMessage,
         ]);
     }
 
