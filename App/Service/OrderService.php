@@ -78,10 +78,18 @@ final readonly class OrderService
             throw new InvalidArgumentException('L’adresse et la ville de livraison sont requises.');
         }
 
-        if ($serviceType !== 'delivery') {
-            $deliveryAddress = trim($deliveryAddress) !== '' ? $deliveryAddress : 'Retrait / prestation sur place';
-            $deliveryCity = trim($deliveryCity) !== '' ? $deliveryCity : 'Bordeaux';
-            $deliveryPostalCode = trim($deliveryPostalCode) !== '' ? $deliveryPostalCode : '33000';
+        if ($serviceType === 'pickup') {
+            $deliveryAddress = 'Point de retrait Vite & Gourmand';
+            $deliveryCity = 'Bordeaux';
+            $deliveryPostalCode = '33000';
+            $deliveryDistanceKm = null;
+            $deliveryInstructions = null;
+        }
+
+        if ($serviceType === 'on_site') {
+            $deliveryAddress = 'Restaurant Vite & Gourmand, Bordeaux';
+            $deliveryCity = 'Bordeaux';
+            $deliveryPostalCode = '33000';
             $deliveryDistanceKm = null;
             $deliveryInstructions = trim((string) $deliveryInstructions);
         }
