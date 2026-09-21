@@ -56,45 +56,6 @@ CREATE TABLE IF NOT EXISTS `menus` (
     KEY `idx_menus_min_people` (`min_people`)
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS `dishes` (
-    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `name` VARCHAR(150) NOT NULL,
-    `description` TEXT NULL,
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uq_dishes_name` (`name`)
-) ENGINE=InnoDB;
-
-CREATE TABLE IF NOT EXISTS `menu_dishes` (
-    `menu_id` INT UNSIGNED NOT NULL,
-    `dish_id` INT UNSIGNED NOT NULL,
-    `category` ENUM('starter', 'main', 'dessert') NOT NULL,
-    `position` TINYINT UNSIGNED NOT NULL DEFAULT 1,
-    PRIMARY KEY (`menu_id`, `dish_id`),
-    KEY `idx_menu_dishes_category` (`menu_id`, `category`),
-    CONSTRAINT `fk_menu_dishes_menu`
-        FOREIGN KEY (`menu_id`) REFERENCES `menus` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_menu_dishes_dish`
-        FOREIGN KEY (`dish_id`) REFERENCES `dishes` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB;
-
-CREATE TABLE IF NOT EXISTS `allergens` (
-    `id` TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `name` VARCHAR(80) NOT NULL,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uq_allergens_name` (`name`)
-) ENGINE=InnoDB;
-
-CREATE TABLE IF NOT EXISTS `dish_allergens` (
-    `dish_id` INT UNSIGNED NOT NULL,
-    `allergen_id` TINYINT UNSIGNED NOT NULL,
-    PRIMARY KEY (`dish_id`, `allergen_id`),
-    CONSTRAINT `fk_dish_allergens_dish`
-        FOREIGN KEY (`dish_id`) REFERENCES `dishes` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_dish_allergens_allergen`
-        FOREIGN KEY (`allergen_id`) REFERENCES `allergens` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB;
 
 -- ================================================================
 -- COMMANDES ET SUIVI (MariaDB)
