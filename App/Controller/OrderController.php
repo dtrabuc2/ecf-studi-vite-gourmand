@@ -216,7 +216,7 @@ final class OrderController extends BaseController
             $errors['number_of_people'] = 'Confirmez le nombre de convives avant de sélectionner un menu.';
         }
 
-        if ($menuId !== null && is_numeric($menuId) && $numberOfPeople !== null && is_numeric($numberOfPeople) && (int) $numberOfPeople < 50) {
+        if ($menuId !== null && is_numeric($menuId) && $numberOfPeople !== null && is_numeric($numberOfPeople) && (int) $numberOfPeople <= 30) {
             $menu = $this->menuService->getMenuById((int) $menuId);
 
             if ($menu === null || $menu->getAvailableStock() < 1) {
