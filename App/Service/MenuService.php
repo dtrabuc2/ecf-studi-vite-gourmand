@@ -5,13 +5,11 @@ namespace App\Service;
 
 use App\Entity\Menu;
 use App\Repository\MenuRepository;
-use App\Repository\MongoMenuImageRepository;
 
 final readonly class MenuService
 {
     public function __construct(
         private MenuRepository $menuRepository,
-        private MongoMenuImageRepository $imageRepository,
         private CacheService $cacheService
     ) {
     }
@@ -59,23 +57,6 @@ final readonly class MenuService
         }
 
         return $this->menuRepository->findDetails($id);
-    }
-
-    public function getMenuImages(int $id): array
-    {
-        return $id > 0
-            ? $this->imageRepository->findByMenuId($id)
-            : [];
-    }
-
-    public function getMenusImages(array $menus): array
-    {
-        $ids = array_map(
-            static fn (Menu $menu): int => $menu->getId(),
-            $menus
-        );
-
-        return $this->imageRepository->findByMenuIds($ids);
     }
 
     public function filterMenus(array $filters): array
