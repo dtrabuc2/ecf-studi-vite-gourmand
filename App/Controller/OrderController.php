@@ -88,15 +88,19 @@ final class OrderController extends BaseController
         if ($numberOfPeople >= 50) {
             $this->json([
                 'success' => true,
-                'data' => [],
-                'quote_required' => true,
+                'data' => [
+                    'menus' => [],
+                    'quote_required' => true,
+                ],
             ]);
         }
 
         $this->json([
             'success' => true,
-            'data' => $this->orderService->getMenuAvailabilityForPeople($numberOfPeople),
-            'quote_required' => false,
+            'data' => [
+                'menus' => $this->orderService->getMenuAvailabilityForPeople($numberOfPeople),
+                'quote_required' => false,
+            ],
         ]);
     }
 
