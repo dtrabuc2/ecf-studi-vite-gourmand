@@ -199,7 +199,12 @@ final readonly class OrderService
             $this->notificationService->notifyStaff(
                 'order',
                 'Nouvelle commande ' . $orderId,
-                'Une nouvelle commande attend votre traitement.',
+                'Commande de ' . $user->getFirstName() . ' ' . $user->getLastName()
+                . ' — ' . $menu->getTitle()
+                . ' — ' . $numberOfPeople . ' personne(s)'
+                . ' — total ' . number_format((float) $orderData['total_price'], 2, ',', ' ') . ' €.'
+                . ' Prestation : ' . $serviceType
+                . ' le ' . $deliveryDate . ' à ' . $deliveryTime . '.',
                 $orderId
             );
         } catch (\Throwable $exception) {
