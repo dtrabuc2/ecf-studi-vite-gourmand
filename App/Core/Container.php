@@ -180,6 +180,7 @@ final class Container
                 $container->get(OrderRepository::class),
                 $container->get(UserRepository::class),
                 $container->get(MenuRepository::class),
+                $container->get(OpeningHoursRepository::class),
                 $container->get(MailService::class),
                 $container->get(MenuStatisticsService::class),
                 $container->get(NotificationService::class)
