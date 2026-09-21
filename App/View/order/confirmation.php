@@ -1,3 +1,16 @@
+<?php
+$statusLabels = [
+    'pending' => 'En attente',
+    'accepted' => 'Acceptée',
+    'preparing' => 'En préparation',
+    'delivering' => 'En livraison',
+    'delivered' => 'Livrée',
+    'awaiting_return' => 'En attente de retour',
+    'completed' => 'Terminée',
+    'cancelled' => 'Annulée',
+];
+$status = $order->getStatus();
+?>
 <main class="py-5">
     <div class="container">
         <div class="row justify-content-center">
@@ -5,9 +18,13 @@
                 <section class="card border-0 shadow-sm">
                     <div class="card-body p-4 p-md-5">
                         <div class="text-center mb-4">
-                            <span class="badge text-bg-success">Commande enregistrée</span>
+                            <div class="d-flex flex-wrap justify-content-center gap-2">
+                                <span class="badge text-bg-success">Commande enregistrée</span>
+                                <span class="badge text-bg-secondary"><?= $escape($statusLabels[$status] ?? $status) ?></span>
+                            </div>
                             <h1 class="h2 text-primary mt-3">Merci pour votre commande</h1>
-                            <p class="mb-0">Votre commande <?= $escape($order->getOrderNumber()) ?> a été créée pour le <?= $escape($order->getDeliveryDate()) ?>.</p>
+                            <p class="mb-1">Référence : <strong><?= $escape($order->getOrderNumber()) ?></strong></p>
+                            <p class="mb-0">Commande enregistrée pour le <?= $escape($order->getDeliveryDate()) ?>.</p>
                         </div>
 
                         <div class="row g-3 mb-4">
