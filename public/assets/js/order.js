@@ -69,12 +69,13 @@
         '/orders/menu-options?number_of_people=' + encodeURIComponent(people)
       );
 
-      if (payload?.quote_required) {
+      const data = payload?.data || {};
+      if (data.quote_required) {
         form.submit();
         return;
       }
 
-      menuOptions = Array.isArray(payload?.data) ? payload.data : [];
+      menuOptions = Array.isArray(data.menus) ? data.menus : [];
       menuSelect.innerHTML = '<option value="">Sélectionnez un menu</option>';
 
       let available = 0;
