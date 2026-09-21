@@ -1,4 +1,10 @@
+-- =================================================================
+-- SEED MARIA DB REFERENCE — compatible phpMyAdmin / MariaDB
+-- Ce fichier suppose que viteetgourmand.sql a déjà créé les tables.
+-- Il reprend exactement les données de catalogue du script racine.
+-- =================================================================
 
+USE `viteetgourmand`;
 
 INSERT INTO `opening_hours` (`day_of_week`, `is_open`, `opening_time`, `closing_time`) VALUES
     (1, 1, '09:00:00', '18:00:00'),
