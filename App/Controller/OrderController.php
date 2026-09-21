@@ -72,22 +72,24 @@ final class OrderController extends BaseController
 
         $menuId = $_POST['menu_id'] ?? null;
         $numberOfPeople = $_POST['number_of_people'] ?? null;
+        $serviceType = trim((string) ($_POST['service_type'] ?? 'delivery'));
 
         if (is_numeric($numberOfPeople) && (int) $numberOfPeople >= 50) {
             Session::flash(
                 'order_error',
-                'Pour 50 personnes ou plus, votre demande est traitée par devis afin de permettre à l’équipe de confirmer la disponibilité, le mode de prestation et les conditions.'
+                'Pour 50 personnes ou plus, votre demande est traitée par devis afin de confirmer la disponibilité, le mode de prestation et les conditions.'
             );
             Session::flash('quote_old_input', [
                 'number_of_people' => (int) $numberOfPeople,
                 'event_date' => trim((string) ($_POST['delivery_date'] ?? '')),
-                'service_type' => 'delivery',
+                'service_type' => in_array($serviceType, ['delivery', 'pickup', 'on_site'], true) ? $serviceType : 'delivery',
                 'event_location' => trim((string) ($_POST['delivery_address'] ?? '')),
                 'postal_code' => trim((string) ($_POST['delivery_postal_code'] ?? '')),
                 'request_details' => 'Menu demandé : ' . ((int) $menuId > 0 ? 'menu #' . (int) $menuId : 'à préciser'),
             ]);
-            $this->redirect('/quote'); 
+            $this->redirect('/quote');
         }
+
         $deliveryDate = trim((string) ($_POST['delivery_date'] ?? ''));
         $deliveryTime = trim((string) ($_POST['delivery_time'] ?? ''));
         $deliveryAddress = trim((string) ($_POST['delivery_address'] ?? ''));
@@ -96,12 +98,12 @@ final class OrderController extends BaseController
         $deliveryDistanceKm = isset($_POST['delivery_distance_km']) && $_POST['delivery_distance_km'] !== ''
             ? (float) $_POST['delivery_distance_km']
             : null;
-        $serviceType = trim((string) ($_POST['service_type'] ?? 'delivery'));
         $deliveryInstructions = trim((string) ($_POST['delivery_instructions'] ?? ''));
+        $contactPhone = trim((string) ($_POST['contact_phone'] ?? ''));
 
         $errors = [];
 
-        if (!is_numeric($menuId)) {
+        if (!is_numeric($menuId) || (int) $menuId <= 0) {
             $errors['menu_id'] = 'Menu requis.';
         }
 
@@ -110,35 +112,63 @@ final class OrderController extends BaseController
         }
 
         if ($deliveryDate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $deliveryDate)) {
-            $errors['delivery_date'] = 'Date de livraison invalide.';
+            $errors['delivery_date'] = 'Date de prestation invalide.';
         } elseif ($deliveryDate < date('Y-m-d')) {
-            $errors['delivery_date'] = 'La date de livraison ne peut pas être passée.';
+            $errors['delivery_date'] = 'La date de prestation ne peut pas être passée.';
         }
 
         if ($deliveryTime === '' || !preg_match('/^\d{2}:\d{2}$/', $deliveryTime)) {
-            $errors['delivery_time'] = 'Heure de livraison invalide.';
+            $errors['delivery_time'] = 'Heure de prestation invalide.';
+        } else {
+            [$hour, $minute] = array_map('intval', explode(':', $deliveryTime));
+            if ($hour > 23 || $minute > 59) {
+                $errors['delivery_time'] = 'Heure de prestation invalide.';
+            }
         }
 
-        if (!in_array($serviceType, ['delivery', 'on_site', 'pickup'], true)) {
+        if (!in_array($serviceType, ['delivery', 'pickup', 'on_site'], true)) {
             $errors['service_type'] = 'Mode de prestation invalide.';
         }
 
-        if ($serviceType === 'delivery' && $deliveryAddress === '') {
-            $errors['delivery_address'] = 'Adresse de livraison requise.';
+        if ($contactPhone === '') {
+            $errors['contact_phone'] = 'Un numéro de téléphone est requis pour cette commande.';
+        } elseif ($this->authPhoneError($contactPhone) !== null) {
+            $errors['contact_phone'] = $this->authPhoneError($contactPhone);
         }
 
-        if ($serviceType === 'delivery' && $deliveryCity === '') {
-            $errors['delivery_city'] = 'Ville de livraison requise.';
+        if ($serviceType === 'delivery') {
+            if ($deliveryAddress === '') {
+                $errors['delivery_address'] = 'Adresse de livraison requise.';
+            }
+            if ($deliveryCity === '') {
+                $errors['delivery_city'] = 'Ville de livraison requise.';
+            }
+            if ($deliveryPostalCode === '') {
+                $errors['delivery_postal_code'] = 'Code postal requis pour une livraison.';
+            }
+            if (
+                $deliveryCity !== ''
+                && mb_strtolower($deliveryCity) !== 'bordeaux'
+                && ($deliveryDistanceKm === null || $deliveryDistanceKm < 0)
+            ) {
+                $errors['delivery_distance_km'] = 'Distance de livraison requise hors Bordeaux.';
+            }
         }
 
-        if (
-            $serviceType === 'delivery'
-            &&
-            $deliveryCity !== ''
-            && mb_strtolower($deliveryCity) !== 'bordeaux'
-            && ($deliveryDistanceKm === null || $deliveryDistanceKm < 0)
-        ) {
-            $errors['delivery_distance_km'] = 'Distance de livraison requise hors Bordeaux.';
+        if ($serviceType === 'pickup') {
+            $deliveryAddress = 'Retrait sur place';
+            $deliveryCity = 'Bordeaux';
+            $deliveryPostalCode = '33000';
+            $deliveryDistanceKm = null;
+            $deliveryInstructions = '';
+        }
+
+        if ($serviceType === 'on_site') {
+            $deliveryAddress = 'Vite & Gourmand — Bordeaux';
+            $deliveryCity = 'Bordeaux';
+            $deliveryPostalCode = '33000';
+            $deliveryDistanceKm = null;
+            $deliveryInstructions = trim($deliveryInstructions);
         }
 
         if ($errors !== []) {
@@ -155,17 +185,18 @@ final class OrderController extends BaseController
                 $deliveryDate,
                 $deliveryTime,
                 $deliveryAddress,
-                $serviceType === 'delivery' ? $deliveryCity : '',
+                $deliveryCity,
                 $deliveryPostalCode,
                 $deliveryDistanceKm,
                 trim((string) ($_POST['selected_options'] ?? '')) ?: null,
                 $serviceType,
                 'cash_on_site',
-                $deliveryInstructions
+                $deliveryInstructions,
+                $contactPhone
             );
 
             $this->redirect('/orders/confirmation/' . $result['order_id']);
-        } catch (\InvalidArgumentException $exception) {
+        } catch (InvalidArgumentException $exception) {
             Session::flash('order_errors', ['general' => $exception->getMessage()]);
             Session::flash('order_old_input', $_POST);
             $this->redirect('/orders/new');
@@ -340,4 +371,19 @@ final class OrderController extends BaseController
             echo 'Erreur serveur';
         }
     }
+    private function authPhoneError(string $phone): ?string
+    {
+        $value = preg_replace('/[\s().-]+/', '', $phone) ?? '';
+
+        if (preg_match('/^\+33[67]\d{8}$/', $value) || preg_match('/^0[67]\d{8}$/', $value)) {
+            return null;
+        }
+
+        if (preg_match('/^\+34[6789]\d{8}$/', $value) || preg_match('/^[6789]\d{8}$/', $value)) {
+            return null;
+        }
+
+        return 'Numéro de téléphone invalide. Formats acceptés : France (+33 6/7 ou 06/07) ou Espagne (+34 6/7/8/9).';
+    }
+
 }
