@@ -362,11 +362,6 @@ final readonly class OrderService
             throw new InvalidArgumentException('La commande possède déjà ce statut.');
         }
 
-        if ($equipmentLoaned !== null && $order->isEquipmentLoaned() !== $equipmentLoaned) {
-            $this->orderRepository->setEquipmentLoaned($orderId, $equipmentLoaned);
-            $order->setEquipmentLoaned($equipmentLoaned);
-        }
-
         $allowedTransitions = [
             'pending' => ['accepted', 'cancelled'],
             'accepted' => ['preparing', 'cancelled'],
@@ -406,31 +401,53 @@ final readonly class OrderService
             throw new InvalidArgumentException('Un motif est obligatoire pour annuler une commande.');
         }
 
-        $this->orderRepository->updateStatus(
-            $orderId,
-            $status,
-            $status === 'cancelled' ? trim((string) $cancellationReason) : null
-        );
+        $pdo = Database::pdo();
+        $pdo->beginTransaction();
 
-        if ($status === 'cancelled' && $order->getStatus() !== 'cancelled') {
-            $this->orderRepository->increaseMenuStock($order->getMenuId());
+        try {
+            if ($equipmentLoaned !== null && $order->isEquipmentLoaned() !== $equipmentLoaned) {
+                $this->orderRepository->setEquipmentLoaned($orderId, $equipmentLoaned);
+                $order->setEquipmentLoaned($equipmentLoaned);
+            }
+
+            $this->orderRepository->updateStatus(
+                $orderId,
+                $status,
+                $status === 'cancelled' ? trim((string) $cancellationReason) : null
+            );
+
+            if ($status === 'cancelled' && $order->getStatus() !== 'cancelled') {
+                $this->orderRepository->increaseMenuStock($order->getMenuId());
+            }
+
+            $this->orderRepository->addToHistory(
+                $orderId,
+                $status,
+                $changedByUserId,
+                $notes
+            );
+
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            throw $exception;
         }
 
-        $this->orderRepository->addToHistory(
-            $orderId,
-            $status,
-            $changedByUserId,
-            $notes
-        );
-
-        $this->notificationService->notify(
-            $order->getUserId(),
-            'order',
-            'Mise à jour de votre commande',
-            'La commande #' . $orderId . ' est maintenant « ' . $status . ' ».'
-                . ($notes !== '' ? ' ' . $notes : ''),
-            $orderId
-        );
+        try {
+            $this->notificationService->notify(
+                $order->getUserId(),
+                'order',
+                'Mise à jour de votre commande',
+                'La commande #' . $orderId . ' est maintenant « ' . $status . ' ».'
+                    . ($notes !== '' ? ' ' . $notes : ''),
+                $orderId
+            );
+        } catch (\Throwable $exception) {
+            error_log('Order internal notification error: ' . $exception->getMessage());
+        }
 
         $user = $this->userRepository->findById($order->getUserId());
 
