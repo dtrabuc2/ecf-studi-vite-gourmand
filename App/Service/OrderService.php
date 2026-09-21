@@ -120,6 +120,7 @@ final readonly class OrderService
             'service_type' => $serviceType,
             'payment_method' => $paymentMethod,
             'delivery_instructions' => $deliveryInstructions,
+            'contact_phone' => trim((string) $contactPhone),
             'menu_price' => $menuPrice,
             'discount_rate' => $discountRate,
             'total_price' => round($menuPrice + $deliveryCost, 2),
