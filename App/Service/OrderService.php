@@ -227,9 +227,10 @@ final readonly class OrderService
             throw new InvalidArgumentException('Paramètres de tarification invalides.');
         }
 
-        // Le prix de base est un prix par personne.
+        // Le catalogue indique le prix pour le nombre minimal de personnes.
+        // On ramène donc ce prix à un tarif unitaire avant de recalculer la commande.
         // Règle ECF : remise de 10 % à partir de 5 personnes au-dessus du minimum.
-        $grossPrice = round($basePrice * $numberOfPeople, 2);
+        $grossPrice = round(($basePrice / $minPeople) * $numberOfPeople, 2);
         $discountRate = $numberOfPeople >= ($minPeople + 5) ? 10.0 : 0.0;
         $price = round($grossPrice * (1 - ($discountRate / 100)), 2);
 
