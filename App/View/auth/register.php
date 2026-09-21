@@ -17,16 +17,35 @@ $errors = \App\Core\Session::pullFlash('register_errors') ?? [];
                             <?php foreach ([
                                 'first_name' => 'Prénom',
                                 'last_name' => 'Nom',
-                                'phone' => 'Téléphone',
-                                'gsm' => 'GSM',
                             ] as $field => $label): ?>
                                 <div class="col-md-6">
                                     <label class="form-label" for="<?= $escape($field) ?>"><?= $escape($label) ?></label>
                                     <input class="form-control <?= isset($errors[$field]) ? 'is-invalid' : '' ?>"
                                            id="<?= $escape($field) ?>" name="<?= $escape($field) ?>"
-                                           value="<?= $escape($oldInput[$field] ?? '') ?>" <?= in_array($field, ['phone', 'gsm'], true) ? 'placeholder="+33 6 12 34 56 78"' : '' ?> required>
+                                           value="<?= $escape($oldInput[$field] ?? '') ?>" required>
                                     <?php if (isset($errors[$field])): ?>
                                         <div class="invalid-feedback"><?= $escape($errors[$field]) ?></div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+
+                            <?php foreach (['phone' => 'Téléphone', 'gsm' => 'GSM'] as $field => $label): ?>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="<?= $escape($field) ?>"><?= $escape($label) ?></label>
+                                    <div class="input-group">
+                                        <select class="form-select flex-grow-0 phone-region" name="<?= $escape($field) ?>_region" aria-label="Pays du <?= $escape(strtolower($label)) ?>" style="max-width: 170px;">
+                                            <option value="FR">France +33</option>
+                                            <option value="ES">Espagne +34</option>
+                                            <option value="BE">Belgique +32</option>
+                                            <option value="GB">Royaume-Uni +44</option>
+                                            <option value="IT">Italie +39</option>
+                                        </select>
+                                        <input class="form-control <?= isset($errors[$field]) ? 'is-invalid' : '' ?>"
+                                               id="<?= $escape($field) ?>" name="<?= $escape($field) ?>" type="tel"
+                                               value="<?= $escape($oldInput[$field] ?? '') ?>" placeholder="+33 6 12 34 56 78" required>
+                                    </div>
+                                    <?php if (isset($errors[$field])): ?>
+                                        <div class="invalid-feedback d-block"><?= $escape($errors[$field]) ?></div>
                                     <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
