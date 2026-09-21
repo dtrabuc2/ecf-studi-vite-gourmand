@@ -1,3 +1,11 @@
+<?php
+$mailbox = isset($mailbox) && is_string($mailbox) ? $mailbox : 'contact';
+$folder = isset($folder) && is_string($folder) && in_array($folder, ['inbox', 'sent', 'drafts', 'trash'], true) ? $folder : 'inbox';
+$messages = isset($messages) && is_array($messages) ? $messages : [];
+$outbox = isset($outbox) && is_array($outbox) ? $outbox : [];
+$selectedMessage = isset($selectedMessage) && is_array($selectedMessage) ? $selectedMessage : null;
+$sent = $sent ?? null;
+?>
 <main class="py-5">
     <div class="container">
         <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
