@@ -215,20 +215,11 @@ final readonly class OrderService
             throw new InvalidArgumentException('Paramètres de tarification invalides.');
         }
 
-        $discountRate = 0.0;
-        if ($numberOfPeople >= 20) {
-            $discountRate = 10.0;
-        } elseif ($numberOfPeople >= 10) {
-            $discountRate = 5.0;
-        }
+        // Le catalogue Vite & Gourmand affiche un prix par personne.
+        // La commande applique strictement : prix unitaire × nombre de convives.
+        $price = round($basePrice * $numberOfPeople, 2);
 
-        // Le catalogue exprime le tarif par personne. Le prix enregistré
-        // dans la commande est calculé à partir du nombre réel de convives.
-        $grossPrice = round($basePrice * $numberOfPeople, 2);
-        $discountAmount = round($grossPrice * ($discountRate / 100), 2);
-        $price = round($grossPrice - $discountAmount, 2);
-
-        return [$price, $discountRate];
+        return [$price, 0.0];
     }
 
     public function getUserOrders(int $userId): array
