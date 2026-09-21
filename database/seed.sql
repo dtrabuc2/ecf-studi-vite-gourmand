@@ -20,7 +20,7 @@ VALUES
      'employee', 'Employé', 'Modèle',
      '0123456789', '0612345678', '456 Avenue des Champs', 1),
     ('user@viteetgourmand.com',
-     '$2y$10$92IXUNpkpkO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
      'user', 'Utilisateur', 'Modèle',
      '0123456789', '0612345678', '789 Boulevard Saint-Michel', 1)
 ON DUPLICATE KEY UPDATE
@@ -34,7 +34,7 @@ ON DUPLICATE KEY UPDATE
     `is_active` = VALUES(`is_active`),
     `updated_at` = CURRENT_TIMESTAMP;
 
-=============================================
+-- ================================================================
 -- SEED MARIA DB — Vite & Gourmand
 -- Catalogue complet et réexécutable
 -- Compatible avec database/schema.sql sur la branche dev.
