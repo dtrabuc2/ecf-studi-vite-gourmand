@@ -450,5 +450,5 @@ INSERT INTO `menu_dishes` (`menu_id`, `dish_id`, `position`) VALUES
 
 COMMIT;
 
--- Les comptes utilisateurs/employés/admin sont créés via les interfaces
--- d'inscription et d'administration. Aucun mot de passe n'est stocké dans ce seed.
+-- Les comptes de démonstration sont restaurés par ce seed. Les autres comptes
+-- peuvent être créés normalement depuis l'application.
