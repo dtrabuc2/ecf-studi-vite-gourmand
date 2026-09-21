@@ -56,9 +56,19 @@ final class OrderController extends BaseController
         $selectedMenuId = isset($_GET['menu']) ? (int) $_GET['menu'] : 0;
         $user = $this->userRepository->findById($userId);
 
+        $errors = Session::pullFlash('order_errors', []);
+        $oldInput = Session::pullFlash('order_old_input', []);
+
         $this->render('order/new', [
             'menus' => $menus,
             'selectedMenuId' => $selectedMenuId,
+            'selectedServiceType' => is_array($oldInput) && in_array(
+                $oldInput['service_type'] ?? '',
+                ['delivery', 'pickup', 'on_site'],
+                true
+            ) ? $oldInput['service_type'] : 'delivery',
+            'errors' => is_array($errors) ? $errors : [],
+            'oldInput' => is_array($oldInput) ? $oldInput : [],
             'orderUser' => $user,
         ]);
     }
