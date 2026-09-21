@@ -162,7 +162,7 @@ final readonly class OrderService
             error_log('Order email notification error: ' . $exception->getMessage());
         }
 
-        $this->notificationService->notify
+        $this->notificationService->notify(
             $userId,
             'order',
             'Commande enregistrée',
