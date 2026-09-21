@@ -87,11 +87,11 @@ final readonly class OrderService
         }
 
         if ($serviceType === 'on_site') {
-            $deliveryAddress = 'Restaurant Vite & Gourmand, Bordeaux';
+            $deliveryAddress = '12 Quai des Chartrons';
             $deliveryCity = 'Bordeaux';
             $deliveryPostalCode = '33000';
             $deliveryDistanceKm = null;
-            $deliveryInstructions = trim((string) $deliveryInstructions);
+            $deliveryInstructions = null;
         }
 
         [$menuPrice, $discountRate] = $this->calculateMenuPrice(
