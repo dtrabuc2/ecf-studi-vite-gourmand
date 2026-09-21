@@ -57,9 +57,7 @@
         <div id="menuGrid" class="row g-4 mb-5">
             <?php foreach ($menus as $menu): ?>
                 <?php $details = $menuDetails[$menu->getId()] ?? ['dishes' => []]; ?>
-                <?php $mongoImages = $menuImages[$menu->getId()] ?? []; ?>
-                <?php $cover = $mongoImages[0] ?? null; ?>
-                <div class="col-md-6 col-lg-4" data-menu-card>
+<div class="col-md-6 col-lg-4" data-menu-card>
                     <article class="card h-100 border-0 shadow-sm overflow-hidden">
                         <?php if ($cover && !empty($cover['url'])): ?>
                             <img src="<?= $escape($cover['url']) ?>" class="card-img-top home-menu-image" alt="<?= $escape($cover['alt_text'] ?? $menu->getTitle()) ?>">
