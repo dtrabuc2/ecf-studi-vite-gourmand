@@ -26,8 +26,8 @@ $isAuthenticated = !empty($user);
                 </li>
 
                 <?php if ($isAuthenticated): ?>
-                    <li class="nav-item"><a class="nav-link" href="/orders/new">Commander</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/orders">Mes commandes</a></li>
+                    <li class="nav-item"><a class="nav-link <?= str_starts_with($currentPath, '/orders/new') ? 'active' : '' ?>" href="/orders/new">Commander</a></li>
+                    <li class="nav-item"><a class="nav-link <?= $currentPath === '/orders' || str_starts_with($currentPath, '/orders/confirmation/') ? 'active' : '' ?>" href="/orders">Mes commandes</a></li>
                     <li class="nav-item"><a class="nav-link" href="/profile">Mon profil</a></li>
 
                     <li class="nav-item"><a class="nav-link" href="/notifications">Notifications</a></li>
