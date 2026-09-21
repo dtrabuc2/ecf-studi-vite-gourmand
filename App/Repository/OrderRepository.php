@@ -12,10 +12,10 @@ class OrderRepository
         $stmt = $pdo->prepare('INSERT INTO orders
             (user_id, menu_id, number_of_people, order_date, delivery_date, delivery_time,
              delivery_address, delivery_city, delivery_postal_code, delivery_distance_km,
-                  delivery_cost, customization, menu_price, discount_rate, total_price, status, equipment_loaned)
+                 delivery_cost, customization, service_type, payment_method, delivery_instructions, menu_price, discount_rate, total_price, status, equipment_loaned)
             VALUES (:user_id, :menu_id, :number_of_people, :order_date, :delivery_date, :delivery_time,
                     :delivery_address, :delivery_city, :delivery_postal_code, :delivery_distance_km,
-                      :delivery_cost, :customization, :menu_price, :discount_rate, :total_price, :status, :equipment_loaned)');
+                    :delivery_cost, :customization, :service_type, :payment_method, :delivery_instructions, :menu_price, :discount_rate, :total_price, :status, :equipment_loaned)');
         $stmt->execute([
             'user_id' => $data['user_id'],
             'menu_id' => $data['menu_id'],
@@ -29,6 +29,9 @@ class OrderRepository
             'delivery_distance_km' => $data['delivery_distance_km'] ?? null,
             'delivery_cost' => $data['delivery_cost'],
             'customization' => $data['customization'] ?? null,
+            'service_type' => $data['service_type'] ?? 'delivery',
+            'payment_method' => $data['payment_method'] ?? 'cash_on_site',
+            'delivery_instructions' => $data['delivery_instructions'] ?? null,
             'menu_price' => $data['menu_price'],
             'discount_rate' => $data['discount_rate'] ?? 0,
             'total_price' => $data['total_price'],
@@ -179,6 +182,9 @@ class OrderRepository
         $order->setDeliveryPostalCode((string) ($row['delivery_postal_code'] ?? ''));
         $order->setDeliveryDistanceKm($row['delivery_distance_km'] !== null ? (float) $row['delivery_distance_km'] : null);
         $order->setCustomization($row['customization'] ?? null);
+        $order->setServiceType((string) ($row['service_type'] ?? 'delivery'));
+        $order->setPaymentMethod((string) ($row['payment_method'] ?? 'cash_on_site'));
+        $order->setDeliveryInstructions($row['delivery_instructions'] ?? null);
         $order->setDeliveryCost((float) $row['delivery_cost']);
         $order->setMenuPrice((float) $row['menu_price']);
         $order->setDiscountRate((float) ($row['discount_rate'] ?? 0));

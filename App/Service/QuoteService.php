@@ -4,13 +4,15 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Core\Database;
+use App\Service\AuthService;
 use InvalidArgumentException;
 
 final readonly class QuoteService
 {
     public function __construct(
         private MailService $mailService,
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private AuthService $authService
     ) {
     }
 
@@ -30,6 +32,10 @@ final readonly class QuoteService
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new InvalidArgumentException('Adresse email invalide.');
+        }
+
+        if ($phone !== '' && $this->authService->validatePhone($phone) !== null) {
+            throw new InvalidArgumentException($this->authService->validatePhone($phone));
         }
 
         if ($eventDate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $eventDate)) {
@@ -109,6 +115,14 @@ final readonly class QuoteService
                 $id
             );
         }
+
+        $this->notificationService->notifyStaff(
+            'quote',
+            'Nouvelle demande de devis #' . $id,
+            'Une nouvelle demande de devis attend votre traitement.',
+            null,
+            $id
+        );
 
         $this->mailService->sendQuoteRequestNotificationToStaff(
             $companyEmail,

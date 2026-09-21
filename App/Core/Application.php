@@ -15,6 +15,7 @@ final readonly class Application
         require_once __DIR__ . '/functions.php';
 
         $this->loadEnvironment();
+        date_default_timezone_set((string) ($_ENV['APP_TIMEZONE'] ?? 'Europe/Paris'));
         $this->configureErrorHandling();
         $this->configureSession();
 

@@ -1,3 +1,180 @@
+ .eyebrow {
+  color: #b46b3c;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.email-reader {
+  overflow: hidden;
+  border: 1px solid #d9ded8;
+  border-radius: .5rem;
+  background: #fff;
+  box-shadow: 0 .5rem 1.5rem rgba(23, 63, 59, .08);
+}
+
+.email-reader__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  color: #fff;
+  background: #173f3b;
+}
+
+.email-reader__body {
+  min-height: 8rem;
+  padding: 1.5rem;
+  white-space: normal;
+}
+
+.email-reply {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid #e7ebe6;
+  background: #f7f9f6;
+}
+
+.email-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: 1rem 1.25rem;
+  color: inherit;
+  text-decoration: none;
+  border-top: 1px solid #edf0ec;
+  transition: background-color .18s ease, transform .18s ease;
+}
+
+.email-row:hover,
+.email-row.is-active {
+  background: #f1f6f0;
+}
+
+.email-row:hover {
+  transform: translateX(3px);
+}
+
+.email-row__dot {
+  width: .55rem;
+  height: .55rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #aeb8b2;
+}
+
+.email-row__dot.is-new {
+  background: #b46b3c;
+}
+
+.email-row__content {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: .15rem;
+}
+
+.email-row__content strong,
+.email-row__content small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-row time {
+  color: #74817d;
+  font-size: .75rem;
+  white-space: nowrap;
+}
+
+.email-outbox-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .9rem 1.25rem;
+  border-top: 1px solid #edf0ec;
+}
+
+.email-outbox-row span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: .1rem;
+}
+
+.email-outbox-row small {
+  color: #74817d;
+}
+
+.email-folders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding: .45rem;
+  border: 1px solid #d9ded8;
+  border-radius: .5rem;
+  background: #fff;
+}
+
+.email-folder {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .65rem .9rem;
+  color: #52615e;
+  font-size: .9rem;
+  text-decoration: none;
+  border-radius: .35rem;
+}
+
+.email-folder:hover,
+.email-folder.is-active {
+  color: #173f3b;
+  background: #eaf1ea;
+}
+
+.email-folder__mark {
+  width: .4rem;
+  height: .4rem;
+  border-radius: 50%;
+  background: #b46b3c;
+}
+
+@media (max-width: 767.98px) {
+  .email-reader__header,
+  .email-outbox-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .email-row {
+    align-items: flex-start;
+  }
+
+  .email-row time {
+    margin-left: auto;
+  }
+
+  .email-folders {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .email-folder {
+    justify-content: space-between;
+  }
+
+  #orderBuilder .card-body,
+  #orderFinalForm {
+    padding: 1rem !important;
+  }
+
+  #orderFinalForm .btn {
+    width: 100%;
+    margin: .25rem 0 0 !important;
+  }
+}
 /* VITE GOURMAND - STYLES PRINCIPAUX */
 
 :root {

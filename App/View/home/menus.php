@@ -102,4 +102,28 @@
             <?php endif; ?>
         </div>
     </section>
+
+    <section class="container pb-5" id="carte-des-plats">
+        <div class="text-center mb-4">
+            <span class="badge bg-primary-subtle text-primary">À la carte</span>
+            <h2 class="section-title d-inline-block mt-3">Composer votre carte</h2>
+            <p class="text-muted">Choisissez des plats unitaires selon vos envies.</p>
+        </div>
+        <div class="row g-3">
+            <?php foreach ($menus as $menu): ?>
+                <?php foreach (($menuDetails[$menu->getId()]['dishes'] ?? []) as $dish): ?>
+                    <div class="col-sm-6 col-lg-4">
+                        <article class="card h-100 border-0 shadow-sm">
+                            <div class="card-body">
+                                <span class="small text-uppercase text-muted"><?= $escape(['starter' => 'Entrée', 'main' => 'Plat', 'dessert' => 'Dessert'][$dish['category']] ?? 'Plat') ?></span>
+                                <h3 class="h5 text-primary mt-2 mb-2"><?= $escape($dish['name']) ?></h3>
+                                <p class="small text-muted mb-0"><?= $escape($dish['description'] ?? '') ?></p>
+                                <a class="btn btn-outline-primary btn-sm mt-3" href="/orders/new?menu=<?= $menu->getId() ?>&service=plat">Choisir ce plat</a>
+                            </div>
+                        </article>
+                    </div>
+                <?php endforeach; ?>
+            <?php endforeach; ?>
+        </div>
+    </section>
 </main>

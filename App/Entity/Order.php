@@ -15,6 +15,9 @@ class Order
     private string $deliveryPostalCode;
     private ?float $deliveryDistanceKm = null;
     private ?string $customization = null;
+    private string $serviceType = 'delivery';
+    private string $paymentMethod = 'cash_on_site';
+    private ?string $deliveryInstructions = null;
     private float $deliveryCost;
     private float $menuPrice;
     private float $discountRate;
@@ -49,6 +52,12 @@ class Order
     public function setDeliveryDistanceKm(?float $deliveryDistanceKm): void { $this->deliveryDistanceKm = $deliveryDistanceKm; }
     public function getCustomization(): ?string { return $this->customization; }
     public function setCustomization(?string $customization): void { $this->customization = $customization; }
+    public function getServiceType(): string { return $this->serviceType; }
+    public function setServiceType(string $serviceType): void { $this->serviceType = $serviceType; }
+    public function getPaymentMethod(): string { return $this->paymentMethod; }
+    public function setPaymentMethod(string $paymentMethod): void { $this->paymentMethod = $paymentMethod; }
+    public function getDeliveryInstructions(): ?string { return $this->deliveryInstructions; }
+    public function setDeliveryInstructions(?string $deliveryInstructions): void { $this->deliveryInstructions = $deliveryInstructions; }
     public function getDeliveryCost(): float { return $this->deliveryCost; }
     public function setDeliveryCost(float $deliveryCost): void { $this->deliveryCost = $deliveryCost; }
     public function getMenuPrice(): float { return $this->menuPrice; }

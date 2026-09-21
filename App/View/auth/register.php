@@ -24,7 +24,7 @@ $errors = \App\Core\Session::pullFlash('register_errors') ?? [];
                                     <label class="form-label" for="<?= $escape($field) ?>"><?= $escape($label) ?></label>
                                     <input class="form-control <?= isset($errors[$field]) ? 'is-invalid' : '' ?>"
                                            id="<?= $escape($field) ?>" name="<?= $escape($field) ?>"
-                                           value="<?= $escape($oldInput[$field] ?? '') ?>" required>
+                                           value="<?= $escape($oldInput[$field] ?? '') ?>" <?= in_array($field, ['phone', 'gsm'], true) ? 'placeholder="+33 6 12 34 56 78"' : '' ?> required>
                                     <?php if (isset($errors[$field])): ?>
                                         <div class="invalid-feedback"><?= $escape($errors[$field]) ?></div>
                                     <?php endif; ?>

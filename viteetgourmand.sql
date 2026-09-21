@@ -107,6 +107,9 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `delivery_distance_km` DECIMAL(7,2) NULL,
     `delivery_cost` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     `customization` TEXT NULL,
+    `service_type` ENUM('delivery','on_site','pickup') NOT NULL DEFAULT 'delivery',
+    `payment_method` ENUM('cash_on_site') NOT NULL DEFAULT 'cash_on_site',
+    `delivery_instructions` TEXT NULL,
     `menu_price` DECIMAL(10,2) NOT NULL,
     `discount_rate` DECIMAL(5,2) NOT NULL DEFAULT 0.00 COMMENT 'Pourcentage, par exemple 10.00',
     `total_price` DECIMAL(10,2) NOT NULL,
@@ -154,10 +157,23 @@ CREATE TABLE IF NOT EXISTS `contact_messages` (
     `email` VARCHAR(255) NOT NULL,
     `subject` VARCHAR(150) NOT NULL,
     `message` TEXT NOT NULL,
-    `status` ENUM('new', 'processed', 'closed') NOT NULL DEFAULT 'new',
+    `status` ENUM('new', 'processed', 'closed', 'trash') NOT NULL DEFAULT 'new',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     KEY `idx_contact_status_date` (`status`, `created_at`)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `email_outbox` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `mailbox` VARCHAR(100) NOT NULL,
+    `recipient` VARCHAR(255) NOT NULL,
+    `subject` VARCHAR(255) NOT NULL,
+    `body` MEDIUMTEXT NOT NULL,
+    `status` ENUM('draft', 'queued', 'sent', 'failed', 'trash') NOT NULL DEFAULT 'queued',
+    `error_message` TEXT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_email_outbox_mailbox_date` (`mailbox`, `created_at`)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS `quote_requests` (

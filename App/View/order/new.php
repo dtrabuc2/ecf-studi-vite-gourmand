@@ -73,6 +73,7 @@ $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
                                     <div class="summary-box p-3 h-100"><h3 class="h5 mb-3">Desserts</h3><div id="listDesserts"></div></div>
                                 </div>
                             </div>
+                            <div class="mt-4"><h3 class="h5 mb-2">Ingrédients non désirés</h3><p class="small text-muted">Cochez les ingrédients que vous ne souhaitez pas retrouver dans votre prestation.</p><div id="listIngredients" class="row g-2"></div></div>
                             <hr class="my-4">
                             <div class="row g-4 align-items-start">
                                 <div class="col-lg-6">
@@ -102,10 +103,10 @@ $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
             <?php if (isset($errors['general'])): ?><div class="alert alert-danger"><?= $escape($errors['general']) ?></div><?php endif; ?>
             <form method="post" action="/orders" class="card border-0 shadow-sm p-4 p-lg-5">
                 <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
-                <input type="hidden" id="selected_service_type" name="service_type" value="menu">
                 <input type="hidden" id="selected_options" name="selected_options" value="">
                 <div class="row g-3">
                     <div class="col-12"><h2 class="h3 text-primary">Récapitulatif de la commande</h2><p class="text-muted">Le montant final est recalculé et validé par le serveur.</p></div>
+                    <div class="col-12"><fieldset><legend class="form-label fw-bold">Mode de prestation</legend><div class="d-flex flex-wrap gap-3"><label class="form-check"><input class="form-check-input" type="radio" name="service_type" value="delivery" checked> Livraison</label><label class="form-check"><input class="form-check-input" type="radio" name="service_type" value="on_site"> Sur place</label><label class="form-check"><input class="form-check-input" type="radio" name="service_type" value="pickup"> À emporter</label></div></fieldset></div>
                     <div class="col-md-6"><label class="form-label">Nom</label><input class="form-control" value="<?= $escape($orderUser?->getLastName() ?? '') ?>" readonly></div>
                     <div class="col-md-6"><label class="form-label">Prénom</label><input class="form-control" value="<?= $escape($orderUser?->getFirstName() ?? '') ?>" readonly></div>
                     <div class="col-md-6"><label class="form-label">Téléphone</label><input class="form-control" value="<?= $escape($orderUser?->getGsm() ?: $orderUser?->getPhone() ?? '') ?>" readonly></div>
@@ -115,10 +116,12 @@ $selectedId = (int) ($oldInput['menu_id'] ?? $selectedMenuId);
                     <div class="col-md-4"><label class="form-label" for="number_of_people">Nombre de personnes</label><input class="form-control" id="number_of_people" name="number_of_people" type="number" min="1" value="<?= $old('number_of_people') ?>" required></div>
                     <div class="col-md-4"><label class="form-label" for="delivery_date">Date</label><input class="form-control" id="delivery_date" name="delivery_date" type="date" min="<?= date('Y-m-d') ?>" value="<?= $old('delivery_date') ?>" required></div>
                     <div class="col-md-4"><label class="form-label" for="delivery_time">Heure</label><input class="form-control" id="delivery_time" name="delivery_time" type="time" value="<?= $old('delivery_time') ?>" required></div>
-                    <div class="col-md-8"><label class="form-label" for="delivery_address">Adresse</label><textarea class="form-control" id="delivery_address" name="delivery_address" rows="2" required><?= $old('delivery_address', $orderUser?->getAddress() ?? '') ?></textarea></div>
+                    <div id="deliveryFields" class="row g-3"><div class="col-md-8"><label class="form-label" for="delivery_address">Adresse réelle</label><textarea class="form-control" id="delivery_address" name="delivery_address" rows="2" placeholder="Numéro, voie, résidence, bâtiment, étage, appartement"><?= $old('delivery_address', $orderUser?->getAddress() ?? '') ?></textarea><div class="form-text">Saisissez l’adresse complète; elle sera vérifiée avant validation.</div></div>
                     <div class="col-md-4"><label class="form-label" for="delivery_postal_code">Code postal</label><input class="form-control" id="delivery_postal_code" name="delivery_postal_code" maxlength="10" value="<?= $old('delivery_postal_code') ?>" required></div>
                     <div class="col-md-6"><label class="form-label" for="delivery_city">Ville</label><input class="form-control" id="delivery_city" name="delivery_city" value="<?= $old('delivery_city') ?>" placeholder="Bordeaux" required></div>
                     <div class="col-md-6"><label class="form-label" for="delivery_distance_km">Distance depuis Bordeaux (km)</label><input class="form-control" id="delivery_distance_km" name="delivery_distance_km" type="number" min="0" step="0.01" value="<?= $old('delivery_distance_km') ?>"><div class="form-text">Requise hors Bordeaux. 5 € + 0,59 €/km.</div></div>
+                    </div><div class="col-12"><label class="form-label" for="delivery_instructions">Instructions pour le livreur</label><textarea class="form-control" id="delivery_instructions" name="delivery_instructions" rows="2" placeholder="Interphone, étage, appel du client..."><?= $old('delivery_instructions') ?></textarea></div>
+                    <div class="col-12"><div class="alert alert-info mb-0"><strong>Paiement :</strong> règlement obligatoire en espèces sur place lors de la remise.</div></div>
                     <div class="col-12"><section class="card bg-light border-0"><div class="card-body"><h3 class="h5 text-primary">Prix indicatif</h3><dl class="row mb-0"><dt class="col-8">Prix menu</dt><dd class="col-4 text-end" id="orderMenuPrice">0,00 €</dd><dt class="col-8">Livraison</dt><dd class="col-4 text-end" id="orderDeliveryPrice">0,00 €</dd><dt class="col-8 fw-bold">Total</dt><dd class="col-4 text-end fw-bold" id="orderTotalPrice">0,00 €</dd></dl></div></section></div>
                     <div class="col-12"><button class="btn btn-primary" type="submit">Valider la commande</button><a class="btn btn-outline-secondary ms-2" href="/menus">Retour aux menus</a></div>
                 </div>

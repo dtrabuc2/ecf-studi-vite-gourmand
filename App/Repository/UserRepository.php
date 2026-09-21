@@ -202,6 +202,15 @@ final class UserRepository
         return $stmt->fetchAll();
     }
 
+    public function findStaffIds(): array
+    {
+        $stmt = Database::pdo()->query(
+            "SELECT id FROM users WHERE role IN ('employee', 'admin') AND is_active = 1"
+        );
+
+        return array_map(static fn (array $row): int => (int) $row['id'], $stmt->fetchAll());
+    }
+
     public function setCustomerActive(int $id, bool $active): void
     {
         $stmt = Database::pdo()->prepare(

@@ -46,7 +46,34 @@ abstract class BaseController
 
     private function titleFromTemplate(string $template): string
     {
-        $label = str_replace(['/', '_'], ' ', trim($template, '/'));
+        $titles = [
+            'auth/login' => 'Connexion client',
+            'auth/admin_login' => 'Connexion équipe',
+            'auth/register' => 'Créer un compte',
+            'auth/profile' => 'Mon profil',
+            'home/index' => 'Accueil',
+            'home/menus' => 'Nos menus',
+            'home/menu_detail' => 'Détail du menu',
+            'contact/index' => 'Contact',
+            'quote/index' => 'Demander un devis',
+            'order/new' => 'Nouvelle commande',
+            'order/index' => 'Mes commandes',
+            'order/confirmation' => 'Confirmation de commande',
+            'admin/dashboard' => 'Tableau de bord',
+            'admin/emails' => 'Boîte email',
+            'admin/orders' => 'Gestion des commandes',
+            'admin/quotes' => 'Gestion des devis',
+            'admin/dishes' => 'Gestion des plats',
+            'admin/menus' => 'Gestion des menus',
+            'admin/customers' => 'Gestion des clients',
+            'admin/employees' => 'Gestion des employés',
+            'admin/opening_hours' => 'Horaires d’ouverture',
+            'admin/comments' => 'Modération des avis',
+            'admin/revenue' => 'Chiffre d’affaires',
+        ];
+
+        $template = trim($template, '/');
+        $label = $titles[$template] ?? str_replace(['/', '_'], ' ', $template);
 
         return ucfirst($label) . ' - Vite & Gourmand';
     }

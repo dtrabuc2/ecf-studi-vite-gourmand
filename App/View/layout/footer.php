@@ -55,3 +55,4 @@
 <script src="/assets/js/script.js" defer></script>
 <script src="/assets/js/menus.js" defer></script>
 <script src="/assets/js/order.js" defer></script>
+<script src="/assets/js/address.js" defer></script>

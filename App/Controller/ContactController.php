@@ -48,8 +48,7 @@ final class ContactController extends BaseController
             $this->contactService->createMessage($email, $subject, $message);
 
             $companyEmail = $_ENV['MAIL_TO_ADDRESS']
-                ?? $_ENV['MAIL_FROM_ADDRESS']
-                ?? 'noreply@viteetgourmand.com';
+                ?? 'contact@website.dylan.local';
 
             $body = "Message reçu depuis le formulaire de contact.\n\n"
                 . "Email : {$email}\nTitre : {$subject}\n\n{$message}";

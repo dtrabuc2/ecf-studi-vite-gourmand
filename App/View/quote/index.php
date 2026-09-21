@@ -41,6 +41,7 @@ unset($_SESSION['quote_old_input']);
                             <div class="col-md-6">
                                 <label class="form-label" for="quote_phone">Téléphone</label>
                                 <input class="form-control" id="quote_phone" name="phone"
+                                        placeholder="+33 6 12 34 56 78"
                                        value="<?= $escape($old['phone'] ?? '') ?>" required>
                             </div>
                             <div class="col-md-6">

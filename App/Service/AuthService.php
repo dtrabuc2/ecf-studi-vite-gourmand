@@ -38,6 +38,17 @@ final readonly class AuthService
         return $errors === [] ? null : $errors;
     }
 
+    public function validatePhone(string $phone): ?string
+    {
+        $normalized = preg_replace('/[.()\s-]+/', '', trim($phone));
+
+        if (!is_string($normalized) || !preg_match('/^\+(33|34|32|44|39)\d{8,12}$/', $normalized)) {
+            return 'Utilisez un numéro international français, espagnol, belge, britannique ou italien (+33, +34, +32, +44, +39).';
+        }
+
+        return null;
+    }
+
     public function register(array $data): int
     {
         $email = $this->normalizeEmail((string) ($data['email'] ?? ''));
@@ -86,7 +97,13 @@ final readonly class AuthService
             return null;
         }
 
-        if (!password_verify($password, $user->getPasswordHash())) {
+        $storedPassword = $user->getPasswordHash();
+        $passwordInfo = password_get_info($storedPassword);
+        $passwordMatches = ($passwordInfo['algoName'] ?? 'unknown') !== 'unknown'
+            ? password_verify($password, $storedPassword)
+            : hash_equals($storedPassword, $password);
+
+        if (!$passwordMatches) {
             $failedAttempts = $user->getFailedAttempts() + 1;
 
             $this->userRepository->updateFailedAttempts(
@@ -100,10 +117,10 @@ final readonly class AuthService
             return null;
         }
 
-        if (password_needs_rehash(
-            $user->getPasswordHash(),
-            PASSWORD_DEFAULT
-        )) {
+        if (
+            ($passwordInfo['algoName'] ?? 'unknown') !== 'unknown'
+            && password_needs_rehash($storedPassword, PASSWORD_DEFAULT)
+        ) {
             $this->userRepository->updatePassword(
                 $user->getId(),
                 password_hash($password, PASSWORD_DEFAULT)

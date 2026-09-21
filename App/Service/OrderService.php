@@ -32,7 +32,10 @@ final readonly class OrderService
         string $deliveryCity,
         string $deliveryPostalCode,
         ?float $deliveryDistanceKm = null,
-        ?string $customization = null
+        ?string $customization = null,
+        string $serviceType = 'delivery',
+        string $paymentMethod = 'cash_on_site',
+        ?string $deliveryInstructions = null
     ): array {
         $user = $this->userRepository->findById($userId);
         $menu = $this->menuRepository->findById($menuId);
@@ -58,7 +61,15 @@ final readonly class OrderService
             );
         }
 
-        if (trim($deliveryAddress) === '' || trim($deliveryCity) === '') {
+        if (!in_array($serviceType, ['delivery', 'on_site', 'pickup'], true)) {
+            throw new InvalidArgumentException('Mode de prestation invalide.');
+        }
+
+        if ($paymentMethod !== 'cash_on_site') {
+            throw new InvalidArgumentException('Le paiement est effectué en espèces sur place.');
+        }
+
+        if ($serviceType === 'delivery' && (trim($deliveryAddress) === '' || trim($deliveryCity) === '')) {
             throw new InvalidArgumentException('L’adresse et la ville de livraison sont requises.');
         }
 
@@ -68,10 +79,9 @@ final readonly class OrderService
             $numberOfPeople
         );
 
-        $deliveryCost = $this->calculateDeliveryCost(
-            $deliveryCity,
-            $deliveryDistanceKm
-        );
+        $deliveryCost = $serviceType === 'delivery'
+            ? $this->calculateDeliveryCost($deliveryCity, $deliveryDistanceKm)
+            : 0.00;
 
         $orderData = [
             'user_id' => $userId,
@@ -86,6 +96,9 @@ final readonly class OrderService
             'delivery_distance_km' => $deliveryDistanceKm,
             'delivery_cost' => $deliveryCost,
             'customization' => $customization,
+            'service_type' => $serviceType,
+            'payment_method' => $paymentMethod,
+            'delivery_instructions' => $deliveryInstructions,
             'menu_price' => $menuPrice,
             'discount_rate' => $discountRate,
             'total_price' => round($menuPrice + $deliveryCost, 2),
@@ -132,6 +145,12 @@ final readonly class OrderService
             'order',
             'Commande enregistrée',
             'Votre commande #' . $orderId . ' a bien été enregistrée et attend la confirmation de l’équipe.',
+            $orderId
+        );
+        $this->notificationService->notifyStaff(
+            'order',
+            'Nouvelle commande #' . $orderId,
+            'Une nouvelle commande attend votre traitement.',
             $orderId
         );
 

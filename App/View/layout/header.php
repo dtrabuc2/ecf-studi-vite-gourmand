@@ -30,15 +30,15 @@ $isAuthenticated = !empty($user);
                     <li class="nav-item"><a class="nav-link" href="/orders">Mes commandes</a></li>
                     <li class="nav-item"><a class="nav-link" href="/profile">Mon profil</a></li>
 
-                    <?php if ($role === 'user'): ?>
                     <li class="nav-item"><a class="nav-link" href="/notifications">Notifications</a></li>
-                <?php endif; ?>
 
                 <?php if ($role === 'admin'): ?>
                         <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Administration</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/admin/emails">Emails</a></li>
                     <?php elseif ($role === 'employee'): ?>
                         <li class="nav-item"><a class="nav-link" href="/admin/orders">Commandes</a></li>
                     <li class="nav-item"><a class="nav-link" href="/admin/quotes">Devis</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/admin/emails">Emails</a></li>
                         <li class="nav-item"><a class="nav-link" href="/admin/dishes">Plats</a></li>
                         <li class="nav-item"><a class="nav-link" href="/admin/hours">Horaires</a></li>
                         <li class="nav-item"><a class="nav-link" href="/admin/comments/pending">Avis</a></li>

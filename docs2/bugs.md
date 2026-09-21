@@ -47,3 +47,20 @@
 ## Etat final
 
 Aucun bug reproductible restant n'a ete observe sur les routes et parcours testes.
+
+## Corrections recentes
+
+- La boîte email utilise maintenant une valeur par défaut `inbox` quand aucun dossier n'est fourni.
+- Les employés et administrateurs reçoivent une notification interne pour chaque nouvelle commande et chaque devis.
+- Les commandes proposent livraison, sur place ou à emporter, avec paiement en espèces sur place.
+- Les ingrédients non désirés, les instructions livreur et la carte des plats sont pris en compte.
+- Les numéros sont contrôlés sur les préfixes internationaux `+33`, `+34`, `+32`, `+44` et `+39`.
+- Une clé Google Maps peut être ajoutée via `GOOGLE_MAPS_API_KEY`; sans clé, le formulaire conserve un fallback local sans inventer de validation distante.
+
+## Centre email
+
+- La boîte `/admin/emails` lit les messages du formulaire stockés dans MariaDB et permet d'y répondre.
+- La boîte `mail.ai` est volontairement locale : elle permet de simuler des entrants et de tester les réponses sans DNS ni serveur email réel.
+- Le dépôt `template-manager/email-template-manager` ne reçoit pas d'emails; son principe de placeholders est repris par le renderer local `EmailTemplateRenderer`.
+- La réception distante IMAP reste optionnelle : l'extension PHP `imap` n'est pas activée dans l'environnement courant.
+- Les réponses sont tracées dans `email_outbox`; si SMTP est indisponible, elles passent en `failed` et l'interface l'indique.

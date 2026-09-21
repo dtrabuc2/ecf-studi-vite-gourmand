@@ -14,6 +14,9 @@
   const finalMenuSelect = document.getElementById('menu_id');
   const recapOptions = document.getElementById('selected_options');
   const continueButton = document.getElementById('btnVersRecap');
+  const digestif = document.getElementById('selectDigestif');
+  const deliveryFields = document.getElementById('deliveryFields');
+  const ingredients = document.getElementById('listIngredients');
 
   let menus = [];
   let serviceType = 'menu';
@@ -59,7 +62,19 @@
       ? ['Vin rouge', 'Vin blanc', 'Champagne', 'Bière artisanale']
       : ['Eaux aromatisées', 'Jus de pomme artisanal', 'Jus d’orange pressé', 'Citronnade maison', 'Thé glacé pêche'];
     renderChoiceList('listBoissons', 'boisson', items);
+    if (digestif) {
+      digestif.disabled = type !== 'avec';
+      if (type !== 'avec') digestif.value = '';
+    }
   };
+
+  document.querySelectorAll('input[name="service_type"]').forEach((input) => {
+    input.addEventListener('change', () => {
+      const delivery = input.value === 'delivery' && input.checked;
+      deliveryFields?.classList.toggle('d-none', !delivery);
+      deliveryFields?.querySelectorAll('input, textarea').forEach((field) => { field.required = delivery && field.id !== 'delivery_distance_km'; });
+    });
+  });
 
   const renderDigestifs = () => {
     const target = document.getElementById('selectDigestif');
@@ -68,6 +83,14 @@
       ['Cognac VSOP', 'Armagnac', 'Limoncello artisanal', 'Calvados', 'Get 27']
         .map((item) => '<option value="' + escapeHtml(item) + '">' + escapeHtml(item) + '</option>')
         .join('');
+  };
+
+  const renderIngredients = () => {
+    if (!ingredients) return;
+    const values = selected?.allergens || [];
+    ingredients.innerHTML = values.length
+      ? values.map((item, index) => '<div class="col-sm-6"><label class="form-check"><input class="form-check-input" type="checkbox" name="excluded_ingredients[]" value="' + escapeHtml(item) + '"> <span>' + escapeHtml(item) + '</span></label></div>').join('')
+      : '<p class="small text-muted mb-0">Aucun ingrédient signalé pour cette formule.</p>';
   };
 
   const renderSelected = () => {
@@ -108,6 +131,7 @@
 
     renderBoissons();
     renderDigestifs();
+    renderIngredients();
 
     if (finalMenuSelect && selected.service_type !== 'plat') {
       finalMenuSelect.value = String(selected.id);
@@ -163,12 +187,26 @@
 
   const buildOptionsSummary = () => {
     const selectedOptions = Array.from(document.querySelectorAll('#sectionPersonnalisation input:checked'))
+      .filter((input) => input.name !== 'excluded_ingredients[]')
       .map((input) => input.value)
       .filter(Boolean);
+    document.querySelectorAll('input[name="excluded_ingredients[]"]:checked').forEach((input) => selectedOptions.push('Sans ' + input.value));
     const digestif = document.getElementById('selectDigestif')?.value || '';
     if (digestif) selectedOptions.push(digestif);
     return selectedOptions.join(' | ');
   };
+
+  const syncServiceFields = () => {
+    const selectedService = document.querySelector('input[name="service_type"]:checked')?.value || 'delivery';
+    const delivery = selectedService === 'delivery';
+    deliveryFields?.classList.toggle('d-none', !delivery);
+    deliveryFields?.querySelectorAll('input, textarea').forEach((field) => {
+      field.required = delivery && field.id !== 'delivery_distance_km';
+    });
+  };
+
+  document.querySelectorAll('input[name="service_type"]').forEach((input) => input.addEventListener('change', syncServiceFields));
+  syncServiceFields();
 
   continueButton?.addEventListener('click', () => {
     if (!selected) {

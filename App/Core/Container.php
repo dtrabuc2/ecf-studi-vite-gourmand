@@ -6,6 +6,7 @@ namespace App\Core;
 use App\Controller\AdminController;
 use App\Controller\AuthController;
 use App\Controller\ContactController;
+use App\Controller\EmailController;
 use App\Controller\OrderController;
 use App\Controller\PublicController;
 use App\Controller\QuoteController;
@@ -23,6 +24,8 @@ use App\Service\AuthService;
 use App\Service\CacheService;
 use App\Service\CommentService;
 use App\Service\ContactService;
+use App\Service\EmailService;
+use App\Service\EmailTemplateRenderer;
 use App\Service\MailService;
 use App\Service\MenuService;
 use App\Service\MenuStatisticsService;
@@ -135,6 +138,21 @@ final class Container
         );
 
         $this->set(
+            EmailTemplateRenderer::class,
+            static fn (): EmailTemplateRenderer => new EmailTemplateRenderer(
+                dirname(__DIR__, 2) . '/email-templates'
+            )
+        );
+
+        $this->set(
+            EmailService::class,
+            static fn (Container $container): EmailService => new EmailService(
+                $container->get(MailService::class),
+                $container->get(EmailTemplateRenderer::class)
+            )
+        );
+
+        $this->set(
             MenuService::class,
             static fn (Container $container): MenuService => new MenuService(
                 $container->get(MenuRepository::class),
@@ -239,6 +257,13 @@ final class Container
         );
 
         $this->set(
+            EmailController::class,
+            static fn (Container $container): EmailController => new EmailController(
+                $container->get(EmailService::class)
+            )
+        );
+
+        $this->set(
             NotificationRepository::class,
             static fn (): NotificationRepository => new NotificationRepository()
         );
@@ -246,7 +271,8 @@ final class Container
         $this->set(
             NotificationService::class,
             static fn (Container $container): NotificationService => new NotificationService(
-                $container->get(NotificationRepository::class)
+                $container->get(NotificationRepository::class),
+                $container->get(UserRepository::class)
             )
         );
 
@@ -254,7 +280,8 @@ final class Container
             QuoteService::class,
             static fn (Container $container): QuoteService => new QuoteService(
                 $container->get(MailService::class),
-                $container->get(NotificationService::class)
+                $container->get(NotificationService::class),
+                $container->get(AuthService::class)
             )
         );
 

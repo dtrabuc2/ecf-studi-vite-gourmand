@@ -131,6 +131,12 @@ final class AuthController extends BaseController
             $errors['email'] = 'Adresse email invalide.';
         }
 
+        foreach (['phone', 'gsm'] as $field) {
+            if ($data[$field] !== '' && $this->authService->validatePhone($data[$field]) !== null) {
+                $errors[$field] = $this->authService->validatePhone($data[$field]);
+            }
+        }
+
         if ($errors !== []) {
             Session::flash('profile_errors', $errors);
             Session::flash('profile_old_input', $data);

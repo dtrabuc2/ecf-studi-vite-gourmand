@@ -96,6 +96,8 @@ final class OrderController extends BaseController
         $deliveryDistanceKm = isset($_POST['delivery_distance_km']) && $_POST['delivery_distance_km'] !== ''
             ? (float) $_POST['delivery_distance_km']
             : null;
+        $serviceType = trim((string) ($_POST['service_type'] ?? 'delivery'));
+        $deliveryInstructions = trim((string) ($_POST['delivery_instructions'] ?? ''));
 
         $errors = [];
 
@@ -117,15 +119,21 @@ final class OrderController extends BaseController
             $errors['delivery_time'] = 'Heure de livraison invalide.';
         }
 
-        if ($deliveryAddress === '') {
+        if (!in_array($serviceType, ['delivery', 'on_site', 'pickup'], true)) {
+            $errors['service_type'] = 'Mode de prestation invalide.';
+        }
+
+        if ($serviceType === 'delivery' && $deliveryAddress === '') {
             $errors['delivery_address'] = 'Adresse de livraison requise.';
         }
 
-        if ($deliveryCity === '') {
+        if ($serviceType === 'delivery' && $deliveryCity === '') {
             $errors['delivery_city'] = 'Ville de livraison requise.';
         }
 
         if (
+            $serviceType === 'delivery'
+            &&
             $deliveryCity !== ''
             && mb_strtolower($deliveryCity) !== 'bordeaux'
             && ($deliveryDistanceKm === null || $deliveryDistanceKm < 0)
@@ -147,10 +155,13 @@ final class OrderController extends BaseController
                 $deliveryDate,
                 $deliveryTime,
                 $deliveryAddress,
-                $deliveryCity,
+                $serviceType === 'delivery' ? $deliveryCity : '',
                 $deliveryPostalCode,
                 $deliveryDistanceKm,
-                trim((string) ($_POST['selected_options'] ?? '')) ?: null
+                trim((string) ($_POST['selected_options'] ?? '')) ?: null,
+                $serviceType,
+                'cash_on_site',
+                $deliveryInstructions
             );
 
             $this->redirect('/orders/confirmation/' . $result['order_id']);
