@@ -56,6 +56,7 @@
 
         <div id="menuGrid" class="row g-4 mb-5">
             <?php foreach ($menus as $menu): ?>
+                <?php $cover = $menuCovers[$menu->getId()] ?? null; ?>
                 <?php $details = $menuDetails[$menu->getId()] ?? ['dishes' => []]; ?>
 <div class="col-md-6 col-lg-4" data-menu-card>
                     <article class="card h-100 border-0 shadow-sm overflow-hidden">
