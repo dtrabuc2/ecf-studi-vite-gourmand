@@ -61,6 +61,12 @@ final readonly class OrderService
             );
         }
 
+        if ($numberOfPeople < $menu->getMinPeople()) {
+            throw new InvalidArgumentException(
+                sprintf('Ce menu nécessite au minimum %d personne(s).', $menu->getMinPeople())
+            );
+        }
+
         if (!in_array($serviceType, ['delivery', 'on_site', 'pickup'], true)) {
             throw new InvalidArgumentException('Mode de prestation invalide.');
         }
@@ -457,6 +463,12 @@ final readonly class OrderService
             throw new InvalidArgumentException('Menu indisponible.');
         }
 
+        if ($numberOfPeople < $menu->getMinPeople()) {
+            throw new InvalidArgumentException(
+                sprintf('Ce menu nécessite au minimum %d personne(s).', $menu->getMinPeople())
+            );
+        }
+
         if ($numberOfPeople < 1 || $numberOfPeople > 30) {
             throw new InvalidArgumentException('Le nombre de convives est invalide pour une commande directe.');
         }
@@ -582,6 +594,12 @@ final readonly class OrderService
 
         if ($menu === null) {
             throw new InvalidArgumentException('Le menu de la commande est introuvable.');
+        }
+
+        if ($numberOfPeople < $menu->getMinPeople()) {
+            throw new InvalidArgumentException(
+                sprintf('Ce menu nécessite au minimum %d personne(s).', $menu->getMinPeople())
+            );
         }
 
         [$menuPrice, $discountRate] = $this->calculateMenuPrice(
