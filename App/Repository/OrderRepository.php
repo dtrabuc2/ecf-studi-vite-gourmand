@@ -196,6 +196,7 @@ class OrderRepository
         $order->setServiceType((string) ($row['service_type'] ?? 'delivery'));
         $order->setPaymentMethod((string) ($row['payment_method'] ?? 'cash_on_site'));
         $order->setDeliveryInstructions($row['delivery_instructions'] ?? null);
+        $order->setContactPhone((string) ($row['contact_phone'] ?? ''));
         $order->setDeliveryCost((float) $row['delivery_cost']);
         $order->setMenuPrice((float) $row['menu_price']);
         $order->setDiscountRate((float) ($row['discount_rate'] ?? 0));
