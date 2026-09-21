@@ -113,12 +113,14 @@ $menus = is_array($menus ?? null) ? $menus : [];
                     <div class="col-12">
                         <section class="card bg-light border-0">
                             <div class="card-body">
-                                <h3 class="h5 text-primary">Prix indicatif</h3>
+                                <h3 class="h5 text-primary">Tarification serveur</h3>
                                 <dl class="row mb-0">
                                     <dt class="col-8">Prix menu</dt><dd class="col-4 text-end" id="orderMenuPrice">0,00 €</dd>
-                                    <dt class="col-8" id="orderDeliveryLabel">Livraison</dt><dd class="col-4 text-end" id="orderDeliveryPrice">0,00 €</dd>
-                                    <dt class="col-8 fw-bold">Total</dt><dd class="col-4 text-end fw-bold" id="orderTotalPrice">0,00 €</dd>
+                                    <dt class="col-8">Remise</dt><dd class="col-4 text-end" id="orderDiscount">0 %</dd>
+                                    <dt class="col-8">Livraison</dt><dd class="col-4 text-end" id="orderDeliveryPrice">À renseigner</dd>
+                                    <dt class="col-8 fw-bold">Total</dt><dd class="col-4 text-end fw-bold" id="orderPreviewTotal">À calculer</dd>
                                 </dl>
+                                <div id="orderPriceMessage" class="small text-muted mt-2">Le montant définitif est recalculé et validé par PHP.</div>
                             </div>
                         </section>
                     </div>
@@ -127,62 +129,5 @@ $menus = is_array($menus ?? null) ? $menus : [];
             </form>
         </section>
     </div>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const dateField = document.getElementById('delivery_date');
-    const timeField = document.getElementById('delivery_time');
-    if (!dateField || !timeField) return;
 
-    const oldTime = <?= json_encode((string) ($oldInput['delivery_time'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
-    const timezoneFormatter = new Intl.DateTimeFormat('fr-FR', {
-        timeZone: 'Europe/Paris',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    });
-
-    function parisToday() {
-        const parts = timezoneFormatter.formatToParts(new Date());
-        const values = Object.fromEntries(parts.filter(({type}) => type !== 'literal').map(({type, value}) => [type, value]));
-        return values.year + '-' + values.month + '-' + values.day;
-    }
-
-    function populateSlots() {
-        const selectedDate = dateField.value;
-        timeField.innerHTML = '<option value="">Choisir un créneau</option>';
-        if (!selectedDate) return;
-
-        const current = new Date();
-        const today = parisToday();
-        let startMinute = 0;
-
-        if (selectedDate === today) {
-            const parisParts = new Intl.DateTimeFormat('fr-FR', {
-                timeZone: 'Europe/Paris',
-                hour: '2-digit',
-                minute: '2-digit',
-                hourCycle: 'h23'
-            }).formatToParts(current);
-            const hour = Number(parisParts.find(p => p.type === 'hour')?.value ?? 0);
-            const minute = Number(parisParts.find(p => p.type === 'minute')?.value ?? 0);
-            startMinute = hour * 60 + minute + 1;
-        }
-
-        for (let total = startMinute; total < 24 * 60; total += 15) {
-            const hour = String(Math.floor(total / 60)).padStart(2, '0');
-            const minute = String(total % 60).padStart(2, '0');
-            const value = hour + ':' + minute;
-            const option = document.createElement('option');
-            option.value = value;
-            option.textContent = value;
-            if (value === oldTime) option.selected = true;
-            timeField.appendChild(option);
-        }
-    }
-
-    dateField.addEventListener('change', populateSlots);
-    dateField.min = parisToday();
-    populateSlots();
-});
-</script>
 </main>
