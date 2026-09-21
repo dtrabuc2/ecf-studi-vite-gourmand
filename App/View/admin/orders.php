@@ -37,10 +37,8 @@
     <div class="card-body p-4">
         <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
             <div>
-                <h2 class="h5 mb-1">Commande #<?= $order->getId() ?></h2>
-                <p class="small text-muted mb-0">
-                    Référence : VG-<?= date('Ymd', strtotime($order->getOrderDate())) ?>-<?= str_pad((string) $order->getId(), 6, '0', STR_PAD_LEFT) ?>
-                </p>
+                <h2 class="h5 mb-1">Commande <?= $escape($order->getOrderNumber()) ?></h2>
+                <p class="small text-muted mb-0">Identifiant interne : #<?= $order->getId() ?></p>
             </div>
             <span class="badge text-bg-secondary align-self-start">
                 <?= $escape($labels[$order->getStatus()] ?? $order->getStatus()) ?>
@@ -51,7 +49,7 @@
             <div class="col-12 col-sm-6 col-lg-3">
                 <div class="summary-box h-100 p-3">
                     <span class="small text-muted d-block">Client</span>
-                    <strong>#<?= $order->getUserId() ?></strong>
+                    <strong><?= $escape($order->getUserId()) ?></strong>
                 </div>
             </div>
             <div class="col-12 col-sm-6 col-lg-3">
@@ -76,6 +74,21 @@
                     <span class="small text-muted d-block">Total</span>
                     <strong><?= number_format($order->getTotalPrice(), 2, ',', ' ') ?> €</strong>
                 </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-lg-6">
+                <p class="small mb-1"><strong>Client ID :</strong> <?= $order->getUserId() ?></p>
+                <p class="small mb-1"><strong>Téléphone :</strong> <?= $escape($order->getContactPhone()) ?></p>
+                <p class="small mb-0"><strong>Lieu :</strong> <?= $escape($order->getDeliveryAddress()) ?>
+                    <?= $order->getDeliveryCity() !== '' ? ' — ' . $escape($order->getDeliveryPostalCode() . ' ' . $order->getDeliveryCity()) : '' ?>
+                </p>
+            </div>
+            <div class="col-12 col-lg-6">
+                <p class="small mb-1"><strong>Personnes :</strong> <?= $order->getNumberOfPeople() ?></p>
+                <p class="small mb-1"><strong>Menu :</strong> #<?= $order->getMenuId() ?></p>
+                <p class="small mb-0"><strong>Total :</strong> <?= number_format($order->getTotalPrice(), 2, ',', ' ') ?> €</p>
             </div>
         </div>
 
