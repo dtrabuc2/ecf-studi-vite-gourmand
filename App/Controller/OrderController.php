@@ -177,17 +177,16 @@ final class OrderController extends BaseController
 
         if (is_numeric($numberOfPeople) && (int) $numberOfPeople > 30) {
             Session::flash(
-                'order_error',
-                'Pour 50 personnes ou plus, votre demande est traitée par devis afin de confirmer la disponibilité, le mode de prestation et les conditions.'
+                'quote_old_input',
+                [
+                    'number_of_people' => (int) $numberOfPeople,
+                    'event_date' => trim((string) ($_POST['delivery_date'] ?? '')),
+                    'service_type' => in_array($serviceType, ['delivery', 'pickup', 'on_site'], true) ? $serviceType : 'delivery',
+                    'event_location' => trim((string) ($_POST['delivery_address'] ?? '')),
+                    'postal_code' => trim((string) ($_POST['delivery_postal_code'] ?? '')),
+                    'request_details' => 'Demande traiteur pour ' . (int) $numberOfPeople . ' convives.',
+                ]
             );
-            Session::flash('quote_old_input', [
-                'number_of_people' => (int) $numberOfPeople,
-                'event_date' => trim((string) ($_POST['delivery_date'] ?? '')),
-                'service_type' => in_array($serviceType, ['delivery', 'pickup', 'on_site'], true) ? $serviceType : 'delivery',
-                'event_location' => trim((string) ($_POST['delivery_address'] ?? '')),
-                'postal_code' => trim((string) ($_POST['delivery_postal_code'] ?? '')),
-                'request_details' => 'Menu demandé : ' . ((int) $menuId > 0 ? 'menu #' . (int) $menuId : 'à préciser'),
-            ]);
             $this->redirect('/quote');
         }
 
