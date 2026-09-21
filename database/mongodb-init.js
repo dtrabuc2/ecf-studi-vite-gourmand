@@ -104,7 +104,7 @@ const menuImages = [
 
 // Restauration ciblée : un menu existant est remis à jour uniquement pour
 // les positions présentes dans le catalogue historique.
-// Aucun drop/deleteMany : upsert conserve les autres documents.
+// Aucune suppression : upsert conserve les autres documents.
 for (const image of menuImages) {
     database.menu_images.updateOne(
         { menuId: image.menuId, position: image.position },
