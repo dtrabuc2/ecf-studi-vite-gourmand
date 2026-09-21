@@ -73,6 +73,90 @@ final class OrderController extends BaseController
         ]);
     }
 
+    public function menuOptions(): never
+    {
+        $numberOfPeople = filter_var(
+            $_GET['number_of_people'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
+
+        if ($numberOfPeople === false) {
+            $this->json(['success' => false, 'error' => 'Nombre de convives invalide.'], 422);
+        }
+
+        if ($numberOfPeople >= 50) {
+            $this->json([
+                'success' => true,
+                'data' => [],
+                'quote_required' => true,
+            ]);
+        }
+
+        $this->json([
+            'success' => true,
+            'data' => $this->orderService->getMenuAvailabilityForPeople($numberOfPeople),
+            'quote_required' => false,
+        ]);
+    }
+
+    public function availability(): never
+    {
+        $date = trim((string) ($_GET['date'] ?? ''));
+
+        if ($date === '') {
+            $this->json(['success' => false, 'error' => 'Date de prestation requise.'], 422);
+        }
+
+        try {
+            $this->json([
+                'success' => true,
+                'data' => $this->orderService->getServiceDateAvailability($date),
+            ]);
+        } catch (InvalidArgumentException $exception) {
+            $this->json(['success' => false, 'error' => $exception->getMessage()], 422);
+        }
+    }
+
+    public function pricePreview(): never
+    {
+        $menuId = filter_var(
+            $_GET['menu_id'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
+        $numberOfPeople = filter_var(
+            $_GET['number_of_people'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
+
+        if ($menuId === false || $numberOfPeople === false) {
+            $this->json(['success' => false, 'error' => 'Menu ou nombre de convives invalide.'], 422);
+        }
+
+        $serviceType = trim((string) ($_GET['service_type'] ?? 'delivery'));
+        $deliveryCity = trim((string) ($_GET['delivery_city'] ?? ''));
+        $deliveryDistanceKm = ($_GET['delivery_distance_km'] ?? '') !== ''
+            ? (float) $_GET['delivery_distance_km']
+            : null;
+
+        try {
+            $this->json([
+                'success' => true,
+                'data' => $this->orderService->calculatePricePreview(
+                    $menuId,
+                    $numberOfPeople,
+                    $serviceType,
+                    $deliveryCity,
+                    $deliveryDistanceKm
+                ),
+            ]);
+        } catch (InvalidArgumentException $exception) {
+            $this->json(['success' => false, 'error' => $exception->getMessage()], 422);
+        }
+    }
+
     public function create(): void
     {
         $userId = Session::id();
@@ -83,6 +167,7 @@ final class OrderController extends BaseController
 
         $menuId = $_POST['menu_id'] ?? null;
         $numberOfPeople = $_POST['number_of_people'] ?? null;
+        $confirmedGuestCount = $_POST['confirmed_guest_count'] ?? null;
         $serviceType = trim((string) ($_POST['service_type'] ?? 'delivery'));
 
         if (is_numeric($numberOfPeople) && (int) $numberOfPeople >= 50) {
@@ -120,6 +205,21 @@ final class OrderController extends BaseController
 
         if (!is_numeric($numberOfPeople) || (int) $numberOfPeople < 1) {
             $errors['number_of_people'] = 'Nombre de personnes requis et supérieur à 0.';
+        } elseif (
+            (int) $numberOfPeople < 50
+            && (!is_numeric($confirmedGuestCount) || (int) $confirmedGuestCount !== (int) $numberOfPeople)
+        ) {
+            $errors['number_of_people'] = 'Confirmez le nombre de convives avant de sélectionner un menu.';
+        }
+
+        if ($menuId !== null && is_numeric($menuId) && $numberOfPeople !== null && is_numeric($numberOfPeople) && (int) $numberOfPeople < 50) {
+            $menu = $this->menuService->getMenuById((int) $menuId);
+
+            if ($menu === null || $menu->getAvailableStock() < 1) {
+                $errors['menu_id'] = 'Ce menu n’est plus disponible.';
+            } elseif ((int) $numberOfPeople < $menu->getMinPeople()) {
+                $errors['menu_id'] = 'Ce menu nécessite au minimum ' . $menu->getMinPeople() . ' convives.';
+            }
         }
 
         if ($deliveryDate === '') {
