@@ -1,58 +1,125 @@
 -- ================================================================
 -- SEED MARIA DB — Vite & Gourmand
--- Ce fichier suppose que database/schema.sql a déjà créé les tables.
--- Il contient les données initiales du catalogue et des horaires.
+-- Catalogue complet inspiré du positionnement grand public de Flunch,
+-- sans recopier leur carte : formules simples -> intermédiaires -> premium.
+-- Les compositions sont descriptives ; la commande porte toujours sur un menu.
 -- ================================================================
 
 USE `viteetgourmand`;
 
--- ================================================================
--- Horaires d'ouverture de référence
--- ================================================================
+SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE `user_notifications`;
+TRUNCATE TABLE `email_outbox`;
+TRUNCATE TABLE `contact_messages`;
+TRUNCATE TABLE `quote_requests`;
+TRUNCATE TABLE `order_status_history`;
+TRUNCATE TABLE `orders`;
+TRUNCATE TABLE `dish_allergens`;
+TRUNCATE TABLE `menu_dishes`;
+TRUNCATE TABLE `dishes`;
+TRUNCATE TABLE `allergens`;
+TRUNCATE TABLE `menus`;
+TRUNCATE TABLE `opening_hours`;
+SET FOREIGN_KEY_CHECKS = 1;
 
-INSERT INTO `opening_hours`
-    (`day_of_week`, `is_open`, `opening_time`, `closing_time`, `opening_time_2`, `closing_time_2`) VALUES
-    (1, 0, NULL, NULL, NULL, NULL),
-    (2, 1, '11:30:00', '15:30:00', '18:00:00', '23:00:00'),
-    (3, 1, '11:30:00', '15:30:00', '18:00:00', '23:00:00'),
-    (4, 1, '12:00:00', '20:00:00', NULL, NULL),
-    (5, 1, '11:30:00', '15:30:00', '18:00:00', '23:00:00'),
-    (6, 1, '11:30:00', '15:30:00', '18:00:00', '23:00:00'),
-    (7, 1, '12:00:00', '20:00:00', NULL, NULL)
-ON DUPLICATE KEY UPDATE
-    `is_open` = VALUES(`is_open`),
-    `opening_time` = VALUES(`opening_time`),
-    `closing_time` = VALUES(`closing_time`),
-    `opening_time_2` = VALUES(`opening_time_2`),
-    `closing_time_2` = VALUES(`closing_time_2`);
+INSERT INTO `opening_hours` (`day_of_week`,`is_open`,`opening_time`,`closing_time`,`opening_time_2`,`closing_time_2`) VALUES
+(1,0,NULL,NULL,NULL,NULL),
+(2,1,'11:30:00','15:30:00','18:00:00','23:00:00'),
+(3,1,'11:30:00','15:30:00','18:00:00','23:00:00'),
+(4,1,'12:00:00','20:00:00',NULL,NULL),
+(5,1,'11:30:00','15:30:00','18:00:00','23:00:00'),
+(6,1,'11:30:00','15:30:00','18:00:00','23:00:00'),
+(7,1,'12:00:00','20:00:00',NULL,NULL);
 
--- Référence catalogue utilisée par le calcul tarifaire serveur.
--- min_people est une donnée descriptive du catalogue ; le parcours de commande
--- traiteur 15-30 n'est pas bloqué par cette valeur.
+INSERT INTO `allergens` (`id`,`name`,`code`) VALUES
+(1,'Gluten','GLU'),
+(2,'Lait','LAIT'),
+(3,'Œufs','OEU'),
+(4,'Soja','SOJA'),
+(5,'Arachides','ARA'),
+(6,'Fruits à coque','FRUITS_COS'),
+(7,'Poisson','POI'),
+(8,'Crustacés','CRU'),
+(9,'Moutarde','MOU'),
+(10,'Céleri','CEL');
+
+INSERT INTO `dishes` (`id`,`name`,`description`,`category`,`dietary_regime`) VALUES
+(1,'Salade verte vinaigrette','Salade verte croquante, vinaigrette maison.','starter','vegetarian'),
+(2,'Crudités de saison','Carottes, concombre et tomates avec sauce légère.','starter','vegetarian'),
+(3,'Œuf mayonnaise','Œuf dur, mayonnaise maison et herbes fraîches.','starter','vegetarian'),
+(4,'Tomates mozzarella','Tomates, mozzarella et basilic.','starter','vegetarian'),
+(5,'Velouté de légumes','Velouté de légumes de saison servi chaud.','starter','vegan'),
+(6,'Salade de lentilles','Lentilles, échalote et vinaigrette moutardée.','starter','vegan'),
+(7,'Carottes râpées citronnées','Carottes râpées, citron et herbes.','starter','vegan'),
+(8,'Tarte fine aux légumes','Tarte fine croustillante aux légumes rôtis.','starter','vegetarian'),
+(9,'Steak haché sauce échalote','Steak haché de bœuf avec sauce échalote.','main','classic'),
+(10,'Poulet rôti jus court','Cuisse de poulet rôtie, jus réduit.','main','classic'),
+(11,'Poisson blanc citronné','Filet de poisson blanc, citron et persil.','main','classic'),
+(12,'Lasagnes bolognaises','Lasagnes gratinées à la viande de bœuf.','main','classic'),
+(13,'Boulettes de bœuf tomate','Boulettes de bœuf mijotées dans une sauce tomate.','main','classic'),
+(14,'Saucisse grillée','Saucisse grillée servie avec jus aux herbes.','main','classic'),
+(15,'Curry de légumes','Légumes de saison, pois chiches et sauce coco.','main','vegan'),
+(16,'Dahl de lentilles corail','Lentilles corail, tomate, épices douces et riz.','main','vegan'),
+(17,'Galette végétale','Galette végétale, sauce aux herbes et légumes.','main','vegetarian'),
+(18,'Saumon rôti citron','Pavé de saumon rôti, citron et herbes.','main','classic'),
+(19,'Filet de volaille farci','Filet de volaille farci aux champignons, jus corsé.','main','classic'),
+(20,'Bœuf mijoté au vin','Bœuf mijoté longuement, jus réduit et légumes.','main','classic'),
+(21,'Frites maison','Pommes de terre frites sur place.','main','vegan'),
+(22,'Purée de pommes de terre','Purée onctueuse au lait et beurre.','main','vegetarian'),
+(23,'Haricots verts persillés','Haricots verts, ail et persil.','main','vegan'),
+(24,'Riz basmati','Riz basmati parfumé.','main','vegan'),
+(25,'Mousse au chocolat','Mousse au chocolat noir.','dessert','vegetarian'),
+(26,'Crème caramel','Crème caramel à la vanille.','dessert','vegetarian'),
+(27,'Tarte aux pommes','Tarte fine aux pommes et cannelle.','dessert','vegetarian'),
+(28,'Fromage blanc coulis fruits rouges','Fromage blanc et coulis de fruits rouges.','dessert','vegetarian'),
+(29,'Compote pomme poire','Compote fruitée sans sucres ajoutés.','dessert','vegan'),
+(30,'Salade de fruits frais','Fruits frais de saison.','dessert','vegan'),
+(31,'Fondant chocolat','Gâteau chocolat cœur fondant.','dessert','vegetarian'),
+(32,'Panna cotta vanille','Panna cotta vanillée, coulis de fruits rouges.','dessert','vegetarian');
+
+INSERT INTO `dish_allergens` (`dish_id`,`allergen_id`) VALUES
+(3,3),(3,9),
+(4,2),
+(8,1),(8,2),
+(9,9),
+(11,7),
+(12,1),(12,2),(12,3),(12,10),
+(13,1),
+(14,1),
+(17,2),(17,3),
+(18,7),(18,2),
+(19,2),
+(20,9),(20,10),
+(22,2),
+(25,2),(25,3),
+(26,2),(26,3),
+(27,1),(27,2),(27,3),
+(28,2),
+(31,1),(31,2),(31,3),
+(32,2);
+
 INSERT INTO `menus`
-    (`id`, `title`, `description`, `theme`, `dietary_regime`, `min_people`, `base_price`, `conditions`, `available_stock`)
-VALUES
-    (1, 'Menu Prestige Signature', 'Formule traiteur haut de gamme pour mariages, réceptions privées et événements professionnels.', 'Gastronomique', 'classic', 12, 74.00, 'Réservation recommandée 7 jours à l’avance. Livraison, dressage et service selon option.', 20),
-    (2, 'Menu Végétal Élégance', 'Menu gastronomique végétarien inspiré de la cuisine végétale contemporaine.', 'Végétal', 'vegetarian', 8, 46.00, 'Réservation recommandée 5 jours à l’avance. Adaptation vegan possible selon composition.', 20),
-    (3, 'Menu Cocktail Signature', 'Sélection de bouchées et pièces cocktail pour réceptions et événements professionnels.', 'Cocktail', 'classic', 15, 52.00, 'Réservation recommandée 7 jours à l’avance. Service et verrerie selon option.', 20),
-    (4, 'Menu Enfant Gourmand', 'Formule enfant avec plat, accompagnement, boisson et dessert.', 'Famille', 'classic', 5, 10.90, 'Réservé aux enfants. Composition adaptée aux goûts des plus jeunes.', 30),
-    (5, 'Menu Méditerranéen Vegan', 'Formule 100 % végétale inspirée des saveurs méditerranéennes.', 'Méditerranéen', 'vegan', 6, 42.00, 'Réservation recommandée 4 jours à l’avance. Préparation entièrement végétale.', 15),
-    (6, 'Menu Terre & Mer', 'Formule festive associant produits de la mer et pièce de viande.', 'Tradition', 'classic', 8, 55.00, 'Réservation recommandée 5 jours à l’avance. Selon arrivage et disponibilité.', 12)
-ON DUPLICATE KEY UPDATE
-    `title` = VALUES(`title`),
-    `description` = VALUES(`description`),
-    `theme` = VALUES(`theme`),
-    `dietary_regime` = VALUES(`dietary_regime`),
-    `min_people` = VALUES(`min_people`),
-    `base_price` = VALUES(`base_price`),
-    `conditions` = VALUES(`conditions`),
-    `available_stock` = VALUES(`available_stock`),
-    `is_active` = 1,
-    `updated_at` = CURRENT_TIMESTAMP;
+(`id`,`title`,`description`,`theme`,`dietary_regime`,`min_people`,`base_price`,`conditions`,`available_stock`) VALUES
+(1,'Formule Solo Classique','Entrée, plat, accompagnement et dessert. Pensée pour une personne avec une formule simple et accessible.','Essentiel','classic',1,16.90,'Minimum 1 personne. Commande directe possible jusqu’à 30 personnes selon stock.',40),
+(2,'Formule Solo Végétale','Entrée végétale, plat végétalien, accompagnement et dessert fruité.','Végétal','vegan',1,17.90,'Minimum 1 personne. Cuisine 100 % végétale.',30),
+(3,'Formule Enfant Gourmande','Plat enfant, accompagnement, dessert et boisson non alcoolisée.','Famille','classic',1,11.90,'Minimum 1 personne. Formule adaptée aux enfants.',35),
+(4,'Menu Duo Convivial','Entrée au choix, plat généreux et dessert pour deux convives.','Convivial','classic',2,34.90,'Minimum 2 personnes. Pour 1 personne, choisir la Formule Solo Classique.',25),
+(5,'Menu Trio Végétal','Entrée, plat végétarien, accompagnement et dessert pour trois convives.','Végétal','vegetarian',3,52.90,'Minimum 3 personnes. Pour 1 personne, choisir la Formule Solo Végétale.',20),
+(6,'Menu Familial Tradition','Entrée, choix de plats traditionnels, deux accompagnements et dessert familial.','Famille','classic',3,64.90,'Minimum 3 personnes. Pour 1 personne, choisir la Formule Solo Classique.',18),
+(7,'Menu Terroir & Mer','Entrée raffinée, poisson ou viande, accompagnement travaillé et dessert.','Gourmet','classic',2,49.90,'Minimum 2 personnes. Pour 1 personne, choisir la Formule Solo Classique.',15),
+(8,'Menu Végétal Élégance','Entrée gastronomique, plat végétalien travaillé, garniture de saison et dessert.','Gastronomique','vegan',2,45.90,'Minimum 2 personnes. Pour 1 personne, choisir la Formule Solo Végétale.',15),
+(9,'Menu Réception Signature','Entrée, deux choix de plats premium, deux garnitures et dessert signature.','Événement','classic',6,69.90,'Minimum 6 personnes. Pour moins de 6 personnes, une formule Solo, Duo ou Trio est recommandée.',12);
 
+INSERT INTO `menu_dishes` (`menu_id`,`dish_id`,`position`) VALUES
+(1,1,1),(1,9,2),(1,21,3),(1,26,4),
+(2,7,1),(2,16,2),(2,24,3),(2,30,4),
+(3,3,1),(3,14,2),(3,21,3),(3,29,4),
+(4,2,1),(4,10,2),(4,22,3),(4,27,4),
+(5,6,1),(5,17,2),(5,23,3),(5,32,4),
+(6,4,1),(6,12,2),(6,21,3),(6,23,4),(6,27,5),
+(7,8,1),(7,18,2),(7,22,3),(7,31,4),
+(8,5,1),(8,15,2),(8,24,3),(8,30,4),
+(9,4,1),(9,19,2),(9,20,3),(9,22,4),(9,31,5);
 
-
-
-
--- Les employés sont créés et gérés depuis l’espace administrateur.
--- Les clients peuvent créer leur compte via /register.
+-- Les comptes employés/administrateurs sont gérés via l'interface d'administration.
+-- Les clients sont créés via /register.
