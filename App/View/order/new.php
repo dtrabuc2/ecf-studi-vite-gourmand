@@ -67,7 +67,7 @@ $orderUser = $orderUser ?? null;
                                     required
                                 >
                                 <div class="form-text">
-                                    De 1 à 14 convives, les menus disponibles peuvent être commandés directement. De 15 à 30 convives, choisissez votre menu traiteur. Au-delà de 30 convives, une demande de devis est obligatoire.
+                                    De 1 à 30 convives, les formules compatibles avec le nombre de personnes et le stock sont proposées. Chaque formule indique son minimum. Au-delà de 30 convives, une demande de devis est obligatoire.
                                 </div>
                                 <div id="guestValidationMessage" class="alert alert-danger d-none mt-3"></div>
                             </div>
