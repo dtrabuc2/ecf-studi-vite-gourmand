@@ -193,6 +193,42 @@ TEXT;
         return $this->send($to, 'Mise à jour de votre demande de devis #' . $requestId, $body);
     }
 
+    public function sendOrderNotificationToStaff(string $to, array $details): bool
+    {
+        $serviceLabels = [
+            'delivery' => 'Livraison',
+            'on_site' => 'Prestation sur place',
+            'pickup' => 'À emporter',
+        ];
+
+        $serviceLabel = $serviceLabels[$details['service_type'] ?? ''] ?? ($details['service_type'] ?? '');
+
+        $body = <<<TEXT
+Nouvelle commande #{$details['id']}
+
+Client : {$details['first_name']} {$details['last_name']}
+Email : {$details['email']}
+Menu : {$details['menu_title']}
+Nombre de personnes : {$details['number_of_people']}
+Prestation : {$serviceLabel}
+Date : {$details['delivery_date']}
+Heure : {$details['delivery_time']}
+
+Adresse : {$details['delivery_address']}
+Ville : {$details['delivery_city']}
+Code postal : {$details['delivery_postal_code']}
+Instructions : {$details['delivery_instructions']}
+
+Options : {$details['customization']}
+Paiement : Espèces sur place
+Total : {$details['total_price']} €
+
+Connectez-vous à l’espace équipe pour traiter la commande.
+TEXT;
+
+        return $this->send($to, 'Nouvelle commande #' . $details['id'], $body);
+    }
+
     public function sendOrderConfirmationEmail(string $to, string $firstName, array $orderDetails): bool
     {
         $subject = 'Confirmation de votre commande';
