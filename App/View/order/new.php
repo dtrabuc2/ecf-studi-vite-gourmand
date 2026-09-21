@@ -1,3 +1,14 @@
+<?php
+$errors = is_array($errors ?? null) ? $errors : [];
+$oldInput = is_array($oldInput ?? null) ? $oldInput : [];
+$old = static function (string $key, mixed $default = '') use ($oldInput): string {
+    return htmlspecialchars((string) ($oldInput[$key] ?? $default), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+};
+$selectedId = isset($selectedId) ? (int) $selectedId : (int) ($selectedMenuId ?? 0);
+$selectedServiceType = (string) ($selectedServiceType ?? $oldInput['service_type'] ?? 'delivery');
+$orderUser = $orderUser ?? null;
+$menus = is_array($menus ?? null) ? $menus : [];
+?>
         <section id="orderFinalForm" class="mt-5">
             <?php if ($errors !== []): ?>
                 <div class="alert alert-danger" role="alert">
