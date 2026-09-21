@@ -4,6 +4,7 @@ namespace App\Entity;
 class Order
 {
     private int $id;
+    private ?string $orderNumber = null;
     private int $userId;
     private int $menuId;
     private int $numberOfPeople;
@@ -30,6 +31,15 @@ class Order
     private ?\DateTimeInterface $updatedAt = null;
 
     public function getId(): int { return $this->id; }
+    public function getOrderNumber(): string
+    {
+        if ($this->orderNumber !== null && $this->orderNumber !== '') {
+            return $this->orderNumber;
+        }
+
+        return 'VG-' . date('Ymd', strtotime($this->orderDate ?? 'now')) . '-' . str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
+    }
+    public function setOrderNumber(?string $orderNumber): void { $this->orderNumber = $orderNumber; }
     public function setId(int $id): void { $this->id = $id; }
     public function getUserId(): int { return $this->userId; }
     public function setUserId(int $userId): void { $this->userId = $userId; }
