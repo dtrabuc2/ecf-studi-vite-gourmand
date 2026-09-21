@@ -158,8 +158,17 @@ if (!in_array($selectedServiceType, ['delivery', 'pickup', 'on_site'], true)) {
                     <div class="col-12"><hr></div>
                     <div class="col-md-4"><label class="form-label" for="menu_id">Menu</label><select class="form-select" id="menu_id" name="menu_id" required><option value="">Sélectionnez un menu</option><?php foreach ($menus as $menu): ?><option value="<?= $menu->getId() ?>" data-base-price="<?= $menu->getBasePrice() ?>" data-min-people="<?= $menu->getMinPeople() ?>" <?= $selectedId === $menu->getId() ? 'selected' : '' ?>><?= $escape($menu->getTitle()) ?> — <?= number_format($menu->getBasePrice(), 2, ',', ' ') ?> €</option><?php endforeach; ?></select></div>
                     <div class="col-md-4"><label class="form-label" for="number_of_people">Nombre de personnes</label><input class="form-control" id="number_of_people" name="number_of_people" type="number" min="1" value="<?= $old('number_of_people') ?>" required></div>
-                    <div class="col-md-4"><label class="form-label" for="delivery_date">Date</label><input class="form-control" id="delivery_date" name="delivery_date" type="date" min="<?= date('Y-m-d') ?>" value="<?= $old('delivery_date') ?>" required></div>
-                    <div class="col-md-4"><label class="form-label" for="delivery_time" id="serviceTimeLabel">Heure de livraison</label><input class="form-control" id="delivery_time" name="delivery_time" type="time" value="<?= $old('delivery_time') ?>" required><div class="form-text" id="serviceTimeHelp">Heure prévue de remise au client.</div></div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="delivery_date">Date</label>
+                        <input class="form-control" id="delivery_date" name="delivery_date" type="date" min="<?= date('Y-m-d') ?>" value="<?= $old('delivery_date') ?>" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="delivery_time" id="serviceTimeLabel">Créneau horaire</label>
+                        <select class="form-select" id="delivery_time" name="delivery_time" required>
+                            <option value="">Choisir un créneau</option>
+                        </select>
+                        <div class="form-text" id="serviceTimeHelp">Créneaux de 15 minutes. Les horaires passés sont masqués pour aujourd’hui.</div>
+                    </div>
                     <div class="col-12 mb-3">
                         <div id="serviceContactHelp" class="alert alert-secondary mb-0">
                             <strong>Téléphone de contact :</strong> requis pour la livraison, le retrait et l’arrivée sur place.
@@ -215,4 +224,62 @@ if (!in_array($selectedServiceType, ['delivery', 'pickup', 'on_site'], true)) {
             </form>
         </section>
     </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const dateField = document.getElementById('delivery_date');
+    const timeField = document.getElementById('delivery_time');
+    if (!dateField || !timeField) return;
+
+    const oldTime = <?= json_encode((string) ($oldInput['delivery_time'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    const timezoneFormatter = new Intl.DateTimeFormat('fr-FR', {
+        timeZone: 'Europe/Paris',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+
+    function parisToday() {
+        const parts = timezoneFormatter.formatToParts(new Date());
+        const values = Object.fromEntries(parts.filter(({type}) => type !== 'literal').map(({type, value}) => [type, value]));
+        return values.year + '-' + values.month + '-' + values.day;
+    }
+
+    function populateSlots() {
+        const selectedDate = dateField.value;
+        timeField.innerHTML = '<option value="">Choisir un créneau</option>';
+        if (!selectedDate) return;
+
+        const current = new Date();
+        const today = parisToday();
+        let startMinute = 0;
+
+        if (selectedDate === today) {
+            const parisParts = new Intl.DateTimeFormat('fr-FR', {
+                timeZone: 'Europe/Paris',
+                hour: '2-digit',
+                minute: '2-digit',
+                hourCycle: 'h23'
+            }).formatToParts(current);
+            const hour = Number(parisParts.find(p => p.type === 'hour')?.value ?? 0);
+            const minute = Number(parisParts.find(p => p.type === 'minute')?.value ?? 0);
+            startMinute = hour * 60 + minute + 1;
+        }
+
+        for (let total = startMinute; total < 24 * 60; total += 15) {
+            const hour = String(Math.floor(total / 60)).padStart(2, '0');
+            const minute = String(total % 60).padStart(2, '0');
+            const value = hour + ':' + minute;
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = value;
+            if (value === oldTime) option.selected = true;
+            timeField.appendChild(option);
+        }
+    }
+
+    dateField.addEventListener('change', populateSlots);
+    dateField.min = parisToday();
+    populateSlots();
+});
+</script>
 </main>
