@@ -10,7 +10,13 @@
     </div>
     <span class="badge text-bg-secondary"><?= $escape($statusLabels[$order->getStatus()] ?? $order->getStatus()) ?></span>
 </div>
-<p class="mb-1 mt-3"><strong>Prestation :</strong> <?= $escape($order->getDeliveryDate()) ?> à <?= $escape($order->getDeliveryTime()) ?></p>
+<p class="mb-1 mt-3"><strong>Prestation :</strong> <?= $escape([
+    'delivery' => 'Livraison',
+    'pickup' => 'À emporter',
+    'on_site' => 'Sur place',
+][$order->getServiceType()] ?? $order->getServiceType()) ?> — <?= $escape($order->getDeliveryDate()) ?> à <?= $escape($order->getDeliveryTime()) ?></p>
+<p class="small text-muted mb-1"><strong>Téléphone :</strong> <?= $escape($order->getContactPhone()) ?></p>
+<p class="small text-muted mb-3"><strong>Lieu :</strong> <?= $escape($order->getDeliveryAddress()) ?><?= $order->getDeliveryCity() !== '' ? ' — ' . $escape($order->getDeliveryPostalCode() . ' ' . $order->getDeliveryCity()) : '' ?></p>
 <p class="mb-1"><strong>Personnes :</strong> <?= $order->getNumberOfPeople() ?> — <strong>Prix du menu :</strong> <?= number_format($order->getMenuPrice(),2,',',' ') ?> € — <strong>Total :</strong> <?= number_format($order->getTotalPrice(),2,',',' ') ?> €</p>
 <?php if ($order->getDiscountRate() > 0): ?><p class="small text-success">Remise : <?= number_format($order->getDiscountRate(),0) ?> %</p><?php endif; ?>
 <h3 class="h6 mt-4">Suivi</h3><ol class="small ps-3">
