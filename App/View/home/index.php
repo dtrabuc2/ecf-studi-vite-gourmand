@@ -49,8 +49,8 @@
                         <div class="card-body p-4 p-lg-5">
                             <div class="row align-items-center g-4">
                                 <div class="col-lg-8">
-                                    <span class="badge bg-primary-subtle text-primary">50 personnes et plus</span>
-                                    <h2 class="h3 text-primary mt-3">Un mariage, un séminaire ou une grande réception ?</h2>
+                                    <span class="badge bg-primary-subtle text-primary">Au-delà de 30 personnes</span>
+                                    <h2 class="h3 text-primary mt-3">Une grande réception ou un événement sur devis ?</h2>
                                     <p class="text-muted mb-0">
                                         Pour les événements importants, nous préférons établir un devis adapté
                                         plutôt que vous faire passer par une commande standard.
