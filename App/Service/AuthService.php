@@ -7,6 +7,8 @@ use App\Entity\User;
 use App\Repository\UserRepository;
 use DateTimeImmutable;
 use InvalidArgumentException;
+use libphonenumber\PhoneNumberFormat;
+use libphonenumber\PhoneNumberUtil;
 
 final readonly class AuthService
 {
@@ -38,15 +40,41 @@ final readonly class AuthService
         return $errors === [] ? null : $errors;
     }
 
-    public function validatePhone(string $phone): ?string
+    public function validatePhone(string $phone, string $defaultRegion = 'FR'): ?string
     {
-        $normalized = preg_replace('/[.()\s-]+/', '', trim($phone));
+        $phone = trim($phone);
 
-        if (!is_string($normalized) || !preg_match('/^\+(33|34|32|44|39)\d{8,12}$/', $normalized)) {
-            return 'Utilisez un numéro international français, espagnol, belge, britannique ou italien (+33, +34, +32, +44, +39).';
+        if ($phone === '') {
+            return 'Le numéro de téléphone est requis.';
         }
 
-        return null;
+        $phoneUtil = PhoneNumberUtil::getInstance();
+
+        try {
+            $parsed = $phoneUtil->parse($phone, strtoupper($defaultRegion));
+
+            if (!$phoneUtil->isValidNumber($parsed)) {
+                return 'Numéro de téléphone invalide pour le pays sélectionné.';
+            }
+
+            $region = $phoneUtil->getRegionCodeForNumber($parsed);
+
+            if (!in_array($region, ['FR', 'ES', 'BE', 'GB', 'IT'], true)) {
+                return 'Seuls les numéros de France, Espagne, Belgique, Royaume-Uni et Italie sont acceptés.';
+            }
+
+            return null;
+        } catch (\Throwable) {
+            return 'Numéro de téléphone invalide.';
+        }
+    }
+
+    public function normalizePhone(string $phone, string $defaultRegion = 'FR'): string
+    {
+        $phoneUtil = PhoneNumberUtil::getInstance();
+        $parsed = $phoneUtil->parse(trim($phone), strtoupper($defaultRegion));
+
+        return $phoneUtil->format($parsed, PhoneNumberFormat::E164);
     }
 
     public function register(array $data): int
