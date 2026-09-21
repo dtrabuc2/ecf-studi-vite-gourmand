@@ -47,7 +47,7 @@ final readonly class OrderService
             throw new InvalidArgumentException('Utilisateur non trouvé.');
         }
 
-        if ($menu === null) {
+        if ($menu === null || $menu->getAvailableStock() < 1) {
             throw new InvalidArgumentException('Menu non trouvé ou indisponible.');
         }
 
@@ -93,6 +93,8 @@ final readonly class OrderService
         if ($hour > 23 || $minute > 59) {
             throw new InvalidArgumentException('L’heure de prestation est invalide.');
         }
+
+        $this->validateServiceDateTime($deliveryDate, $deliveryTime);
 
         if ($deliveryDistanceKm !== null && (!is_finite($deliveryDistanceKm) || $deliveryDistanceKm < 0)) {
             throw new InvalidArgumentException('La distance de livraison est invalide.');
@@ -261,90 +263,257 @@ final readonly class OrderService
         $timezone = new \DateTimeZone('Europe/Paris');
         $now = new \DateTimeImmutable('now', $timezone);
 
-        if (!preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $deliveryDate)) {
-            throw new InvalidArgumentException('La date de prestation est invalide.');
-        }
-
-        if (!preg_match('/^\\d{2}:\\d{2}$/', $deliveryTime)) {
-            throw new InvalidArgumentException('Le créneau horaire est invalide.');
-        }
-
-        [$hour, $minute] = array_map('intval', explode(':', $deliveryTime));
-        if ($hour < 0 || $hour > 23 || $minute < 0 || $minute > 59 || $minute % 15 !== 0) {
-            throw new InvalidArgumentException('Le créneau horaire doit être une tranche de 15 minutes.');
-        }
-
         $requested = \DateTimeImmutable::createFromFormat(
             '!Y-m-d H:i',
             $deliveryDate . ' ' . $deliveryTime,
             $timezone
         );
-
         $errors = \DateTimeImmutable::getLastErrors();
-        if ($requested === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+
+        if (
+            $requested === false
+            || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))
+        ) {
             throw new InvalidArgumentException('La date ou l’heure de prestation est invalide.');
+        }
+
+        if (!preg_match('/^\d{2}:\d{2}$/', $deliveryTime)) {
+            throw new InvalidArgumentException('Le créneau horaire est invalide.');
+        }
+
+        [$hour, $minute] = array_map('intval', explode(':', $deliveryTime));
+        if ($hour < 0 || $hour > 23 || $minute < 0 || $minute > 59 || $minute % 15 !== 0) {
+            throw new InvalidArgumentException('Le créneau doit être aligné sur 15 minutes.');
         }
 
         if ($requested <= $now) {
             throw new InvalidArgumentException(
                 $deliveryDate === $now->format('Y-m-d')
-                    ? 'L’heure de prestation est déjà passée. Veuillez choisir un autre créneau.'
+                    ? 'L’heure de prestation est déjà passée.'
                     : 'La date de prestation ne peut pas être passée.'
             );
         }
 
-        $dayOfWeek = (int) $requested->format('N');
-        $openingHours = $this->openingHoursRepository->findByDay($dayOfWeek);
+        $windows = $this->openingHoursRepository->getWindowsByDay((int) $requested->format('N'));
 
-        if ($openingHours === null || (int) $openingHours['is_open'] !== 1) {
-            throw new InvalidArgumentException('Le créneau sélectionné n’est pas disponible dans les horaires d’ouverture.');
+        if ($windows === []) {
+            throw new InvalidArgumentException('Cette date est fermée. Veuillez choisir un autre jour.');
         }
 
-        $opening = (string) $openingHours['opening_time'];
-        $closing = (string) $openingHours['closing_time'];
         $requestedTime = $requested->format('H:i:s');
 
-        if ($opening === '' || $closing === '' || $requestedTime < $opening || $requestedTime >= $closing) {
-            throw new InvalidArgumentException('Le créneau sélectionné n’est pas disponible dans les horaires d’ouverture.');
+        foreach ($windows as [$opening, $closing]) {
+            if ($requestedTime >= $opening && $requestedTime < $closing) {
+                return;
+            }
         }
+
+        throw new InvalidArgumentException('Ce créneau est en dehors des horaires d’ouverture.');
     }
 
-    /**
-     * Retourne les créneaux de 15 minutes disponibles pour une date donnée.
-     */
     public function getAvailableTimeSlots(string $deliveryDate): array
     {
         $timezone = new \DateTimeZone('Europe/Paris');
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $deliveryDate, $timezone);
         $errors = \DateTimeImmutable::getLastErrors();
 
-        if ($date === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+        if (
+            $date === false
+            || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))
+        ) {
             return [];
         }
 
-        $openingHours = $this->openingHoursRepository->findByDay((int) $date->format('N'));
-        if ($openingHours === null || (int) $openingHours['is_open'] !== 1) {
+        $windows = $this->openingHoursRepository->getWindowsByDay((int) $date->format('N'));
+        if ($windows === []) {
             return [];
         }
 
-        $openingTime = (string) $openingHours['opening_time'];
-        $closingTime = (string) $openingHours['closing_time'];
-        if ($openingTime === '' || $closingTime === '') {
-            return [];
-        }
-
-        $start = new \DateTimeImmutable($deliveryDate . ' ' . substr($openingTime, 0, 5), $timezone);
-        $end = new \DateTimeImmutable($deliveryDate . ' ' . substr($closingTime, 0, 5), $timezone);
         $now = new \DateTimeImmutable('now', $timezone);
         $slots = [];
 
-        for ($slot = $start; $slot < $end; $slot = $slot->modify('+15 minutes')) {
-            if ($slot > $now) {
-                $slots[] = $slot->format('H:i');
+        foreach ($windows as [$opening, $closing]) {
+            $slot = new \DateTimeImmutable(
+                $date->format('Y-m-d') . ' ' . substr($opening, 0, 5),
+                $timezone
+            );
+            $end = new \DateTimeImmutable(
+                $date->format('Y-m-d') . ' ' . substr($closing, 0, 5),
+                $timezone
+            );
+
+            while ($slot < $end) {
+                if ($slot > $now) {
+                    $slots[] = $slot->format('H:i');
+                }
+                $slot = $slot->modify('+15 minutes');
             }
         }
 
-        return $slots;
+        return array_values(array_unique($slots));
+    }
+
+    public function getServiceDateAvailability(string $deliveryDate): array
+    {
+        $timezone = new \DateTimeZone('Europe/Paris');
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $deliveryDate, $timezone);
+        $errors = \DateTimeImmutable::getLastErrors();
+
+        if (
+            $date === false
+            || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))
+        ) {
+            throw new InvalidArgumentException('La date de prestation est invalide.');
+        }
+
+        $days = [
+            1 => 'Lundi',
+            2 => 'Mardi',
+            3 => 'Mercredi',
+            4 => 'Jeudi',
+            5 => 'Vendredi',
+            6 => 'Samedi',
+            7 => 'Dimanche',
+        ];
+        $dayOfWeek = (int) $date->format('N');
+        $windows = $this->openingHoursRepository->getWindowsByDay($dayOfWeek);
+
+        return [
+            'date' => $date->format('Y-m-d'),
+            'day_of_week' => $dayOfWeek,
+            'day_label' => $days[$dayOfWeek] ?? '',
+            'open' => $windows !== [],
+            'windows' => $windows,
+            'slots' => $this->getAvailableTimeSlots($date->format('Y-m-d')),
+        ];
+    }
+
+    public function getMenuAvailabilityForPeople(int $numberOfPeople): array
+    {
+        if ($numberOfPeople < 1) {
+            throw new InvalidArgumentException('Le nombre de convives doit être supérieur à 0.');
+        }
+
+        if ($numberOfPeople >= 50) {
+            return [];
+        }
+
+        $menus = $this->menuRepository->findAllForOrderSelection();
+        $result = [];
+
+        foreach ($menus as $menu) {
+            $stockAvailable = $menu->getAvailableStock() > 0;
+            $peopleAvailable = $numberOfPeople >= $menu->getMinPeople();
+            $available = $stockAvailable && $peopleAvailable;
+            $reason = $available
+                ? null
+                : (!$stockAvailable
+                    ? 'Stock indisponible.'
+                    : 'Minimum de ' . $menu->getMinPeople() . ' convives.');
+
+            $menuPrice = null;
+            $discountRate = null;
+
+            if ($peopleAvailable) {
+                [$menuPrice, $discountRate] = $this->calculateMenuPrice(
+                    $menu->getBasePrice(),
+                    $menu->getMinPeople(),
+                    $numberOfPeople
+                );
+            }
+
+            $result[] = [
+                'id' => $menu->getId(),
+                'title' => $menu->getTitle(),
+                'min_people' => $menu->getMinPeople(),
+                'base_price' => $menu->getBasePrice(),
+                'available_stock' => $menu->getAvailableStock(),
+                'available' => $available,
+                'reason' => $reason,
+                'menu_price' => $menuPrice,
+                'discount_rate' => $discountRate,
+            ];
+        }
+
+        return $result;
+    }
+
+    public function calculatePricePreview(
+        int $menuId,
+        int $numberOfPeople,
+        string $serviceType,
+        string $deliveryCity = '',
+        ?float $deliveryDistanceKm = null
+    ): array {
+        if ($numberOfPeople < 1 || $numberOfPeople >= 50) {
+            throw new InvalidArgumentException('Le nombre de convives est invalide pour une commande directe.');
+        }
+
+        if (!in_array($serviceType, ['delivery', 'pickup', 'on_site'], true)) {
+            throw new InvalidArgumentException('Mode de prestation invalide.');
+        }
+
+        $menu = $this->menuRepository->findById($menuId);
+
+        if ($menu === null || $menu->getAvailableStock() < 1) {
+            throw new InvalidArgumentException('Menu indisponible.');
+        }
+
+        if ($numberOfPeople < $menu->getMinPeople()) {
+            throw new InvalidArgumentException(
+                'Le menu nécessite au minimum ' . $menu->getMinPeople() . ' convives.'
+            );
+        }
+
+        [$menuPrice, $discountRate] = $this->calculateMenuPrice(
+            $menu->getBasePrice(),
+            $menu->getMinPeople(),
+            $numberOfPeople
+        );
+
+        if ($serviceType !== 'delivery') {
+            return [
+                'ready' => true,
+                'menu_price' => $menuPrice,
+                'discount_rate' => $discountRate,
+                'delivery_cost' => 0.00,
+                'total_price' => round($menuPrice, 2),
+            ];
+        }
+
+        $city = mb_strtolower(trim($deliveryCity));
+
+        if ($city === '') {
+            return [
+                'ready' => false,
+                'menu_price' => $menuPrice,
+                'discount_rate' => $discountRate,
+                'delivery_cost' => null,
+                'total_price' => null,
+                'message' => 'Renseignez la ville de livraison.',
+            ];
+        }
+
+        if ($city !== 'bordeaux' && ($deliveryDistanceKm === null || !is_finite($deliveryDistanceKm) || $deliveryDistanceKm < 0)) {
+            return [
+                'ready' => false,
+                'menu_price' => $menuPrice,
+                'discount_rate' => $discountRate,
+                'delivery_cost' => null,
+                'total_price' => null,
+                'message' => 'Renseignez la distance de livraison hors Bordeaux.',
+            ];
+        }
+
+        $deliveryCost = $this->calculateDeliveryCost($deliveryCity, $deliveryDistanceKm);
+
+        return [
+            'ready' => true,
+            'menu_price' => $menuPrice,
+            'discount_rate' => $discountRate,
+            'delivery_cost' => $deliveryCost,
+            'total_price' => round($menuPrice + $deliveryCost, 2),
+        ];
     }
 
     private function calculateMenuPrice(float $basePrice, int $minPeople, int $numberOfPeople): array
