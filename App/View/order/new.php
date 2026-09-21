@@ -67,7 +67,7 @@ $orderUser = $orderUser ?? null;
                                     required
                                 >
                                 <div class="form-text">
-                                    À partir de 50 personnes, le serveur redirige vers une demande de devis.
+                                    De 1 à 14 convives, les menus disponibles peuvent être commandés directement. De 15 à 30 convives, choisissez votre menu traiteur. Au-delà de 30 convives, une demande de devis est obligatoire.
                                 </div>
                                 <div id="guestValidationMessage" class="alert alert-danger d-none mt-3"></div>
                             </div>
@@ -85,7 +85,7 @@ $orderUser = $orderUser ?? null;
                         <div class="col-12">
                             <h2 class="h4 text-primary">2. Menu</h2>
                             <p class="text-muted">
-                                Le serveur vérifie le minimum de convives et le stock.
+                                Le serveur vérifie le stock et le parcours correspondant au nombre de convives.
                                 Vert = disponible, rouge = indisponible.
                             </p>
                             <div id="menuAvailabilityMessage" class="alert alert-secondary">
