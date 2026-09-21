@@ -573,8 +573,8 @@ final readonly class OrderService
             throw new InvalidArgumentException('Cette commande ne peut plus être modifiée.');
         }
 
-        if ($numberOfPeople < 1) {
-            throw new InvalidArgumentException('Le nombre de personnes doit être supérieur à 0.');
+        if ($numberOfPeople < 1 || $numberOfPeople > 30) {
+            throw new InvalidArgumentException('Une commande directe doit comprendre entre 1 et 30 convives.');
         }
 
         $this->validateServiceDateTime($deliveryDate, $deliveryTime);
