@@ -82,27 +82,7 @@ class MenuRepository
 
     public function findDetails(int $menuId): array
     {
-        $pdo = Database::getPDO();
-
-        $dishesStmt = $pdo->prepare('SELECT d.id, d.name, d.description, md.category, md.position
-            FROM menu_dishes md
-            INNER JOIN dishes d ON d.id = md.dish_id
-            WHERE md.menu_id = :menu_id
-            ORDER BY FIELD(md.category, "starter", "main", "dessert"), md.position ASC');
-        $dishesStmt->execute(['menu_id' => $menuId]);
-
-        $allergensStmt = $pdo->prepare('SELECT DISTINCT a.name
-            FROM dish_allergens da
-            INNER JOIN allergens a ON a.id = da.allergen_id
-            INNER JOIN menu_dishes md ON md.dish_id = da.dish_id
-            WHERE md.menu_id = :menu_id
-            ORDER BY a.name');
-        $allergensStmt->execute(['menu_id' => $menuId]);
-
-        return [
-            'dishes' => $dishesStmt->fetchAll(),
-            'allergens' => array_column($allergensStmt->fetchAll(), 'name'),
-        ];
+        return [];
     }
 
     public function create(Menu $menu): int
