@@ -21,6 +21,7 @@
   let menus = [];
   let serviceType = 'menu';
   let selected = null;
+  let selectedDish = null;
 
   const escapeHtml = (value) => {
     const div = document.createElement('div');
@@ -121,12 +122,13 @@
       renderChoiceList('listDesserts', 'dessert', dishes.dessert);
     } else {
       renderChoiceList('listEntrees', 'entree', []);
-      renderChoiceList('listPlats', 'plat', [{ name: selected.title, description: selected.description }]);
-      const desserts = [];
-      menus.forEach((menu) => (menu.dishes || []).forEach((dish) => {
-        if (dish.category === 'dessert' && !desserts.some((item) => item.name === dish.name)) desserts.push(dish);
-      }));
-      renderChoiceList('listDesserts', 'dessert', desserts);
+      const selectedDishForDisplay = selectedDish || dishes.main[0] || dishes.starter[0] || dishes.dessert[0] || null;
+      renderChoiceList(
+        'listPlats',
+        'plat',
+        selectedDishForDisplay ? [selectedDishForDisplay] : []
+      );
+      renderChoiceList('listDesserts', 'dessert', []);
     }
 
     renderBoissons();
@@ -174,6 +176,7 @@
     const params = new URLSearchParams(window.location.search);
     const presetId = Number(params.get('menu') || 0);
     if (params.get('service') === 'plat') serviceType = 'plat';
+    const presetDishId = Number(params.get('dish') || 0);
     if (serviceField) serviceField.value = serviceType;
 
     if (presetId > 0) {
@@ -181,6 +184,13 @@
       populate();
       menuSelect.value = String(presetId);
       selected = menus.find((item) => Number(item.id) === presetId) || null;
+
+      if (selected && serviceType === 'plat' && presetDishId > 0) {
+        selectedDish = (selected.dishes || []).find(
+          (dish) => Number(dish.id) === presetDishId
+        ) || null;
+      }
+
       renderSelected();
     }
   };
@@ -190,9 +200,19 @@
       .filter((input) => input.name !== 'excluded_ingredients[]')
       .map((input) => input.value)
       .filter(Boolean);
-    document.querySelectorAll('input[name="excluded_ingredients[]"]:checked').forEach((input) => selectedOptions.push('Sans ' + input.value));
+
+    document.querySelectorAll('input[name="excluded_ingredients[]"]:checked')
+      .forEach((input) => selectedOptions.push('Sans ' + input.value));
+
     const digestif = document.getElementById('selectDigestif')?.value || '';
-    if (digestif) selectedOptions.push(digestif);
+    if (digestif && !document.getElementById('selectDigestif')?.disabled) {
+      selectedOptions.push('Digestif : ' + digestif);
+    }
+
+    if (serviceType === 'plat' && selectedDish?.name) {
+      selectedOptions.unshift('À la carte : ' + selectedDish.name);
+    }
+
     return selectedOptions.join(' | ');
   };
 
