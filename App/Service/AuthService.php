@@ -82,6 +82,16 @@ final readonly class AuthService
         $email = $this->normalizeEmail((string) ($data['email'] ?? ''));
         $password = (string) ($data['password'] ?? '');
 
+        foreach (['phone', 'gsm'] as $field) {
+            $value = trim((string) ($data[$field] ?? ''));
+            if ($value !== '') {
+                $data[$field] = $this->normalizePhone(
+                    $value,
+                    (string) ($data[$field . '_region'] ?? 'FR')
+                );
+            }
+        }
+
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new InvalidArgumentException('Adresse email invalide.');
         }
