@@ -85,12 +85,13 @@ final class OrderController extends BaseController
             $this->json(['success' => false, 'error' => 'Nombre de convives invalide.'], 422);
         }
 
-        if ($numberOfPeople >= 50) {
+        if ($numberOfPeople > 30) {
             $this->json([
                 'success' => true,
                 'data' => [
                     'menus' => [],
                     'quote_required' => true,
+                    'quote_url' => '/quote',
                 ],
             ]);
         }
@@ -174,7 +175,7 @@ final class OrderController extends BaseController
         $confirmedGuestCount = $_POST['confirmed_guest_count'] ?? null;
         $serviceType = trim((string) ($_POST['service_type'] ?? 'delivery'));
 
-        if (is_numeric($numberOfPeople) && (int) $numberOfPeople >= 50) {
+        if (is_numeric($numberOfPeople) && (int) $numberOfPeople > 30) {
             Session::flash(
                 'order_error',
                 'Pour 50 personnes ou plus, votre demande est traitée par devis afin de confirmer la disponibilité, le mode de prestation et les conditions.'
@@ -221,8 +222,6 @@ final class OrderController extends BaseController
 
             if ($menu === null || $menu->getAvailableStock() < 1) {
                 $errors['menu_id'] = 'Ce menu n’est plus disponible.';
-            } elseif ((int) $numberOfPeople < $menu->getMinPeople()) {
-                $errors['menu_id'] = 'Ce menu nécessite au minimum ' . $menu->getMinPeople() . ' convives.';
             }
         }
 
