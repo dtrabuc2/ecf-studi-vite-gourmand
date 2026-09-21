@@ -1,6 +1,9 @@
 <?php
 $old = $_SESSION['quote_old_input'] ?? [];
 unset($_SESSION['quote_old_input']);
+if (!isset($old['number_of_people']) && isset($_GET['number_of_people'])) {
+    $old['number_of_people'] = (int) $_GET['number_of_people'];
+}
 ?>
 <main class="py-5">
     <div class="container">
@@ -12,7 +15,7 @@ unset($_SESSION['quote_old_input']);
                         <h1 class="h2 text-primary mt-3">Demander un devis traiteur</h1>
                         <p class="text-muted">
                             Pour les mariages, séminaires, repas d'entreprise et autres prestations
-                            à partir de 50 personnes, nous préparons une proposition adaptée.
+                            au-delà de 30 personnes, nous préparons une proposition adaptée.
                         </p>
 
                         <div class="alert alert-info">
@@ -61,7 +64,7 @@ unset($_SESSION['quote_old_input']);
                             <div class="col-md-6">
                                 <label class="form-label" for="quote_people">Nombre de personnes</label>
                                 <input class="form-control" id="quote_people" name="number_of_people"
-                                       type="number" min="50" required
+                                       type="number" min="31" required
                                        value="<?= $escape($old['number_of_people'] ?? '') ?>">
                             </div>
                             <div class="col-md-6">
