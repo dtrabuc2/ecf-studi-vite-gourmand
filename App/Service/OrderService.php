@@ -6,6 +6,7 @@ namespace App\Service;
 use App\Core\Database;
 use App\Entity\Order;
 use App\Repository\MenuRepository;
+use App\Repository\OpeningHoursRepository;
 use App\Repository\OrderRepository;
 use App\Repository\UserRepository;
 use InvalidArgumentException;
@@ -16,6 +17,7 @@ final readonly class OrderService
         private OrderRepository $orderRepository,
         private UserRepository $userRepository,
         private MenuRepository $menuRepository,
+        private OpeningHoursRepository $openingHoursRepository,
         private MailService $mailService,
         private MenuStatisticsService $menuStatisticsService,
         private NotificationService $notificationService
@@ -249,6 +251,100 @@ final readonly class OrderService
             'delivery_cost' => $deliveryCost,
             'total_price' => $orderData['total_price'],
         ];
+    }
+
+    /**
+     * Valide une date et un créneau de prestation dans le fuseau Europe/Paris.
+     */
+    public function validateServiceDateTime(string $deliveryDate, string $deliveryTime): void
+    {
+        $timezone = new \DateTimeZone('Europe/Paris');
+        $now = new \DateTimeImmutable('now', $timezone);
+
+        if (!preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $deliveryDate)) {
+            throw new InvalidArgumentException('La date de prestation est invalide.');
+        }
+
+        if (!preg_match('/^\\d{2}:\\d{2}$/', $deliveryTime)) {
+            throw new InvalidArgumentException('Le créneau horaire est invalide.');
+        }
+
+        [$hour, $minute] = array_map('intval', explode(':', $deliveryTime));
+        if ($hour < 0 || $hour > 23 || $minute < 0 || $minute > 59 || $minute % 15 !== 0) {
+            throw new InvalidArgumentException('Le créneau horaire doit être une tranche de 15 minutes.');
+        }
+
+        $requested = \DateTimeImmutable::createFromFormat(
+            '!Y-m-d H:i',
+            $deliveryDate . ' ' . $deliveryTime,
+            $timezone
+        );
+
+        $errors = \DateTimeImmutable::getLastErrors();
+        if ($requested === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+            throw new InvalidArgumentException('La date ou l’heure de prestation est invalide.');
+        }
+
+        if ($requested <= $now) {
+            throw new InvalidArgumentException(
+                $deliveryDate === $now->format('Y-m-d')
+                    ? 'L’heure de prestation est déjà passée. Veuillez choisir un autre créneau.'
+                    : 'La date de prestation ne peut pas être passée.'
+            );
+        }
+
+        $dayOfWeek = (int) $requested->format('N');
+        $openingHours = $this->openingHoursRepository->findByDay($dayOfWeek);
+
+        if ($openingHours === null || (int) $openingHours['is_open'] !== 1) {
+            throw new InvalidArgumentException('Le créneau sélectionné n’est pas disponible dans les horaires d’ouverture.');
+        }
+
+        $opening = (string) $openingHours['opening_time'];
+        $closing = (string) $openingHours['closing_time'];
+        $requestedTime = $requested->format('H:i:s');
+
+        if ($opening === '' || $closing === '' || $requestedTime < $opening || $requestedTime >= $closing) {
+            throw new InvalidArgumentException('Le créneau sélectionné n’est pas disponible dans les horaires d’ouverture.');
+        }
+    }
+
+    /**
+     * Retourne les créneaux de 15 minutes disponibles pour une date donnée.
+     */
+    public function getAvailableTimeSlots(string $deliveryDate): array
+    {
+        $timezone = new \DateTimeZone('Europe/Paris');
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $deliveryDate, $timezone);
+        $errors = \DateTimeImmutable::getLastErrors();
+
+        if ($date === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+            return [];
+        }
+
+        $openingHours = $this->openingHoursRepository->findByDay((int) $date->format('N'));
+        if ($openingHours === null || (int) $openingHours['is_open'] !== 1) {
+            return [];
+        }
+
+        $openingTime = (string) $openingHours['opening_time'];
+        $closingTime = (string) $openingHours['closing_time'];
+        if ($openingTime === '' || $closingTime === '') {
+            return [];
+        }
+
+        $start = new \DateTimeImmutable($deliveryDate . ' ' . substr($openingTime, 0, 5), $timezone);
+        $end = new \DateTimeImmutable($deliveryDate . ' ' . substr($closingTime, 0, 5), $timezone);
+        $now = new \DateTimeImmutable('now', $timezone);
+        $slots = [];
+
+        for ($slot = $start; $slot < $end; $slot = $slot->modify('+15 minutes')) {
+            if ($slot > $now) {
+                $slots[] = $slot->format('H:i');
+            }
+        }
+
+        return $slots;
     }
 
     private function calculateMenuPrice(float $basePrice, int $minPeople, int $numberOfPeople): array
