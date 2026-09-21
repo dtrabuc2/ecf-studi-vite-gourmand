@@ -9,10 +9,6 @@
   const description = document.getElementById('descriptionMenu');
   const price = document.getElementById('prixMenuAffiche');
   const customization = document.getElementById('sectionPersonnalisation');
-  const dishField = document.getElementById('aLaCarteDishField');
-  const serviceField = document.getElementById('selected_service_type');
-  const selectedDishField = document.getElementById('selected_dish_id');
-  const dishSelect = document.getElementById('selectDish');
   const finalForm = document.getElementById('orderFinalForm');
   const finalMenuSelect = document.getElementById('menu_id');
   const recapOptions = document.getElementById('selected_options');
@@ -23,9 +19,7 @@
   const orderDeliveryLabel = document.getElementById('orderDeliveryLabel');
 
   let menus = [];
-  let serviceType = 'menu';
   let selected = null;
-  let selectedDish = null;
 
   const escapeHtml = (value) => {
     const div = document.createElement('div');
@@ -249,17 +243,9 @@
     (selected.dishes || []).forEach((dish) => {
       if (dishes[dish.category]) dishes[dish.category].push(dish);
     });
-
-    if (serviceType === 'menu') {
-      renderChoiceList('listEntrees', 'entree', dishes.starter);
-      renderChoiceList('listPlats', 'plat', dishes.main);
-      renderChoiceList('listDesserts', 'dessert', dishes.dessert);
-    } else {
-      renderChoiceList('listEntrees', 'entree', []);
-      const selectedDishForDisplay = selectedDish || null;
-      renderChoiceList('listPlats','plat',selectedDishForDisplay ? [selectedDishForDisplay] : []);
-      renderChoiceList('listDesserts', 'dessert', []);
-    }
+    renderChoiceList('listEntrees', 'entree', dishes.starter);
+    renderChoiceList('listPlats', 'plat', dishes.main);
+    renderChoiceList('listDesserts', 'dessert', dishes.dessert);
 
     renderBoissons();
     renderDigestifs();
@@ -276,13 +262,9 @@
   const loadMenus = async () => {
     const data = await window.VgApi.get('/public/menus');
     menus = Array.isArray(data) ? data : (Array.isArray(data?.menus) ? data.menus : []);
-
     document.querySelectorAll('.service-selector').forEach((button) => {
       button.addEventListener('click', () => {
-        serviceType = button.dataset.type || 'menu';
-        if (serviceField) serviceField.value = serviceType;
         builder.classList.remove('d-none');
-        dishField?.classList.toggle('d-none', serviceType !== 'plat');
         populate();
       });
     });
@@ -293,61 +275,21 @@
       selectedDish = null;
       renderSelected();
     });
-    dishSelect?.addEventListener('change', () => {
-      const id = Number(dishSelect.value);
-      selectedDish = selected?.dishes?.find((dish) => Number(dish.id) === id) || null;
-      if (selectedDishField) selectedDishField.value = selectedDish ? String(selectedDish.id) : '';
-      renderIngredients();
-    });
+
 
     document.querySelectorAll('input[name="typeBoisson"]').forEach((input) => {
       input.addEventListener('change', renderBoissons);
     });
-
     const params = new URLSearchParams(window.location.search);
     const presetId = Number(params.get('menu') || 0);
-    if (params.get('service') === 'plat') serviceType = 'plat';
-    const presetDishId = Number(params.get('dish') || 0);
-    if (serviceField) serviceField.value = serviceType;
 
     if (presetId > 0) {
       builder.classList.remove('d-none');
       populate();
       menuSelect.value = String(presetId);
       selected = menus.find((item) => Number(item.id) === presetId) || null;
-
-      if (selected && serviceType === 'plat') {
-        selectedDish = presetDishId > 0 ? (selected.dishes || []).find((dish) => Number(dish.id) === presetDishId) || null : null;
-        if (dishSelect) {
-          dishSelect.innerHTML = '<option value="">-- Sélectionnez un plat --</option>' + (selected.dishes || []).map(d => '<option value="' + Number(d.id) + '">' + escapeHtml(d.name) + '</option>').join('');
-          if (selectedDish) dishSelect.value = String(selectedDish.id);
-        }
-        if (selectedDishField) selectedDishField.value = selectedDish ? String(selectedDish.id) : '';
-      }
-
       renderSelected();
     }
-  };
-
-  const buildOptionsSummary = () => {
-    const selectedOptions = Array.from(document.querySelectorAll('#sectionPersonnalisation input:checked'))
-      .filter((input) => input.name !== 'excluded_ingredients[]')
-      .map((input) => input.value)
-      .filter(Boolean);
-
-    document.querySelectorAll('input[name="excluded_ingredients[]"]:checked')
-      .forEach((input) => selectedOptions.push('Sans ' + input.value));
-
-    const digestif = document.getElementById('selectDigestif')?.value || '';
-    if (digestif && !document.getElementById('selectDigestif')?.disabled) {
-      selectedOptions.push('Digestif : ' + digestif);
-    }
-
-    if (serviceType === 'plat' && selectedDish?.name) {
-      selectedOptions.unshift('À la carte : ' + selectedDish.name);
-    }
-
-    return selectedOptions.join(' | ');
   };
 
   // Le mode de prestation est géré par syncServiceType() ci-dessus.
@@ -355,10 +297,6 @@
   continueButton?.addEventListener('click', () => {
     if (!selected) {
       window.alert('Sélectionnez une formule avant de continuer.');
-      return;
-    }
-    if (serviceType === 'plat' && !selectedDish) {
-      window.alert('Sélectionnez un plat à la carte avant de continuer.');
       return;
     }
 
