@@ -8,6 +8,7 @@ use App\Repository\UserRepository;
 use App\Service\CommentService;
 use App\Service\MenuService;
 use App\Service\OrderService;
+use InvalidArgumentException;
 
 final class OrderController extends BaseController
 {
@@ -100,6 +101,7 @@ final class OrderController extends BaseController
             : null;
         $deliveryInstructions = trim((string) ($_POST['delivery_instructions'] ?? ''));
         $contactPhone = trim((string) ($_POST['contact_phone'] ?? ''));
+        $selectedDishId = isset($_POST['selected_dish_id']) && $_POST['selected_dish_id'] !== '' ? (int) $_POST['selected_dish_id'] : null;
 
         $errors = [];
 
@@ -142,6 +144,9 @@ final class OrderController extends BaseController
             }
             if ($deliveryCity === '') {
                 $errors['delivery_city'] = 'Ville de livraison requise.';
+            }
+            if ($deliveryPostalCode === '') {
+                $errors['delivery_postal_code'] = 'Code postal requis pour une livraison.';
             }
             if ($deliveryPostalCode === '') {
                 $errors['delivery_postal_code'] = 'Code postal requis pour une livraison.';
