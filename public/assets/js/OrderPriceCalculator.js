@@ -16,13 +16,13 @@ class OrderPriceCalculator {
             return null;
         }
 
-        const grossPrice = (this.basePrice / this.minimumPeople) * people;
-        const hasDiscount = people >= this.minimumPeople + 5;
+        // Le serveur est la source de vérité : prix de base par personne × convives.
+        const grossPrice = Math.round(this.basePrice * people * 100) / 100;
 
         return {
             grossPrice,
-            discountRate: hasDiscount ? 10 : 0,
-            menuPrice: hasDiscount ? grossPrice * 0.90 : grossPrice
+            discountRate: 0,
+            menuPrice: grossPrice
         };
     }
 }
