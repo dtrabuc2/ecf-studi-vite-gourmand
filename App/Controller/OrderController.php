@@ -139,14 +139,15 @@ final class OrderController extends BaseController
         }
 
         if ($serviceType === 'delivery') {
+            if ($deliveryDistanceKm !== null && (!is_finite($deliveryDistanceKm) || $deliveryDistanceKm < 0)) {
+                $errors['delivery_distance_km'] = 'Distance de livraison invalide.';
+            }
+
             if ($deliveryAddress === '') {
                 $errors['delivery_address'] = 'Adresse de livraison requise.';
             }
             if ($deliveryCity === '') {
                 $errors['delivery_city'] = 'Ville de livraison requise.';
-            }
-            if ($deliveryPostalCode === '') {
-                $errors['delivery_postal_code'] = 'Code postal requis pour une livraison.';
             }
             if ($deliveryPostalCode === '') {
                 $errors['delivery_postal_code'] = 'Code postal requis pour une livraison.';
