@@ -116,7 +116,11 @@ final class AuthController extends BaseController
             'last_name' => trim((string) ($_POST['last_name'] ?? '')),
             'phone' => trim((string) ($_POST['phone'] ?? '')),
             'gsm' => trim((string) ($_POST['gsm'] ?? '')),
+            'phone_region' => strtoupper(trim((string) ($_POST['phone_region'] ?? 'FR'))),
+            'gsm_region' => strtoupper(trim((string) ($_POST['gsm_region'] ?? 'FR'))),
             'address' => trim((string) ($_POST['address'] ?? '')),
+            'phone_region' => strtoupper(trim((string) ($_POST['phone_region'] ?? 'FR'))),
+            'gsm_region' => strtoupper(trim((string) ($_POST['gsm_region'] ?? 'FR'))),
         ];
 
         $errors = [];
@@ -132,8 +136,13 @@ final class AuthController extends BaseController
         }
 
         foreach (['phone', 'gsm'] as $field) {
-            if ($data[$field] !== '' && $this->authService->validatePhone($data[$field]) !== null) {
-                $errors[$field] = $this->authService->validatePhone($data[$field]);
+            $regionKey = $field . '_region';
+
+            if (
+                $data[$field] !== ''
+                && $this->authService->validatePhone($data[$field], $data[$regionKey] ?? 'FR') !== null
+            ) {
+                $errors[$field] = $this->authService->validatePhone($data[$field], $data[$regionKey] ?? 'FR');
             }
         }
 
