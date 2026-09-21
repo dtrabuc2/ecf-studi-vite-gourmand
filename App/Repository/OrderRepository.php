@@ -39,9 +39,19 @@ class OrderRepository
             'equipment_loaned' => !empty($data['equipment_loaned']) ? 1 : 0,
         ]);
         $id = (int) $pdo->lastInsertId();
-        $number = 'VG-' . date('Ymd') . '-' . str_pad((string)$id, 6, '0', STR_PAD_LEFT);
+
+        if ($id <= 0) {
+            throw new \RuntimeException('La commande n’a pas pu être enregistrée.');
+        }
+
+        $number = 'VG-' . date('Ymd') . '-' . str_pad((string) $id, 6, '0', STR_PAD_LEFT);
         $numberStmt = $pdo->prepare('UPDATE orders SET order_number = :number WHERE id = :id');
         $numberStmt->execute(['number' => $number, 'id' => $id]);
+
+        if ($numberStmt->rowCount() !== 1) {
+            throw new \RuntimeException('La référence de commande n’a pas pu être enregistrée.');
+        }
+
         return $id;
     }
 
