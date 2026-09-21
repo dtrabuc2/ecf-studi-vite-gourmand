@@ -18,7 +18,7 @@
                                         'delivery' => 'Livraison',
                                         'on_site' => 'Sur place',
                                         'pickup' => 'À emporter',
-                                    ][$order->getServiceType()] ?? 'Livraison') ?></strong>
+                                    ][$order->getServiceType()] ?? $order->getServiceType()) ?></strong>
                                 </div>
                             </div>
                             <div class="col-12 col-md-4">
