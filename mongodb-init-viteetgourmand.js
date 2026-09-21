@@ -1,4 +1,7 @@
 const dbName = "viteetgourmand";
+
+// Pour l’import local, remplacez mongoPassword par une valeur secrète avant exécution.
+// Le compte PHP doit utiliser le même couple utilisateur/mot de passe avec authSource=viteetgourmand.
 const database = db.getSiblingDB(dbName);
 const adminDb = db.getSiblingDB("admin");
 const collectionNames = [
@@ -10,19 +13,23 @@ const collectionNames = [
 // Création de l'utilisateur MongoDB
 // -----------------------------------------------------------------------------
 // On évite une erreur si l'utilisateur existe déjà.
-const existingUser = adminDb.getUser("dylan");
+const mongoUser = "vgt_app";
+const mongoPassword = "CHANGE_ME_STRONG_PASSWORD";
+const existingUser = adminDb.getUser(mongoUser);
+
 if (!existingUser) {
     adminDb.createUser({
-        user: "dylan",
-        pwd: "trabuc31",
+        user: mongoUser,
+        pwd: mongoPassword,
         roles: [
             { role: "readWrite", db: dbName }
         ]
     });
-    print("Utilisateur créé : dylan");
+    print("Utilisateur MongoDB créé : " + mongoUser);
 } else {
-    print("Utilisateur déjà existant : dylan");
+    print("Utilisateur MongoDB déjà existant : " + mongoUser);
 }
+
 // -----------------------------------------------------------------------------
 // Création explicite des collections
 // -----------------------------------------------------------------------------
