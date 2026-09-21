@@ -222,9 +222,13 @@ final readonly class OrderService
             $discountRate = 5.0;
         }
 
-        $price = $basePrice * $numberOfPeople;
-        $price -= $price * ($discountRate / 100);
-        return [round($price, 2), $discountRate];
+        // Le catalogue exprime le tarif par personne. Le prix enregistré
+        // dans la commande est calculé à partir du nombre réel de convives.
+        $grossPrice = round($basePrice * $numberOfPeople, 2);
+        $discountAmount = round($grossPrice * ($discountRate / 100), 2);
+        $price = round($grossPrice - $discountAmount, 2);
+
+        return [$price, $discountRate];
     }
 
     public function getUserOrders(int $userId): array
