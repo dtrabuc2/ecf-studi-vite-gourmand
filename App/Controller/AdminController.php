@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Core\Session;
-use App\Repository\DishRepository;
 use App\Repository\OpeningHoursRepository;
 use App\Service\AdminService;
 use App\Service\AuthService;
@@ -22,7 +21,6 @@ final class AdminController extends BaseController
         private readonly MenuService $menuService,
         private readonly CommentService $commentService,
         private readonly OrderService $orderService,
-        private readonly DishRepository $dishRepository,
         private readonly OpeningHoursRepository $openingHoursRepository,
         private readonly QuoteService $quoteService
     ) {
@@ -157,64 +155,6 @@ final class AdminController extends BaseController
         }
 
         $this->redirect('/admin/orders');
-    }
-
-    public function dishes(): void
-    {
-        $this->render('admin/dishes', [
-            'dishes' => $this->dishRepository->findAll(),
-            'menus' => $this->menuService->getAllMenus(),
-        ]);
-    }
-
-    public function createDish(): void
-    {
-        $name = trim((string) ($_POST['name'] ?? ''));
-        $description = trim((string) ($_POST['description'] ?? ''));
-        $menuId = isset($_POST['menu_id']) && is_numeric($_POST['menu_id'])
-            ? (int) $_POST['menu_id']
-            : null;
-        $category = isset($_POST['category']) ? (string) $_POST['category'] : null;
-
-        if ($name === '') {
-            Session::flash('admin_error', 'Le nom du plat est requis.');
-            $this->redirect('/admin/dishes');
-        }
-
-        try {
-            $this->dishRepository->create($name, $description, $menuId, $category);
-            Session::flash('admin_success', 'Plat créé.');
-        } catch (Throwable $exception) {
-            Session::flash('admin_error', $exception->getMessage());
-        }
-
-        $this->redirect('/admin/dishes');
-    }
-
-    public function updateDish(int $id): never
-    {
-        $this->dishRepository->update(
-            $id,
-            trim((string) ($_POST['name'] ?? '')),
-            trim((string) ($_POST['description'] ?? '')),
-            isset($_POST['menu_id']) && is_numeric($_POST['menu_id']) ? (int) $_POST['menu_id'] : null,
-            isset($_POST['category']) ? (string) $_POST['category'] : null
-        );
-
-        Session::flash('admin_success', 'Plat modifié.');
-        $this->redirect('/admin/dishes');
-    }
-
-    public function deleteDish(int $id): void
-    {
-        try {
-            $this->dishRepository->delete($id);
-            Session::flash('admin_success', 'Plat supprimé.');
-        } catch (Throwable) {
-            Session::flash('admin_error', 'Impossible de supprimer ce plat : il est peut-être encore associé à un menu.');
-        }
-
-        $this->redirect('/admin/dishes');
     }
 
     public function openingHours(): void
