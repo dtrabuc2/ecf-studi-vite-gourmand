@@ -1,4 +1,40 @@
--- ================================================================
+USE `viteetgourmand`;
+
+-- ----------------------------------------------------------------
+-- Comptes de démonstration historiques de l'ECF.
+-- Le mot de passe reste stocké sous forme de hash bcrypt.
+-- L'upsert se fait par email afin de ne pas écraser les identifiants
+-- existants d'autres utilisateurs.
+-- ----------------------------------------------------------------
+
+INSERT INTO `users`
+    (`email`, `password`, `role`, `first_name`, `last_name`,
+     `phone`, `gsm`, `address`, `is_active`)
+VALUES
+    ('admin@viteetgourmand.com',
+     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+     'admin', 'Admin', 'Istrator',
+     '0123456789', '0612345678', '123 Rue de la Paix', 1),
+    ('employee@viteetgourmand.com',
+     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+     'employee', 'Employé', 'Modèle',
+     '0123456789', '0612345678', '456 Avenue des Champs', 1),
+    ('user@viteetgourmand.com',
+     '$2y$10$92IXUNpkpkO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+     'user', 'Utilisateur', 'Modèle',
+     '0123456789', '0612345678', '789 Boulevard Saint-Michel', 1)
+ON DUPLICATE KEY UPDATE
+    `password` = VALUES(`password`),
+    `role` = VALUES(`role`),
+    `first_name` = VALUES(`first_name`),
+    `last_name` = VALUES(`last_name`),
+    `phone` = VALUES(`phone`),
+    `gsm` = VALUES(`gsm`),
+    `address` = VALUES(`address`),
+    `is_active` = VALUES(`is_active`),
+    `updated_at` = CURRENT_TIMESTAMP;
+
+=============================================
 -- SEED MARIA DB — Vite & Gourmand
 -- Catalogue complet et réexécutable
 -- Compatible avec database/schema.sql sur la branche dev.
@@ -7,36 +43,13 @@
 USE `viteetgourmand`;
 
 -- ----------------------------------------------------------------
--- Nettoyage : suppression dans l'ordre des dépendances FK.
--- DELETE est utilisé plutôt que TRUNCATE afin d'éviter les erreurs
--- MySQL/MariaDB sur les tables parentes référencées par une FK.
+-- Rafraîchissement non destructif.
+-- Ce seed NE SUPPRIME PAS les utilisateurs, commandes, devis,
+-- notifications, messages ou historiques existants.
+-- Les tables catalogue sont mises à jour par upsert plus bas.
 -- ----------------------------------------------------------------
 
 START TRANSACTION;
-
-DELETE FROM `user_notifications`;
-DELETE FROM `email_outbox`;
-DELETE FROM `contact_messages`;
-DELETE FROM `quote_requests`;
-DELETE FROM `order_status_history`;
-DELETE FROM `orders`;
-DELETE FROM `dish_allergens`;
-DELETE FROM `menu_dishes`;
-DELETE FROM `dishes`;
-DELETE FROM `allergens`;
-DELETE FROM `menus`;
-DELETE FROM `opening_hours`;
-
-ALTER TABLE `user_notifications` AUTO_INCREMENT = 1;
-ALTER TABLE `email_outbox` AUTO_INCREMENT = 1;
-ALTER TABLE `contact_messages` AUTO_INCREMENT = 1;
-ALTER TABLE `quote_requests` AUTO_INCREMENT = 1;
-ALTER TABLE `order_status_history` AUTO_INCREMENT = 1;
-ALTER TABLE `orders` AUTO_INCREMENT = 1;
-ALTER TABLE `dishes` AUTO_INCREMENT = 1;
-ALTER TABLE `allergens` AUTO_INCREMENT = 1;
-ALTER TABLE `menus` AUTO_INCREMENT = 1;
-ALTER TABLE `opening_hours` AUTO_INCREMENT = 1;
 
 -- ----------------------------------------------------------------
 -- Horaires de référence du site
@@ -52,7 +65,13 @@ VALUES
     (4, 1, '12:00:00',   '20:00:00',   NULL,        NULL),
     (5, 1, '11:30:00',   '15:30:00',   '18:00:00', '23:00:00'),
     (6, 1, '11:30:00',   '15:30:00',   '18:00:00', '23:00:00'),
-    (7, 1, '12:00:00',   '20:00:00',   NULL,        NULL);
+    (7, 1, '12:00:00',   '20:00:00',   NULL,        NULL)
+ON DUPLICATE KEY UPDATE
+    `is_open` = VALUES(`is_open`),
+    `opening_time` = VALUES(`opening_time`),
+    `closing_time` = VALUES(`closing_time`),
+    `opening_time_2` = VALUES(`opening_time_2`),
+    `closing_time_2` = VALUES(`closing_time_2`);
 
 -- ----------------------------------------------------------------
 -- Allergènes
@@ -68,7 +87,10 @@ INSERT INTO `allergens` (`id`, `name`, `code`) VALUES
     (7, 'Poisson', 'POI'),
     (8, 'Crustacés', 'CRU'),
     (9, 'Moutarde', 'MOU'),
-    (10, 'Céleri', 'CEL');
+    (10, 'Céleri', 'CEL')
+ON DUPLICATE KEY UPDATE
+    `name` = VALUES(`name`),
+    `code` = VALUES(`code`);
 
 -- ----------------------------------------------------------------
 -- Plats : du plus simple au plus élaboré.
@@ -204,7 +226,25 @@ VALUES
 
     (32, 'Panna cotta vanille',
      'Panna cotta vanillée, coulis de fruits rouges.',
-     'dessert', 'vegetarian');
+     'dessert', 'vegetarian')
+ON DUPLICATE KEY UPDATE
+    `name` = VALUES(`name`),
+    `description` = VALUES(`description`),
+    `category` = VALUES(`category`),
+    `dietary_regime` = VALUES(`dietary_regime`),
+    `is_active` = 1,
+    `updated_at` = CURRENT_TIMESTAMP;
+
+-- ----------------------------------------------------------------
+-- Associations catalogue : uniquement les liens des données seedées.
+-- Les commandes et utilisateurs ne sont pas touchés.
+-- ----------------------------------------------------------------
+
+DELETE FROM `dish_allergens`
+WHERE `dish_id` BETWEEN 1 AND 32;
+
+DELETE FROM `menu_dishes`
+WHERE `menu_id` BETWEEN 1 AND 9;
 
 -- ----------------------------------------------------------------
 -- Allergènes associés aux plats
@@ -342,7 +382,18 @@ VALUES
      6,
      69.90,
      'Minimum 6 personnes. Pour moins de 6 personnes, une formule Solo, Duo ou Trio est recommandée.',
-     12);
+     12)
+ON DUPLICATE KEY UPDATE
+    `title` = VALUES(`title`),
+    `description` = VALUES(`description`),
+    `theme` = VALUES(`theme`),
+    `dietary_regime` = VALUES(`dietary_regime`),
+    `min_people` = VALUES(`min_people`),
+    `base_price` = VALUES(`base_price`),
+    `conditions` = VALUES(`conditions`),
+    `available_stock` = VALUES(`available_stock`),
+    `is_active` = 1,
+    `updated_at` = CURRENT_TIMESTAMP;
 
 -- ----------------------------------------------------------------
 -- Composition des menus
