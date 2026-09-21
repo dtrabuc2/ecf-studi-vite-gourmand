@@ -185,19 +185,26 @@ final readonly class OrderService
             error_log('Order email notification error: ' . $exception->getMessage());
         }
 
-        $this->notificationService->notify(
-            $userId,
-            'order',
-            'Commande enregistrée',
-            'Votre commande #' . $orderId . ' a bien été enregistrée et attend la confirmation de l’équipe.',
-            $orderId
-        );
-        $this->notificationService->notifyStaff(
-            'order',
-            'Nouvelle commande #' . $orderId,
-            'Une nouvelle commande attend votre traitement.',
-            $orderId
-        );
+        // Les notifications sont secondaires par rapport à l'enregistrement.
+        // Une panne de notification ne doit jamais faire échouer une commande déjà commitée.
+        try {
+            $this->notificationService->notify(
+                $userId,
+                'order',
+                'Commande enregistrée',
+                'Votre commande ' . $orderId . ' a bien été enregistrée et attend la confirmation de l’équipe.',
+                $orderId
+            );
+
+            $this->notificationService->notifyStaff(
+                'order',
+                'Nouvelle commande ' . $orderId,
+                'Une nouvelle commande attend votre traitement.',
+                $orderId
+            );
+        } catch (\Throwable $exception) {
+            error_log('Order internal notification error: ' . $exception->getMessage());
+        }
 
         return [
             'success' => true,
