@@ -22,6 +22,18 @@ class MenuRepository
         return $row === false ? null : $this->hydrate($row);
     }
 
+    public function findAllForOrderSelection(): array
+    {
+        $pdo = Database::getPDO();
+        $stmt = $pdo->query(
+            'SELECT * FROM menus
+             WHERE is_active = 1
+             ORDER BY id DESC'
+        );
+
+        return $this->hydrateMany($stmt->fetchAll());
+    }
+
     public function filter(array $filters): array
     {
         $pdo = Database::getPDO();
