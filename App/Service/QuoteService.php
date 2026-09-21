@@ -22,6 +22,7 @@ final readonly class QuoteService
         $firstName = trim((string) ($data['first_name'] ?? ''));
         $lastName = trim((string) ($data['last_name'] ?? ''));
         $phone = trim((string) ($data['phone'] ?? ''));
+        $phoneRegion = strtoupper(trim((string) ($data['phone_region'] ?? 'FR')));
         $company = trim((string) ($data['company'] ?? ''));
         $eventDate = trim((string) ($data['event_date'] ?? ''));
         $numberOfPeople = filter_var($data['number_of_people'] ?? null, FILTER_VALIDATE_INT);
@@ -34,8 +35,13 @@ final readonly class QuoteService
             throw new InvalidArgumentException('Adresse email invalide.');
         }
 
-        if ($phone !== '' && $this->authService->validatePhone($phone) !== null) {
-            throw new InvalidArgumentException($this->authService->validatePhone($phone));
+        if (
+            $phone !== ''
+            && $this->authService->validatePhone($phone, $phoneRegion) !== null
+        ) {
+            throw new InvalidArgumentException(
+                $this->authService->validatePhone($phone, $phoneRegion)
+            );
         }
 
         if ($eventDate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $eventDate)) {
