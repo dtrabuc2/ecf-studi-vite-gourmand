@@ -289,6 +289,21 @@ final class AuthController extends BaseController
             $errors['email'] = 'Adresse email invalide.';
         }
 
+        foreach (['phone', 'gsm'] as $field) {
+            $regionKey = $field . '_region';
+
+            if (
+                $data[$field] !== ''
+                && !isset($errors[$field])
+                && $this->authService->validatePhone($data[$field], $data[$regionKey] ?? 'FR')
+            ) {
+                $errors[$field] = $this->authService->validatePhone(
+                    $data[$field],
+                    $data[$regionKey] ?? 'FR'
+                );
+            }
+        }
+
         $passwordErrors = $this->authService->validatePassword($data['password']);
 
         if ($passwordErrors !== null) {
