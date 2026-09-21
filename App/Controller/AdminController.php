@@ -166,16 +166,24 @@ final class AdminController extends BaseController
 
     public function updateOpeningHours(): never
     {
+        $windowsByDay = $_POST['windows'] ?? [];
+
         for ($day = 1; $day <= 7; $day++) {
             $isOpen = isset($_POST['is_open'][$day]);
-            $opening = $isOpen ? trim((string) ($_POST['opening_time'][$day] ?? '')) : null;
-            $closing = $isOpen ? trim((string) ($_POST['closing_time'][$day] ?? '')) : null;
+            $dayWindows = is_array($windowsByDay[$day] ?? null) ? $windowsByDay[$day] : [];
+
+            $opening1 = $isOpen ? trim((string) ($dayWindows[0]['opening'] ?? '')) : '';
+            $closing1 = $isOpen ? trim((string) ($dayWindows[0]['closing'] ?? '')) : '';
+            $opening2 = $isOpen ? trim((string) ($dayWindows[1]['opening'] ?? '')) : '';
+            $closing2 = $isOpen ? trim((string) ($dayWindows[1]['closing'] ?? '')) : '';
 
             $this->openingHoursRepository->saveDay(
                 $day,
-                $isOpen,
-                $opening !== '' ? $opening : null,
-                $closing !== '' ? $closing : null
+                $isOpen && $opening1 !== '' && $closing1 !== '',
+                $opening1 !== '' ? $opening1 : null,
+                $closing1 !== '' ? $closing1 : null,
+                $opening2 !== '' ? $opening2 : null,
+                $closing2 !== '' ? $closing2 : null
             );
         }
 
