@@ -45,8 +45,8 @@ $serviceLabels = [
 <form method="post" action="/orders/<?= $order->getId() ?>/edit" class="row g-2 mt-2">
 <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
 <div class="col-md-3"><label class="form-label">Personnes</label><input class="form-control" type="number" min="1" name="number_of_people" value="<?= $order->getNumberOfPeople() ?>" required></div>
-<div class="col-md-3"><label class="form-label">Date</label><input class="form-control" type="date" name="delivery_date" value="<?= $escape($order->getDeliveryDate()) ?>" required></div>
-<div class="col-md-3"><label class="form-label">Heure</label><input class="form-control" type="time" name="delivery_time" value="<?= $escape($order->getDeliveryTime()) ?>" required></div>
+<div class="col-md-3"><label class="form-label">Date</label><input class="form-control order-edit-date" type="date" name="delivery_date" value="<?= $escape($order->getDeliveryDate()) ?>" min="<?= date('Y-m-d') ?>" required></div>
+<div class="col-md-3"><label class="form-label">Créneau</label><select class="form-select order-edit-time" name="delivery_time" data-current-time="<?= $escape($order->getDeliveryTime()) ?>" required><option value="">Choisir</option></select></div>
 <div class="col-md-3"><label class="form-label">Code postal</label><input class="form-control" name="delivery_postal_code" value="<?= $escape($order->getDeliveryPostalCode()) ?>"></div>
 <div class="col-md-6"><label class="form-label">Adresse</label><input class="form-control" name="delivery_address" value="<?= $escape($order->getDeliveryAddress()) ?>" required></div>
 <div class="col-md-3"><label class="form-label">Ville</label><input class="form-control" name="delivery_city" value="<?= $escape($order->getDeliveryCity()) ?>" required></div>
@@ -71,4 +71,50 @@ $serviceLabels = [
 </div></section>
 <?php endforeach; ?>
 <?php if ($orders === []): ?><div class="card border-0 shadow-sm"><div class="card-body text-center text-muted py-4">Vous n'avez pas encore de commande.</div></div><?php endif; ?>
-</div></main>
+</div><script>
+document.addEventListener('DOMContentLoaded', () => {
+    const todayParis = () => new Intl.DateTimeFormat('fr-CA', {timeZone: 'Europe/Paris'}).format(new Date());
+
+    document.querySelectorAll('.order-edit-date').forEach((dateField) => {
+        const form = dateField.closest('form');
+        const timeField = form?.querySelector('.order-edit-time');
+        if (!timeField) return;
+        const currentTime = timeField.dataset.currentTime || '';
+
+        const populate = () => {
+            const selectedDate = dateField.value;
+            timeField.innerHTML = '<option value="">Choisir</option>';
+            if (!selectedDate) return;
+
+            const today = todayParis();
+            let startMinute = 0;
+
+            if (selectedDate === today) {
+                const parts = new Intl.DateTimeFormat('fr-FR', {
+                    timeZone: 'Europe/Paris',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hourCycle: 'h23'
+                }).formatToParts(new Date());
+                const hour = Number(parts.find(p => p.type === 'hour')?.value ?? 0);
+                const minute = Number(parts.find(p => p.type === 'minute')?.value ?? 0);
+                startMinute = hour * 60 + minute + 1;
+            }
+
+            for (let total = startMinute; total < 24 * 60; total += 15) {
+                const value = String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                if (value === currentTime && selectedDate !== today) option.selected = true;
+                timeField.appendChild(option);
+            }
+        };
+
+        dateField.min = todayParis();
+        dateField.addEventListener('change', populate);
+        populate();
+    });
+});
+</script>
+</main>
