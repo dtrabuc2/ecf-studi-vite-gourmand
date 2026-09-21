@@ -122,25 +122,47 @@ final readonly class OrderService
             throw $exception;
         }
 
+        $mailDetails = [
+            'id' => $orderId,
+            'order_date' => $orderData['order_date'],
+            'menu_title' => $menu->getTitle(),
+            'number_of_people' => $numberOfPeople,
+            'menu_price' => $menuPrice,
+            'delivery_cost' => $deliveryCost,
+            'total_price' => $orderData['total_price'],
+            'service_type' => $serviceType,
+            'delivery_date' => $deliveryDate,
+            'delivery_time' => $deliveryTime,
+            'delivery_address' => trim($deliveryAddress),
+            'delivery_city' => trim($deliveryCity),
+            'delivery_postal_code' => trim($deliveryPostalCode),
+            'delivery_instructions' => trim((string) $deliveryInstructions),
+            'customization' => trim((string) $customization),
+            'first_name' => $user->getFirstName(),
+            'last_name' => $user->getLastName(),
+            'email' => $user->getEmail(),
+        ];
+
         try {
             $this->mailService->sendOrderConfirmationEmail(
                 $user->getEmail(),
                 $user->getFirstName(),
-                [
-                    'id' => $orderId,
-                    'order_date' => $orderData['order_date'],
-                    'menu_title' => $menu->getTitle(),
-                    'number_of_people' => $numberOfPeople,
-                    'menu_price' => $menuPrice,
-                    'delivery_cost' => $deliveryCost,
-                    'total_price' => $orderData['total_price'],
-                ]
+                $mailDetails
             );
+
+            $staffEmail = (string) ($_ENV['MAIL_TO_ADDRESS'] ?? '');
+
+            if ($staffEmail !== '' && filter_var($staffEmail, FILTER_VALIDATE_EMAIL)) {
+                $this->mailService->sendOrderNotificationToStaff(
+                    $staffEmail,
+                    $mailDetails
+                );
+            }
         } catch (\Throwable $exception) {
-            error_log('Order confirmation email error: ' . $exception->getMessage());
+            error_log('Order email notification error: ' . $exception->getMessage());
         }
 
-        $this->notificationService->notify(
+        $this->notificationService->notify
             $userId,
             'order',
             'Commande enregistrée',
