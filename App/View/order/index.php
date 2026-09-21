@@ -5,8 +5,8 @@
 <section class="card border-0 shadow-sm mb-4"><div class="card-body">
 <div class="d-flex justify-content-between flex-wrap gap-2">
     <div>
-        <h2 class="h5 mb-1">Commande #<?= $order->getId() ?></h2>
-        <p class="small text-muted mb-0">Référence : VG-<?= date('Ymd', strtotime($order->getOrderDate())) ?>-<?= str_pad((string) $order->getId(), 6, '0', STR_PAD_LEFT) ?></p>
+        <h2 class="h5 mb-1">Commande <?= $escape($order->getOrderNumber()) ?></h2>
+        <p class="small text-muted mb-0">Identifiant interne : #<?= $order->getId() ?></p>
     </div>
     <span class="badge text-bg-secondary"><?= $escape($statusLabels[$order->getStatus()] ?? $order->getStatus()) ?></span>
 </div>
@@ -17,8 +17,11 @@
 ][$order->getServiceType()] ?? $order->getServiceType()) ?> — <?= $escape($order->getDeliveryDate()) ?> à <?= $escape($order->getDeliveryTime()) ?></p>
 <p class="small text-muted mb-1"><strong>Téléphone :</strong> <?= $escape($order->getContactPhone()) ?></p>
 <p class="small text-muted mb-3"><strong>Lieu :</strong> <?= $escape($order->getDeliveryAddress()) ?><?= $order->getDeliveryCity() !== '' ? ' — ' . $escape($order->getDeliveryPostalCode() . ' ' . $order->getDeliveryCity()) : '' ?></p>
-<p class="mb-1"><strong>Personnes :</strong> <?= $order->getNumberOfPeople() ?> — <strong>Prix du menu :</strong> <?= number_format($order->getMenuPrice(),2,',',' ') ?> € — <strong>Total :</strong> <?= number_format($order->getTotalPrice(),2,',',' ') ?> €</p>
-<?php if ($order->getDiscountRate() > 0): ?><p class="small text-success">Remise : <?= number_format($order->getDiscountRate(),0) ?> %</p><?php endif; ?>
+<p class="mb-1"><strong>Personnes :</strong> <?= $order->getNumberOfPeople() ?></p>
+<p class="mb-1"><strong>Sous-total menu :</strong> <?= number_format($order->getMenuPrice(),2,',',' ') ?> €</p>
+<?php if ($order->getDiscountRate() > 0): ?><p class="small text-success mb-1">Remise appliquée : <?= number_format($order->getDiscountRate(),0) ?> %</p><?php endif; ?>
+<p class="mb-1"><strong>Frais de livraison :</strong> <?= number_format($order->getDeliveryCost(),2,',',' ') ?> €</p>
+<p class="mb-1"><strong>Total :</strong> <?= number_format($order->getTotalPrice(),2,',',' ') ?> €</p>
 <h3 class="h6 mt-4">Suivi</h3><ol class="small ps-3">
 <?php foreach (($history[$order->getId()] ?? []) as $entry): ?><li><?= $escape($statusLabels[$entry['status']] ?? $entry['status']) ?> — <?= $entry['changed_at'] instanceof \DateTimeInterface ? $escape($entry['changed_at']->format('d/m/Y H:i')) : '' ?></li><?php endforeach; ?>
 </ol>
