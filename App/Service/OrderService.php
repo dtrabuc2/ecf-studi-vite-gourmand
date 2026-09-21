@@ -79,9 +79,9 @@ final readonly class OrderService
         }
 
         if ($serviceType === 'pickup') {
-            $deliveryAddress = 'Point de retrait Vite & Gourmand';
-            $deliveryCity = 'Bordeaux';
-            $deliveryPostalCode = '33000';
+            $deliveryAddress = '';
+            $deliveryCity = '';
+            $deliveryPostalCode = '';
             $deliveryDistanceKm = null;
             $deliveryInstructions = null;
         }
