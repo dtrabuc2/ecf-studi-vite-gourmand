@@ -1,0 +1,1 @@
+.form-control,.form-select{border:1px solid var(--vg-border);border-radius:.55rem;padding:.7rem .8rem}.form-control:focus,.form-select:focus{border-color:var(--vg-primary);box-shadow:0 0 0 .2rem rgba(139,38,53,.14)}.form-label{color:var(--vg-ink);font-weight:650}.phone-region{flex:0 0 9rem}
