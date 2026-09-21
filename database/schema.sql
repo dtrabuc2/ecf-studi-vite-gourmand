@@ -119,6 +119,8 @@ CREATE TABLE IF NOT EXISTS `opening_hours` (
     `is_open` TINYINT(1) NOT NULL DEFAULT 1,
     `opening_time` TIME NULL,
     `closing_time` TIME NULL,
+    `opening_time_2` TIME NULL,
+    `closing_time_2` TIME NULL,
     PRIMARY KEY (`day_of_week`)
 ) ENGINE=InnoDB;
 
