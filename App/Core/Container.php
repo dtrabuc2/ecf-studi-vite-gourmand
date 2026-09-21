@@ -13,7 +13,6 @@ use App\Controller\PublicController;
 use App\Controller\QuoteController;
 use App\Controller\NotificationController;
 use App\Repository\CommentRepository;
-use App\Repository\DishRepository;
 use App\Repository\MenuRepository;
 use App\Repository\OpeningHoursRepository;
 use App\Repository\OrderRepository;
@@ -104,10 +103,6 @@ final class Container
             )
         );
 
-        $this->set(
-            DishRepository::class,
-            static fn (): DishRepository => new DishRepository()
-        );
 
         $this->set(
             OpeningHoursRepository::class,
@@ -236,7 +231,6 @@ final class Container
                 $container->get(MenuService::class),
                 $container->get(CommentService::class),
                 $container->get(OrderService::class),
-                $container->get(DishRepository::class),
                 $container->get(OpeningHoursRepository::class),
                 $container->get(QuoteService::class)
             )
