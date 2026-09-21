@@ -178,6 +178,7 @@
 /* VITE GOURMAND - STYLES PRINCIPAUX */
 
 :root {
+  /* Palette Vite & Gourmand. Bootstrap reste la base, style.css garde l'identité visuelle. */
   --color-primary: #8b2635;
   --color-primary-dark: #6b1c28;
   --color-secondary: #d4a574;
@@ -185,6 +186,15 @@
   --color-dark: #2c3e50;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
+
+  --bs-primary: var(--color-primary);
+  --bs-primary-rgb: 139, 38, 53;
+  --bs-link-color: var(--color-primary);
+  --bs-link-color-rgb: 139, 38, 53;
+  --bs-link-hover-color: var(--color-primary-dark);
+  --bs-link-hover-color-rgb: 107, 28, 40;
+  --bs-primary-bg-subtle: #fff7f8;
+  --bs-primary-border-subtle: rgba(139, 38, 53, 0.18);
 }
 
 /* Styles globaux */
