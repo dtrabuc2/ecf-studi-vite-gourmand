@@ -17,6 +17,7 @@
   const digestif = document.getElementById('selectDigestif');
   const deliveryFields = document.getElementById('deliveryFields');
   const ingredients = document.getElementById('listIngredients');
+  const orderDeliveryLabel = document.getElementById('orderDeliveryLabel');
 
   let menus = [];
   let serviceType = 'menu';
@@ -116,6 +117,14 @@
 
     if (isDelivery) {
       deliveryFields?.querySelector('#delivery_address')?.setAttribute('placeholder', 'Commencez à saisir une adresse...');
+    }
+
+    if (orderDeliveryLabel) {
+      orderDeliveryLabel.textContent = isDelivery
+        ? 'Livraison'
+        : isPickup
+          ? 'Retrait'
+          : 'Service sur place';
     }
 
     if (isPickup || isOnSite) {
@@ -319,17 +328,7 @@
     return selectedOptions.join(' | ');
   };
 
-  const syncServiceFields = () => {
-    const selectedService = document.querySelector('input[name="service_type"]:checked')?.value || 'delivery';
-    const delivery = selectedService === 'delivery';
-    deliveryFields?.classList.toggle('d-none', !delivery);
-    deliveryFields?.querySelectorAll('input, textarea').forEach((field) => {
-      field.required = delivery && field.id !== 'delivery_distance_km';
-    });
-  };
-
-  document.querySelectorAll('input[name="service_type"]').forEach((input) => input.addEventListener('change', syncServiceFields));
-  syncServiceFields();
+  // Le mode de prestation est géré par syncServiceType() ci-dessus.
 
   continueButton?.addEventListener('click', () => {
     if (!selected) {
