@@ -5,12 +5,15 @@ namespace App\Controller;
 
 use App\Service\ContactService;
 use App\Service\MailService;
+use App\Service\NotificationService;
+use App\Core\Session;
 
 final class ContactController extends BaseController
 {
     public function __construct(
         private readonly ContactService $contactService,
-        private readonly MailService $mailService
+        private readonly MailService $mailService,
+        private readonly NotificationService $notificationService
     ) {
     }
 
@@ -45,7 +48,7 @@ final class ContactController extends BaseController
         }
 
         try {
-            $this->contactService->createMessage($email, $subject, $message);
+            $messageId = $this->contactService->createMessage($email, $subject, $message);
 
             $companyEmail = $_ENV['MAIL_TO_ADDRESS']
                 ?? 'contact@website.dylan.local';
@@ -61,7 +64,24 @@ final class ContactController extends BaseController
                 error_log('Impossible d’envoyer le message de contact à ' . $companyEmail);
             }
 
-            $_SESSION['contact_success'] = 'Votre message a bien été envoyé.';
+            if (Session::id() !== null) {
+                $this->notificationService->notify(
+                    Session::id(),
+                    'contact',
+                    'Message envoyé',
+                    'Votre message de contact #' . $messageId . ' a bien été enregistré.',
+                    null,
+                    null
+                );
+            }
+
+            $this->notificationService->notifyStaff(
+                'contact',
+                'Nouveau message de contact',
+                'Le message « ' . $subject . ' » de ' . $email . ' est disponible dans la boîte de réception.'
+            );
+
+            $_SESSION['contact_success'] = 'Votre message a bien été envoyé. Une confirmation a été enregistrée dans votre espace.';
         } catch (\Throwable $exception) {
             error_log('Contact form error: ' . $exception->getMessage());
             $_SESSION['contact_errors'] = [
