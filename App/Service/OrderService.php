@@ -35,7 +35,8 @@ final readonly class OrderService
         ?string $customization = null,
         string $serviceType = 'delivery',
         string $paymentMethod = 'cash_on_site',
-        ?string $deliveryInstructions = null
+        ?string $deliveryInstructions = null,
+        ?string $contactPhone = null
     ): array {
         $user = $this->userRepository->findById($userId);
         $menu = $this->menuRepository->findById($menuId);
@@ -69,8 +70,20 @@ final readonly class OrderService
             throw new InvalidArgumentException('Le paiement est effectué en espèces sur place.');
         }
 
+        if ($contactPhone === null || trim($contactPhone) === '') {
+            throw new InvalidArgumentException('Un numéro de téléphone est requis pour la commande.');
+        }
+
         if ($serviceType === 'delivery' && (trim($deliveryAddress) === '' || trim($deliveryCity) === '')) {
             throw new InvalidArgumentException('L’adresse et la ville de livraison sont requises.');
+        }
+
+        if ($serviceType !== 'delivery') {
+            $deliveryAddress = trim($deliveryAddress) !== '' ? $deliveryAddress : 'Retrait / prestation sur place';
+            $deliveryCity = trim($deliveryCity) !== '' ? $deliveryCity : 'Bordeaux';
+            $deliveryPostalCode = trim($deliveryPostalCode) !== '' ? $deliveryPostalCode : '33000';
+            $deliveryDistanceKm = null;
+            $deliveryInstructions = trim((string) $deliveryInstructions);
         }
 
         [$menuPrice, $discountRate] = $this->calculateMenuPrice(
@@ -141,6 +154,7 @@ final readonly class OrderService
             'first_name' => $user->getFirstName(),
             'last_name' => $user->getLastName(),
             'email' => $user->getEmail(),
+            'contact_phone' => $contactPhone,
         ];
 
         try {
