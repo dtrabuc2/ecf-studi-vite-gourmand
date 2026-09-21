@@ -229,6 +229,18 @@ final readonly class AuthService
         }
 
         $data['email'] = $email;
+
+        foreach (['phone', 'gsm'] as $field) {
+            $value = trim((string) ($data[$field] ?? ''));
+
+            if ($value !== '') {
+                $data[$field] = $this->normalizePhone(
+                    $value,
+                    (string) ($data[$field . '_region'] ?? 'FR')
+                );
+            }
+        }
+
         $this->userRepository->update($userId, $data);
     }
 
