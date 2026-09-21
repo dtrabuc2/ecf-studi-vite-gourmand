@@ -1,0 +1,106 @@
+name: PHP CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+  pull_request:
+    branches:
+      - main
+      - dev
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  quality:
+    name: PHP 8.5 - Code quality
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: >-
+            mbstring,
+            intl,
+            pdo,
+            pdo_mysql,
+            mysqli,
+            openssl,
+            json,
+            fileinfo,
+            curl,
+            zip,
+            mongodb
+          tools: composer:v2
+          coverage: none
+
+      - name: Display PHP version
+        run: php --version
+
+      - name: Display PHP configuration
+        run: php --ini
+
+      - name: Display PHP extensions
+        run: php -m
+
+      - name: Display Composer version
+        run: composer --version
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Validate composer.lock
+        run: composer validate --check-lock
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Validate Composer autoload
+        run: composer dump-autoload --strict
+
+      - name: PHP syntax check
+        shell: bash
+        run: |
+          set -e
+
+          echo "Checking PHP syntax..."
+
+          for directory in App config public; do
+            if [ -d "$directory" ]; then
+              find "$directory" -type f -name "*.php" -print0 |
+              while IFS= read -r -d '' file
+              do
+                echo "Checking: $file"
+                php -l "$file"
+              done
+            fi
+          done
+
+      - name: Rector dry-run
+        shell: bash
+        run: |
+          if [ -f "vendor/bin/rector" ]; then
+            vendor/bin/rector process --dry-run
+          else
+            echo "Rector is not installed."
+            echo "Skipping Rector."
+          fi
+
+      - name: Run PHPUnit
+        shell: bash
+        run: |
+          if [ -f "phpunit.xml" ] || [ -f "phpunit.xml.dist" ]; then
+            vendor/bin/phpunit
+          else
+            echo "No PHPUnit configuration found."
+            echo "Skipping PHPUnit tests."
+          fi
