@@ -19,9 +19,5 @@ window.VgApi = {
     }
 
     return payload.data;
-  },
-
-  csrfToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.content || '';
   }
 };

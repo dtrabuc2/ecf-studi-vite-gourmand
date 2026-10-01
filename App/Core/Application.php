@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Core;
 
+use App\Controller\ErrorController;
 use RuntimeException;
 
 final readonly class Application
@@ -42,12 +43,38 @@ final readonly class Application
                 throw $exception;
             }
 
-            if (!headers_sent()) {
-                http_response_code(500);
-            }
-
-            echo 'Une erreur interne est survenue.';
+            $this->renderServerError();
         }
+    }
+
+    /**
+     * Page 500 en HTML (JSON pour les appels d'API), sans détail technique.
+     * Si la page elle-même ne peut pas être affichée, repli sur un texte simple.
+     */
+    private function renderServerError(): void
+    {
+        // Abandonne une éventuelle sortie partielle de la page en échec.
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        try {
+            $controller = $this->container->get(ErrorController::class);
+
+            if ($controller instanceof ErrorController) {
+                $controller->serverError();
+                return;
+            }
+        } catch (\Throwable $exception) {
+            error_log('Page d’erreur indisponible : ' . $exception->getMessage());
+        }
+
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: text/plain; charset=UTF-8');
+        }
+
+        echo 'Une erreur interne est survenue.';
     }
 
     private function loadEnvironment(): void

@@ -41,6 +41,54 @@
         </div>
     </section>
 
+    <section class="py-5" aria-labelledby="teamTitle">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-10">
+                    <div class="text-center mb-4">
+                        <span class="badge bg-primary-subtle text-primary">Notre équipe</span>
+                        <h2 class="section-title mt-3" id="teamTitle">Julie et José, 25 ans de métier à Bordeaux</h2>
+                        <p class="text-muted mb-0">
+                            Depuis 25 ans, Vite &amp; Gourmand accompagne les Bordelais pour leurs repas de fête,
+                            de Noël à Pâques, et pour tous leurs évènements, avec des menus qui évoluent au fil des saisons.
+                        </p>
+                    </div>
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <article class="card h-100 border-0 shadow-sm">
+                                <div class="card-body p-4">
+                                    <h3 class="h5 text-primary">Julie</h3>
+                                    <p class="small text-muted mb-2">Cofondatrice · relation clients et composition des menus</p>
+                                    <p class="mb-0">
+                                        Julie imagine les menus, écoute chaque client et adapte les formules à l’évènement :
+                                        nombre de convives, régimes alimentaires, allergies.
+                                    </p>
+                                </div>
+                            </article>
+                        </div>
+                        <div class="col-md-6">
+                            <article class="card h-100 border-0 shadow-sm">
+                                <div class="card-body p-4">
+                                    <h3 class="h5 text-primary">José</h3>
+                                    <p class="small text-muted mb-2">Cofondateur · cuisine et organisation des prestations</p>
+                                    <p class="mb-0">
+                                        José dirige la cuisine et l’organisation des prestations, de la préparation à la
+                                        livraison ou au service sur place, avec la même exigence depuis 25 ans.
+                                    </p>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+                    <ul class="list-unstyled d-flex flex-wrap justify-content-center gap-4 mt-4 mb-0 small">
+                        <li><strong>25 ans</strong> d’expérience à Bordeaux</li>
+                        <li><strong>Menus renouvelés</strong> au fil des saisons et des fêtes</li>
+                        <li><strong>Allergènes</strong> indiqués pour chaque plat</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="py-5 bg-light">
         <div class="container">
             <div class="row justify-content-center">
@@ -49,11 +97,11 @@
                         <div class="card-body p-4 p-lg-5">
                             <div class="row align-items-center g-4">
                                 <div class="col-lg-8">
-                                    <span class="badge bg-primary-subtle text-primary">Au-delà de 30 personnes</span>
+                                    <span class="badge bg-primary-subtle text-primary">Sur mesure</span>
                                     <h2 class="h3 text-primary mt-3">Une grande réception ou un événement sur devis ?</h2>
                                     <p class="text-muted mb-0">
-                                        Pour les événements importants, nous préférons établir un devis adapté
-                                        plutôt que vous faire passer par une commande standard.
+                                        Tous nos menus se commandent directement en ligne. Si vous préférez une proposition
+                                        adaptée à votre événement, vous pouvez aussi nous demander un devis.
                                     </p>
                                 </div>
                                 <div class="col-lg-4 text-lg-end">

@@ -15,7 +15,7 @@ final class OpeningHoursRepository
         ?string $opening2 = null,
         ?string $closing2 = null
     ): void {
-        $stmt = Database::getPDO()->prepare(
+        $stmt = Database::pdo()->prepare(
             'INSERT INTO opening_hours
                 (day_of_week, is_open, opening_time, closing_time, opening_time_2, closing_time_2)
              VALUES (:day, :open, :opening, :closing, :opening2, :closing2)
@@ -38,7 +38,7 @@ final class OpeningHoursRepository
 
     public function findAll(): array
     {
-        $stmt = Database::getPDO()->query(
+        $stmt = Database::pdo()->query(
             'SELECT day_of_week, is_open, opening_time, closing_time, opening_time_2, closing_time_2
              FROM opening_hours
              ORDER BY day_of_week'
@@ -49,7 +49,7 @@ final class OpeningHoursRepository
 
     public function findByDay(int $dayOfWeek): ?array
     {
-        $stmt = Database::getPDO()->prepare(
+        $stmt = Database::pdo()->prepare(
             'SELECT day_of_week, is_open, opening_time, closing_time, opening_time_2, closing_time_2
              FROM opening_hours
              WHERE day_of_week = :day'

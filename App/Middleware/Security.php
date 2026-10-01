@@ -1,11 +1,13 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Middleware;
 
-use App\Service\CacheService;
+use App\Service\RateLimiter;
 
 class Security
 {
-    private readonly CacheService $cacheService;
+    private readonly RateLimiter $rateLimiter;
 
     private array $securityHeaders = [
         'X-Frame-Options' => 'DENY',
@@ -16,17 +18,9 @@ class Security
         'Permissions-Policy' => 'geolocation=(), microphone=(), camera=()',
     ];
 
-    private array $rateLimitRules = [
-        '/login' => ['limit' => 5, 'window' => 300],
-        '/register' => ['limit' => 3, 'window' => 300],
-        '/password' => ['limit' => 3, 'window' => 300],
-        '/forgot-password' => ['limit' => 3, 'window' => 300],
-        '/reset-password' => ['limit' => 3, 'window' => 300],
-    ];
-
-    public function __construct(?CacheService $cacheService = null)
+    public function __construct(RateLimiter $rateLimiter)
     {
-        $this->cacheService = $cacheService ?? new CacheService();
+        $this->rateLimiter = $rateLimiter;
     }
 
     public function __invoke(): void
@@ -76,31 +70,22 @@ class Security
         }
 
         $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-        $endpoint = null;
-
-        foreach (array_keys($this->rateLimitRules) as $path) {
-            if ($uri === $path || str_starts_with($uri, $path . '/')) {
-                $endpoint = $path;
-                break;
-            }
-        }
+        $endpoint = $this->rateLimiter->endpointFor($uri);
 
         if ($endpoint === null) {
             return;
         }
 
-        $clientIp = (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-        $rateLimitKey = "rate_limit:{$endpoint}:{$clientIp}";
-        $rule = $this->rateLimitRules[$endpoint];
-        $currentCount = (int) $this->cacheService->get($rateLimitKey, 0);
-
-        if ($currentCount >= $rule['limit']) {
+        if ($this->rateLimiter->tooManyAttempts($endpoint)) {
             http_response_code(429);
-            header("Retry-After: {$rule['window']}");
+            header('Retry-After: ' . $this->rateLimiter->window($endpoint));
             echo 'Trop de requêtes, réessayez plus tard.';
             exit;
         }
 
-        $this->cacheService->set($rateLimitKey, $currentCount + 1, $rule['window']);
+        // Connexions : seuls les échecs sont comptés, par les contrôleurs.
+        if (!$this->rateLimiter->countsFailuresOnly($endpoint)) {
+            $this->rateLimiter->hit($endpoint);
+        }
     }
 }

@@ -49,11 +49,6 @@ final readonly class NotificationService
         return $this->notificationRepository->findForUser($userId, $limit);
     }
 
-    public function unreadCount(int $userId): int
-    {
-        return $this->notificationRepository->countUnread($userId);
-    }
-
     public function markRead(int $id, int $userId): void
     {
         $this->notificationRepository->markRead($id, $userId);

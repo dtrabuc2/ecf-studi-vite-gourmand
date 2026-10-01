@@ -16,7 +16,17 @@ final class QuoteController extends BaseController
 
     public function index(): void
     {
-        $this->render('quote/index');
+        // Saisie précédente conservée après une erreur (message flash).
+        $old = Session::pullFlash('quote_old_input', []);
+        $old = is_array($old) ? $old : [];
+
+        $people = filter_var($_GET['number_of_people'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if (!isset($old['number_of_people']) && $people !== false) {
+            $old['number_of_people'] = $people;
+        }
+
+        // phoneInput : charge intl-tel-input pour le champ téléphone
+        $this->render('quote/index', ['old' => $old, 'phoneInput' => true]);
     }
 
     public function submit(): void
@@ -26,7 +36,6 @@ final class QuoteController extends BaseController
             'first_name' => trim((string) ($_POST['first_name'] ?? '')),
             'last_name' => trim((string) ($_POST['last_name'] ?? '')),
             'phone' => trim((string) ($_POST['phone'] ?? '')),
-            'phone_region' => strtoupper(trim((string) ($_POST['phone_region'] ?? 'FR'))),
             'company' => trim((string) ($_POST['company'] ?? '')),
             'event_date' => trim((string) ($_POST['event_date'] ?? '')),
             'number_of_people' => $_POST['number_of_people'] ?? null,

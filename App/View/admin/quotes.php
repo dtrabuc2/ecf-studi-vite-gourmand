@@ -1,18 +1,6 @@
 <?php
-$labels = [
-    'new' => 'Nouvelle',
-    'in_review' => 'En cours',
-    'quoted' => 'Devis envoyé',
-    'accepted' => 'Acceptée',
-    'declined' => 'Refusée',
-    'closed' => 'Clôturée',
-];
-
-$serviceLabels = [
-    'pickup' => 'À emporter',
-    'delivery' => 'Livraison',
-    'on_site' => 'Sur place',
-];
+$labels = \App\Core\Labels::QUOTE_STATUS;
+$serviceLabels = \App\Core\Labels::SERVICE_TYPE;
 ?>
 <main class="py-5">
     <div class="container">

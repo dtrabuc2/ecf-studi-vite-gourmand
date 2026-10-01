@@ -21,12 +21,22 @@ final class NotificationController extends BaseController
             $this->redirect('/login');
         }
 
-        $notifications = $this->notificationService->forUser($userId);
-        $this->notificationService->markAllRead($userId);
-
+        // Consultation sans effet de bord : le marquage « lu » passe par un POST.
         $this->render('notification/index', [
-            'notifications' => $notifications,
+            'notifications' => $this->notificationService->forUser($userId),
         ]);
+    }
+
+    public function readAll(): never
+    {
+        $userId = Session::id();
+
+        if ($userId === null) {
+            $this->redirect('/login');
+        }
+
+        $this->notificationService->markAllRead($userId);
+        $this->redirect('/notifications');
     }
 
     public function read(int $id): void

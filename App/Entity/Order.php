@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Entity;
 
 class Order
@@ -29,15 +31,25 @@ class Order
     private ?string $cancellationReason = null;
     private ?\DateTimeInterface $createdAt = null;
     private ?\DateTimeInterface $updatedAt = null;
+    // Informations d'affichage, renseignées par les requêtes avec jointure (liste équipe).
+    private ?string $customerName = null;
+    private ?string $customerEmail = null;
+    private ?string $menuTitle = null;
 
     public function getId(): int { return $this->id; }
+    public function getCustomerName(): ?string { return $this->customerName; }
+    public function setCustomerName(?string $customerName): void { $this->customerName = $customerName; }
+    public function getCustomerEmail(): ?string { return $this->customerEmail; }
+    public function setCustomerEmail(?string $customerEmail): void { $this->customerEmail = $customerEmail; }
+    public function getMenuTitle(): ?string { return $this->menuTitle; }
+    public function setMenuTitle(?string $menuTitle): void { $this->menuTitle = $menuTitle; }
     public function getOrderNumber(): string
     {
         if ($this->orderNumber !== null && $this->orderNumber !== '') {
             return $this->orderNumber;
         }
 
-        return 'VG-' . date('Ymd', strtotime($this->orderDate ?? 'now')) . '-' . str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
+        return 'VG-' . date('Ymd', strtotime($this->orderDate) ?: time()) . '-' . str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
     }
     public function setOrderNumber(?string $orderNumber): void { $this->orderNumber = $orderNumber; }
     public function setId(int $id): void { $this->id = $id; }

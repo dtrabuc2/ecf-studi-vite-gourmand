@@ -118,19 +118,4 @@ final class Database
             )
         );
     }
-
-    public static function getPDO(): PDO
-    {
-        return self::pdo();
-    }
-
-    public static function getMongo(): \MongoDB\Client
-    {
-        return self::mongo();
-    }
-
-    public static function getMongoDatabase(): \MongoDB\Database
-    {
-        return self::mongoDatabase();
-    }
 }

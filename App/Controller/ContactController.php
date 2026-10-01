@@ -19,7 +19,10 @@ final class ContactController extends BaseController
 
     public function index(): void
     {
-        $this->render('contact/index');
+        $this->render('contact/index', [
+            'errors' => (array) Session::pullFlash('contact_errors', []),
+            'old' => (array) Session::pullFlash('contact_old_input', []),
+        ]);
     }
 
     public function send(): void
@@ -42,16 +45,16 @@ final class ContactController extends BaseController
         }
 
         if ($errors !== []) {
-            $_SESSION['contact_errors'] = $errors;
-            $_SESSION['contact_old_input'] = $_POST;
+            Session::flash('contact_errors', $errors);
+            Session::flash('contact_old_input', ['email' => $email, 'subject' => $subject, 'message' => $message]);
             $this->redirect('/contact');
         }
 
         try {
             $messageId = $this->contactService->createMessage($email, $subject, $message);
 
-            $companyEmail = $_ENV['MAIL_TO_ADDRESS']
-                ?? 'contact@website.dylan.local';
+            // MAIL_TO_ADDRESS du .env (à défaut MAIL_FROM_ADDRESS).
+            $companyEmail = $this->mailService->companyAddress();
 
             $body = "Message reçu depuis le formulaire de contact.\n\n"
                 . "Email : {$email}\nTitre : {$subject}\n\n{$message}";
@@ -81,12 +84,16 @@ final class ContactController extends BaseController
                 'Le message « ' . $subject . ' » de ' . $email . ' est disponible dans la boîte de réception.'
             );
 
-            $_SESSION['contact_success'] = 'Votre message a bien été envoyé. Une confirmation a été enregistrée dans votre espace.';
+            Session::flash(
+                'contact_success',
+                Session::id() !== null
+                    ? 'Votre message a bien été envoyé. Une confirmation a été enregistrée dans votre espace.'
+                    : 'Votre message a bien été envoyé.'
+            );
         } catch (\Throwable $exception) {
             error_log('Contact form error: ' . $exception->getMessage());
-            $_SESSION['contact_errors'] = [
-                'general' => 'Impossible d’enregistrer votre message.',
-            ];
+            Session::flash('contact_errors', ['general' => 'Impossible d’enregistrer votre message.']);
+            Session::flash('contact_old_input', ['email' => $email, 'subject' => $subject, 'message' => $message]);
         }
 
         $this->redirect('/contact');

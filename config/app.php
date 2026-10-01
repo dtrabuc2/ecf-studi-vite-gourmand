@@ -9,6 +9,12 @@ return [
         'url' => rtrim((string) ($_ENV['APP_URL'] ?? 'http://localhost:8000'), '/'),
         'google_maps_key' => (string) ($_ENV['GOOGLE_MAPS_API_KEY'] ?? ''),
     ],
+    // Hébergeur affiché dans les mentions légales (renseigné lors du déploiement).
+    'hosting' => [
+        'name' => trim((string) ($_ENV['HOSTING_NAME'] ?? '')),
+        'address' => trim((string) ($_ENV['HOSTING_ADDRESS'] ?? '')),
+        'website' => trim((string) ($_ENV['HOSTING_WEBSITE'] ?? '')),
+    ],
     'database' => [
         'mariadb' => [
             'host' => $_ENV['DB_HOST'] ?? '127.0.0.1',
@@ -34,7 +40,6 @@ return [
         'name' => $_ENV['SESSION_NAME'] ?? 'viteetgourmand_session',
     ],
     'security' => [
-        'password_hash_algo' => PASSWORD_DEFAULT,
         'password_hash_cost' => (int) ($_ENV['PASSWORD_HASH_COST'] ?? 12),
     ],
     'mail' => [
@@ -46,5 +51,7 @@ return [
         'encryption' => $_ENV['MAIL_ENCRYPTION'] ?? 'tls',
         'from_address' => $_ENV['MAIL_FROM_ADDRESS'] ?? 'noreply@viteetgourmand.com',
         'from_name' => $_ENV['MAIL_FROM_NAME'] ?? 'Vite & Gourmand',
+        // Adresse de l'entreprise : contact, nouvelles commandes, demandes de devis.
+        'to_address' => $_ENV['MAIL_TO_ADDRESS'] ?? '',
     ],
 ];

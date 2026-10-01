@@ -7,25 +7,46 @@
     </div>
 
     <div class="container">
-        <?php if ($menu === null): ?>
-            <div class="alert alert-warning">
-                <h2 class="h4">Menu introuvable</h2>
-                <a href="/menus">Retour au catalogue</a>
-            </div>
-        <?php else: ?>
+            <?php /* menu introuvable : géré par la 404 commune (NotFoundException dans PublicController) */ ?>
             <?php
             $details ??= ['dishes' => [], 'allergens' => []];
-            $cover ??= null;
+            $images = array_values(array_filter($images ?? [], static fn (array $image): bool => $image['url'] !== ''));
             ?>
             <div class="row justify-content-center">
                 <div class="col-xl-10">
                     <article class="card border-0 shadow-sm overflow-hidden">
-                        <?php if ($cover && !empty($cover['url'])): ?>
+                        <?php if (count($images) === 1): ?>
                             <img
-                                src="<?= $escape($cover['url']) ?>"
+                                src="<?= $escape($images[0]['url']) ?>"
                                 class="card-img-top menu-detail-image"
-                                alt="<?= $escape($cover['alt_text'] ?? $menu->getTitle()) ?>"
+                                alt="<?= $escape($images[0]['alt_text']) ?>"
                             >
+                        <?php elseif (count($images) > 1): ?>
+                            <div id="menuGallery" class="carousel slide" aria-label="Galerie d’images du menu">
+                                <div class="carousel-indicators">
+                                    <?php foreach ($images as $index => $image): ?>
+                                        <button type="button" data-bs-target="#menuGallery" data-bs-slide-to="<?= $index ?>"
+                                                <?= $index === 0 ? 'class="active" aria-current="true"' : '' ?>
+                                                aria-label="Image <?= $index + 1 ?> sur <?= count($images) ?>"></button>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="carousel-inner">
+                                    <?php foreach ($images as $index => $image): ?>
+                                        <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>">
+                                            <img src="<?= $escape($image['url']) ?>" class="d-block w-100 menu-detail-image"
+                                                 alt="<?= $escape($image['alt_text']) ?>" <?= $index > 0 ? 'loading="lazy"' : '' ?>>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <button class="carousel-control-prev" type="button" data-bs-target="#menuGallery" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Image précédente</span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#menuGallery" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Image suivante</span>
+                                </button>
+                            </div>
                         <?php endif; ?>
 
                         <div class="card-body p-4 p-md-5">
@@ -39,7 +60,7 @@
                                 <dt class="col-sm-5">Minimum</dt>
                                 <dd class="col-sm-7"><?= $menu->getMinPeople() ?> personne<?= $menu->getMinPeople() > 1 ? 's' : '' ?></dd>
                                 <dt class="col-sm-5">Régime alimentaire</dt>
-                                <dd class="col-sm-7"><?= $escape($menu->getDietaryRegime()) ?></dd>
+                                <dd class="col-sm-7"><?= $escape(\App\Core\Labels::dietaryRegime($menu->getDietaryRegime())) ?></dd>
                                 <dt class="col-sm-5">Stock disponible</dt>
                                 <dd class="col-sm-7"><?= $menu->getAvailableStock() ?> commandes</dd>
                             </dl>
@@ -58,6 +79,10 @@
                                                             <?php if (!empty($dish['description'])): ?>
                                                                 <p class="small text-muted mb-0 mt-1"><?= $escape($dish['description']) ?></p>
                                                             <?php endif; ?>
+                                                            <p class="small mb-0 mt-2">
+                                                                <span class="fw-semibold">Allergènes :</span>
+                                                                <?= ($dish['allergens'] ?? []) !== [] ? $escape(implode(', ', $dish['allergens'])) : 'aucun' ?>
+                                                            </p>
                                                         </div>
                                                     <?php endif; ?>
                                                 <?php endforeach; ?>
@@ -73,7 +98,7 @@
                             </section>
 
                             <section class="mt-4">
-                                <h3 class="h5 text-primary">Allergènes</h3>
+                                <h3 class="h5 text-primary">Allergènes présents dans le menu</h3>
                                 <?php if (($details['allergens'] ?? []) !== []): ?>
                                     <p><?= $escape(implode(', ', $details['allergens'])) ?></p>
                                 <?php else: ?>
@@ -93,6 +118,5 @@
                     </article>
                 </div>
             </div>
-        <?php endif; ?>
     </div>
 </main>

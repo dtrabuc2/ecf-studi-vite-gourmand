@@ -21,32 +21,34 @@ foreach ($openingHours as $hour) {
               'closing_time_2' => '',
           ];
           ?>
-          <div class="border rounded p-3 mb-3">
+          <fieldset class="border rounded p-3 mb-3">
+            <legend class="fs-6 fw-bold float-none w-auto px-1 mb-2"><?= $escape($label) ?></legend>
             <div class="row g-2 align-items-end">
-              <div class="col-md-2"><strong><?= $escape($label) ?></strong></div>
               <div class="col-md-2">
-                <label class="form-label">Ouvert</label>
-                <input class="form-check-input d-block" type="checkbox" name="is_open[<?= $day ?>]" <?= (int) $h['is_open'] === 1 ? 'checked' : '' ?>>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Plage 1</label>
-                <div class="input-group">
-                  <input class="form-control" type="time" name="windows[<?= $day ?>][0][opening]" value="<?= $escape(substr((string) $h['opening_time'], 0, 5)) ?>">
-                  <input class="form-control" type="time" name="windows[<?= $day ?>][0][closing]" value="<?= $escape(substr((string) $h['closing_time'], 0, 5)) ?>">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="open_<?= $day ?>" name="is_open[<?= $day ?>]" <?= (int) $h['is_open'] === 1 ? 'checked' : '' ?>>
+                  <label class="form-check-label" for="open_<?= $day ?>">Ouvert</label>
                 </div>
               </div>
-              <div class="col-md-4">
-                <label class="form-label">Plage 2</label>
-                <div class="input-group">
-                  <input class="form-control" type="time" name="windows[<?= $day ?>][1][opening]" value="<?= $escape(substr((string) $h['opening_time_2'], 0, 5)) ?>">
-                  <input class="form-control" type="time" name="windows[<?= $day ?>][1][closing]" value="<?= $escape(substr((string) $h['closing_time_2'], 0, 5)) ?>">
+              <?php foreach ([0 => ['opening_time', 'closing_time'], 1 => ['opening_time_2', 'closing_time_2']] as $window => [$openKey, $closeKey]): ?>
+                <div class="col-md-5">
+                  <div class="row g-1">
+                    <div class="col-6">
+                      <label class="form-label small" for="open_<?= $day ?>_<?= $window ?>">Plage <?= $window + 1 ?> : ouverture</label>
+                      <input class="form-control" type="time" id="open_<?= $day ?>_<?= $window ?>" name="windows[<?= $day ?>][<?= $window ?>][opening]" value="<?= $escape(substr((string) $h[$openKey], 0, 5)) ?>">
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label small" for="close_<?= $day ?>_<?= $window ?>">Plage <?= $window + 1 ?> : fermeture</label>
+                      <input class="form-control" type="time" id="close_<?= $day ?>_<?= $window ?>" name="windows[<?= $day ?>][<?= $window ?>][closing]" value="<?= $escape(substr((string) $h[$closeKey], 0, 5)) ?>">
+                    </div>
+                  </div>
                 </div>
-              </div>
+              <?php endforeach; ?>
             </div>
-          </div>
+          </fieldset>
         <?php endforeach; ?>
         <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
-        <button class="btn btn-primary">Enregistrer</button>
+        <button class="btn btn-primary" type="submit">Enregistrer</button>
       </div>
     </form>
   </div>

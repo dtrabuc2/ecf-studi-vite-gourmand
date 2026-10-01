@@ -7,74 +7,14 @@ use App\Entity\User;
 use App\Repository\UserRepository;
 use DateTimeImmutable;
 use InvalidArgumentException;
-use libphonenumber\PhoneNumberFormat;
-use libphonenumber\PhoneNumberUtil;
 
 final readonly class AuthService
 {
     public function __construct(
-        private UserRepository $userRepository
+        private UserRepository $userRepository,
+        private PasswordPolicy $passwordPolicy,
+        private PhoneValidator $phoneValidator
     ) {
-    }
-
-    public function validatePassword(string $password): ?array
-    {
-        $errors = [];
-
-        if (strlen($password) < 10) {
-            $errors[] = 'Le mot de passe doit contenir au moins 10 caractères.';
-        }
-        if (!preg_match('/[A-Z]/', $password)) {
-            $errors[] = 'Le mot de passe doit contenir au moins une majuscule.';
-        }
-        if (!preg_match('/[a-z]/', $password)) {
-            $errors[] = 'Le mot de passe doit contenir au moins une minuscule.';
-        }
-        if (!preg_match('/[0-9]/', $password)) {
-            $errors[] = 'Le mot de passe doit contenir au moins un chiffre.';
-        }
-        if (!preg_match('/[^A-Za-z0-9]/', $password)) {
-            $errors[] = 'Le mot de passe doit contenir au moins un caractère spécial.';
-        }
-
-        return $errors === [] ? null : $errors;
-    }
-
-    public function validatePhone(string $phone, string $defaultRegion = 'FR'): ?string
-    {
-        $phone = trim($phone);
-
-        if ($phone === '') {
-            return 'Le numéro de téléphone est requis.';
-        }
-
-        $phoneUtil = PhoneNumberUtil::getInstance();
-
-        try {
-            $parsed = $phoneUtil->parse($phone, strtoupper($defaultRegion));
-
-            if (!$phoneUtil->isValidNumber($parsed)) {
-                return 'Numéro de téléphone invalide pour le pays sélectionné.';
-            }
-
-            $region = $phoneUtil->getRegionCodeForNumber($parsed);
-
-            if (!in_array($region, ['FR', 'ES', 'BE', 'GB', 'IT'], true)) {
-                return 'Seuls les numéros de France, Espagne, Belgique, Royaume-Uni et Italie sont acceptés.';
-            }
-
-            return null;
-        } catch (\Throwable) {
-            return 'Numéro de téléphone invalide.';
-        }
-    }
-
-    public function normalizePhone(string $phone, string $defaultRegion = 'FR'): string
-    {
-        $phoneUtil = PhoneNumberUtil::getInstance();
-        $parsed = $phoneUtil->parse(trim($phone), strtoupper($defaultRegion));
-
-        return $phoneUtil->format($parsed, PhoneNumberFormat::E164);
     }
 
     public function register(array $data): int
@@ -85,10 +25,7 @@ final readonly class AuthService
         foreach (['phone', 'gsm'] as $field) {
             $value = trim((string) ($data[$field] ?? ''));
             if ($value !== '') {
-                $data[$field] = $this->normalizePhone(
-                    $value,
-                    (string) ($data[$field . '_region'] ?? 'FR')
-                );
+                $data[$field] = $this->normalizedPhone($value);
             }
         }
 
@@ -100,14 +37,11 @@ final readonly class AuthService
             throw new InvalidArgumentException('Cette adresse email est déjà utilisée.');
         }
 
-        $errors = $this->validatePassword($password);
-        if ($errors !== null) {
-            throw new InvalidArgumentException(implode(' ', $errors));
-        }
+        $this->assertStrongPassword($password);
 
         return $this->userRepository->create([
             'email' => $email,
-            'password' => password_hash($password, PASSWORD_DEFAULT),
+            'password' => $this->passwordPolicy->hash($password),
             'role' => 'user',
             'first_name' => trim((string) ($data['first_name'] ?? '')),
             'last_name' => trim((string) ($data['last_name'] ?? '')),
@@ -136,12 +70,10 @@ final readonly class AuthService
         }
 
         $storedPassword = $user->getPasswordHash();
-        $passwordInfo = password_get_info($storedPassword);
-        $passwordMatches = ($passwordInfo['algoName'] ?? 'unknown') !== 'unknown'
-            ? password_verify($password, $storedPassword)
-            : hash_equals($storedPassword, $password);
 
-        if (!$passwordMatches) {
+        // Seul un hash reconnu par password_verify() est accepté :
+        // un mot de passe stocké en clair ne permet jamais de se connecter.
+        if (!password_verify($password, $storedPassword)) {
             $failedAttempts = $user->getFailedAttempts() + 1;
 
             $this->userRepository->updateFailedAttempts(
@@ -155,13 +87,10 @@ final readonly class AuthService
             return null;
         }
 
-        if (
-            ($passwordInfo['algoName'] ?? 'unknown') !== 'unknown'
-            && password_needs_rehash($storedPassword, PASSWORD_DEFAULT)
-        ) {
+        if ($this->passwordPolicy->needsRehash($storedPassword)) {
             $this->userRepository->updatePassword(
                 $user->getId(),
-                password_hash($password, PASSWORD_DEFAULT)
+                $this->passwordPolicy->hash($password)
             );
         }
 
@@ -193,14 +122,11 @@ final readonly class AuthService
             );
         }
 
-        $errors = $this->validatePassword($newPassword);
-        if ($errors !== null) {
-            throw new InvalidArgumentException(implode(' ', $errors));
-        }
+        $this->assertStrongPassword($newPassword);
 
         $this->userRepository->updatePassword(
             $userId,
-            password_hash($newPassword, PASSWORD_DEFAULT)
+            $this->passwordPolicy->hash($newPassword)
         );
         $this->userRepository->updateFailedAttempts(
             $userId,
@@ -234,14 +160,10 @@ final readonly class AuthService
             $value = trim((string) ($data[$field] ?? ''));
 
             if ($value !== '') {
-                $data[$field] = $this->normalizePhone(
-                    $value,
-                    (string) ($data[$field . '_region'] ?? 'FR')
-                );
+                $data[$field] = $this->normalizedPhone($value);
             }
         }
 
-        unset($data['phone_region'], $data['gsm_region']);
         $this->userRepository->update($userId, $data);
     }
 
@@ -292,16 +214,36 @@ final readonly class AuthService
             );
         }
 
-        $errors = $this->validatePassword($newPassword);
-        if ($errors !== null) {
-            throw new InvalidArgumentException(implode(' ', $errors));
-        }
+        $this->assertStrongPassword($newPassword);
 
         $this->userRepository->updatePassword(
             $user->getId(),
-            password_hash($newPassword, PASSWORD_DEFAULT)
+            $this->passwordPolicy->hash($newPassword)
         );
         $this->userRepository->clearResetToken($user->getId());
+    }
+
+    private function assertStrongPassword(string $password): void
+    {
+        $errors = $this->passwordPolicy->validate($password);
+
+        if ($errors !== []) {
+            throw new InvalidArgumentException(implode(' ', $errors));
+        }
+    }
+
+    /**
+     * Valide puis normalise un numéro au format E.164.
+     */
+    private function normalizedPhone(string $phone): string
+    {
+        $error = $this->phoneValidator->validate($phone);
+
+        if ($error !== null) {
+            throw new InvalidArgumentException($error);
+        }
+
+        return $this->phoneValidator->normalize($phone);
     }
 
     private function normalizeEmail(string $email): string

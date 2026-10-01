@@ -23,6 +23,10 @@
     <link rel="stylesheet" href="/assets/css/pages/contact.css">
     <link rel="stylesheet" href="/assets/css/pages/quote.css">
     <link rel="stylesheet" href="/assets/css/responsive.css">
+    <?php /* CSS d'intl-tel-input, seulement sur les pages avec un champ téléphone */ ?>
+    <?php if (!empty($phoneInput)): ?>
+        <link rel="stylesheet" href="/assets/vendor/intl-tel-input/29.5.3/css/intlTelInput.min.css">
+    <?php endif; ?>
 </head>
 <body class="d-flex flex-column min-vh-100 bg-light"
       data-page="<?= $escape(trim((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), '/') ?: 'home') ?>">

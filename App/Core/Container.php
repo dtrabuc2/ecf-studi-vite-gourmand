@@ -6,13 +6,21 @@ namespace App\Core;
 use App\Controller\AdminController;
 use App\Controller\AddressController;
 use App\Controller\AuthController;
+use App\Controller\DishController;
+use App\Controller\MenuCompositionController;
 use App\Controller\ContactController;
 use App\Controller\EmailController;
+use App\Controller\ErrorController;
 use App\Controller\OrderController;
 use App\Controller\PublicController;
 use App\Controller\QuoteController;
 use App\Controller\NotificationController;
 use App\Repository\CommentRepository;
+use App\Repository\DishRepository;
+use App\Repository\MailboxRepository;
+use App\Repository\MenuImageRepository;
+use App\Repository\MenuStatisticsRepository;
+use App\Repository\QuoteRequestRepository;
 use App\Repository\MenuRepository;
 use App\Repository\OpeningHoursRepository;
 use App\Repository\OrderRepository;
@@ -22,6 +30,8 @@ use App\Service\AdminService;
 use App\Service\AuthService;
 use App\Service\CacheService;
 use App\Service\CommentService;
+use App\Service\DeliveryDistanceService;
+use App\Service\DishService;
 use App\Service\ContactService;
 use App\Service\EmailService;
 use App\Service\EmailTemplateRenderer;
@@ -29,8 +39,11 @@ use App\Service\MailService;
 use App\Service\MenuService;
 use App\Service\MenuStatisticsService;
 use App\Service\OrderService;
+use App\Service\PasswordPolicy;
+use App\Service\PhoneValidator;
 use App\Service\QuoteService;
 use App\Service\NotificationService;
+use App\Service\RateLimiter;
 use App\Middleware\Admin;
 use App\Middleware\Auth;
 use App\Middleware\Guest;
@@ -115,15 +128,50 @@ final class Container
         );
 
         $this->set(
+            PhoneValidator::class,
+            static fn (): PhoneValidator => new PhoneValidator()
+        );
+
+        $this->set(
+            PasswordPolicy::class,
+            static fn (): PasswordPolicy => new PasswordPolicy(
+                (int) config('security.password_hash_cost', 12)
+            )
+        );
+
+        $this->set(
+            RateLimiter::class,
+            static fn (Container $container): RateLimiter => new RateLimiter(
+                $container->get(CacheService::class)
+            )
+        );
+
+        $this->set(
             ContactService::class,
-            static fn (): ContactService => new ContactService()
+            static fn (Container $container): ContactService => new ContactService(
+                $container->get(MailboxRepository::class)
+            )
+        );
+
+        $this->set(
+            MailboxRepository::class,
+            static fn (): MailboxRepository => new MailboxRepository()
+        );
+
+        $this->set(
+            QuoteRequestRepository::class,
+            static fn (): QuoteRequestRepository => new QuoteRequestRepository()
+        );
+
+        $this->set(
+            MenuStatisticsRepository::class,
+            static fn (): MenuStatisticsRepository => new MenuStatisticsRepository()
         );
 
         $this->set(
             MailService::class,
             static fn (): MailService => new MailService(
-                (string) config('mail.from_address', 'noreply@viteetgourmand.com'),
-                (string) config('mail.from_name', 'Vite & Gourmand')
+                is_array(config('mail')) ? config('mail') : []
             )
         );
 
@@ -138,7 +186,8 @@ final class Container
             EmailService::class,
             static fn (Container $container): EmailService => new EmailService(
                 $container->get(MailService::class),
-                $container->get(EmailTemplateRenderer::class)
+                $container->get(EmailTemplateRenderer::class),
+                $container->get(MailboxRepository::class)
             )
         );
 
@@ -146,14 +195,50 @@ final class Container
             MenuService::class,
             static fn (Container $container): MenuService => new MenuService(
                 $container->get(MenuRepository::class),
-                $container->get(CacheService::class)
+                $container->get(CacheService::class),
+                $container->get(DishRepository::class),
+                $container->get(MenuImageRepository::class)
+            )
+        );
+
+        $this->set(
+            DishRepository::class,
+            static fn (): DishRepository => new DishRepository()
+        );
+
+        $this->set(
+            MenuImageRepository::class,
+            static fn (): MenuImageRepository => new MenuImageRepository()
+        );
+
+        $this->set(
+            DishService::class,
+            static fn (Container $container): DishService => new DishService(
+                $container->get(DishRepository::class)
+            )
+        );
+
+        $this->set(
+            DishController::class,
+            static fn (Container $container): DishController => new DishController(
+                $container->get(DishService::class)
+            )
+        );
+
+        $this->set(
+            MenuCompositionController::class,
+            static fn (Container $container): MenuCompositionController => new MenuCompositionController(
+                $container->get(MenuService::class),
+                $container->get(DishService::class)
             )
         );
 
         $this->set(
             AuthService::class,
             static fn (Container $container): AuthService => new AuthService(
-                $container->get(UserRepository::class)
+                $container->get(UserRepository::class),
+                $container->get(PasswordPolicy::class),
+                $container->get(PhoneValidator::class)
             )
         );
 
@@ -170,7 +255,7 @@ final class Container
             MenuStatisticsService::class,
             static fn (Container $container): MenuStatisticsService => new MenuStatisticsService(
                 $container->get(OrderRepository::class),
-                $container->get(MenuRepository::class)
+                $container->get(MenuStatisticsRepository::class)
             )
         );
 
@@ -183,7 +268,18 @@ final class Container
                 $container->get(OpeningHoursRepository::class),
                 $container->get(MailService::class),
                 $container->get(MenuStatisticsService::class),
-                $container->get(NotificationService::class)
+                $container->get(NotificationService::class),
+                $container->get(DeliveryDistanceService::class),
+                $container->get(MenuService::class),
+                $container->get(PhoneValidator::class)
+            )
+        );
+
+        $this->set(
+            DeliveryDistanceService::class,
+            static fn (Container $container): DeliveryDistanceService => new DeliveryDistanceService(
+                (string) config('app.google_maps_key', ''),
+                $container->get(CacheService::class)
             )
         );
 
@@ -192,8 +288,9 @@ final class Container
             static fn (Container $container): AdminService => new AdminService(
                 $container->get(UserRepository::class),
                 $container->get(OrderRepository::class),
-                $container->get(MenuRepository::class),
-                $container->get(MenuStatisticsService::class)
+                $container->get(MenuStatisticsService::class),
+                $container->get(PasswordPolicy::class),
+                $container->get(PhoneValidator::class)
             )
         );
 
@@ -201,7 +298,8 @@ final class Container
             PublicController::class,
             static fn (Container $container): PublicController => new PublicController(
                 $container->get(MenuService::class),
-                $container->get(CommentService::class)
+                $container->get(CommentService::class),
+                $container->get(MailService::class)
             )
         );
 
@@ -210,7 +308,10 @@ final class Container
             static fn (Container $container): AuthController => new AuthController(
                 $container->get(AuthService::class),
                 $container->get(UserRepository::class),
-                $container->get(MailService::class)
+                $container->get(MailService::class),
+                $container->get(RateLimiter::class),
+                $container->get(PhoneValidator::class),
+                $container->get(PasswordPolicy::class)
             )
         );
 
@@ -233,8 +334,15 @@ final class Container
                 $container->get(CommentService::class),
                 $container->get(OrderService::class),
                 $container->get(OpeningHoursRepository::class),
-                $container->get(QuoteService::class)
+                $container->get(QuoteService::class),
+                $container->get(RateLimiter::class),
+                $container->get(MailService::class)
             )
+        );
+
+        $this->set(
+            ErrorController::class,
+            static fn (): ErrorController => new ErrorController()
         );
 
         $this->set(
@@ -274,9 +382,10 @@ final class Container
         $this->set(
             QuoteService::class,
             static fn (Container $container): QuoteService => new QuoteService(
+                $container->get(QuoteRequestRepository::class),
                 $container->get(MailService::class),
                 $container->get(NotificationService::class),
-                $container->get(AuthService::class)
+                $container->get(PhoneValidator::class)
             )
         );
 
@@ -304,7 +413,7 @@ final class Container
         $this->set(
             Security::class,
             static fn (Container $container): Security => new Security(
-                $container->get(CacheService::class)
+                $container->get(RateLimiter::class)
             )
         );
 

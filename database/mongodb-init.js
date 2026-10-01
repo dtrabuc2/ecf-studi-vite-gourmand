@@ -64,64 +64,79 @@ for (const [menuId, position, url, altText] of menuImages) {
     );
 }
 
-const reviews = [
-    {
-        userId: 1, menuId: 1, orderId: 1001, rating: 5,
-        comment: "Formule simple, portions correctes et commande facile pour une personne.",
-        isValidated: true, authorName: "Sophie Martin", createdAt: new Date("2026-09-02T12:15:00Z")
-    },
-    {
-        userId: 2, menuId: 2, orderId: 1002, rating: 5,
-        comment: "Très bonne formule végétale, fraîche et suffisamment copieuse.",
-        isValidated: true, authorName: "Thomas Bernard", createdAt: new Date("2026-09-05T18:30:00Z")
-    },
-    {
-        userId: 3, menuId: 4, orderId: 1003, rating: 4,
-        comment: "Le menu duo fonctionne bien pour un repas familial sans complication.",
-        isValidated: true, authorName: "Camille Leroy", createdAt: new Date("2026-09-08T19:10:00Z")
-    },
-    {
-        userId: 4, menuId: 7, orderId: 1004, rating: 5,
-        comment: "Très bonne présentation et poisson bien préparé. Prestation soignée.",
-        isValidated: true, authorName: "Julien Moreau", createdAt: new Date("2026-09-10T20:05:00Z")
-    },
-    {
-        userId: 5, menuId: 9, orderId: 1005, rating: 5,
-        comment: "Nous avons choisi le menu réception pour un petit événement professionnel. Très pratique.",
-        isValidated: true, authorName: "Claire Petit", createdAt: new Date("2026-09-12T19:45:00Z")
-    }
+// ----------------------------------------------------------------
+// Avis et statistiques alignés sur database/seed.sql :
+// commandes terminées 1001 à 1005 du compte user@viteetgourmand.com.
+// Son identifiant SQL vaut 3 sur une installation neuve (schema.sql puis
+// seed.sql). Sinon, le passer dans la variable d'environnement
+// VG_CLIENT_USER_ID (voir README).
+// ----------------------------------------------------------------
+
+const clientUserId = Number(process.env.VG_CLIENT_USER_ID || 3);
+
+if (!Number.isInteger(clientUserId) || clientUserId < 1) {
+    throw new Error("VG_CLIENT_USER_ID doit être l'identifiant SQL du compte user@viteetgourmand.com.");
+}
+
+// [orderId, menuId, titre du menu, total de la commande, note, commentaire, date]
+const demoOrders = [
+    [1001, 1, "Formule Solo Classique", 16.90, 5,
+        "Formule simple, portions correctes et commande facile pour une personne.", "2026-09-02T12:15:00Z"],
+    [1002, 2, "Formule Solo Végétale", 17.90, 5,
+        "Très bonne formule végétale, fraîche et suffisamment copieuse.", "2026-09-05T18:30:00Z"],
+    [1003, 4, "Menu Duo Convivial", 34.90, 4,
+        "Le menu duo fonctionne bien pour un repas familial sans complication.", "2026-09-08T19:10:00Z"],
+    [1004, 7, "Menu Terroir & Mer", 49.90, 5,
+        "Très bonne présentation et poisson bien préparé. Prestation soignée.", "2026-09-10T20:05:00Z"],
+    [1005, 9, "Menu Réception Signature", 69.90, 5,
+        "Nous avons choisi le menu réception pour un petit événement professionnel. Très pratique.", "2026-09-12T19:45:00Z"]
 ];
 
-for (const review of reviews) {
+for (const [orderId, menuId, , , rating, comment, date] of demoOrders) {
     database.comments.updateOne(
-        { orderId: review.orderId },
-        { $set: { ...review, updatedAt: new Date() } },
+        { orderId },
+        {
+            $set: {
+                userId: clientUserId,
+                menuId,
+                orderId,
+                rating,
+                comment,
+                isValidated: true,
+                createdAt: new Date(date),
+                updatedAt: new Date()
+            },
+            // Ancien champ du seed, remplacé par le nom du compte SQL.
+            $unset: { authorName: "" }
+        },
         { upsert: true }
     );
 }
 
-const statistics = [
-    [1,"2026-09",14,236.60,4.7],
-    [2,"2026-09",11,196.90,4.8],
-    [3,"2026-09",9,107.10,4.4],
-    [4,"2026-09",8,279.20,4.3],
-    [5,"2026-09",6,317.40,4.6],
-    [6,"2026-09",5,324.50,4.5],
-    [7,"2026-09",4,199.60,4.9],
-    [8,"2026-09",3,137.70,4.7],
-    [9,"2026-09",2,139.80,4.8]
-];
+// Statistiques "all_time" lues par le tableau de bord : même calcul que
+// MenuStatisticsService::aggregateAndStore() (commandes terminées uniquement).
+database.menu_statistics.deleteMany({ periodIdentifier: "2026-09" });
 
-for (const [menuId, periodIdentifier, orderCount, revenue, averageRating] of statistics) {
+const statistics = new Map();
+for (const [, menuId, menuTitle, total] of demoOrders) {
+    const current = statistics.get(menuId) || { menuTitle, orderCount: 0, revenue: 0 };
+    current.orderCount += 1;
+    current.revenue = Math.round((current.revenue + total) * 100) / 100;
+    statistics.set(menuId, current);
+}
+
+for (const [menuId, stat] of statistics) {
     database.menu_statistics.updateOne(
-        { menuId, periodIdentifier },
+        { menuId, periodIdentifier: "all_time" },
         {
             $set: {
                 menuId,
-                periodIdentifier,
-                orderCount,
-                revenue,
-                averageRating,
+                menuTitle: stat.menuTitle,
+                periodStart: null,
+                periodEnd: null,
+                periodIdentifier: "all_time",
+                orderCount: stat.orderCount,
+                revenue: stat.revenue,
                 updatedAt: new Date()
             }
         },
@@ -131,5 +146,5 @@ for (const [menuId, periodIdentifier, orderCount, revenue, averageRating] of sta
 
 print("MongoDB Vite & Gourmand : galeries, avis et statistiques chargés.");
 print("Images : " + menuImages.length);
-print("Avis validés : " + reviews.length);
-print("Statistiques : " + statistics.length);
+print("Avis validés (client SQL #" + clientUserId + ") : " + demoOrders.length);
+print("Statistiques all_time : " + statistics.size + " menus");

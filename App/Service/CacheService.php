@@ -26,7 +26,9 @@ final readonly class CacheService
                 return $default;
             }
 
-            $cache = unserialize($data, ['allowed_classes' => true]);
+            // Aucun objet n'est reconstruit : le cache ne contient que des
+            // scalaires et des tableaux (les appelants convertissent leurs objets).
+            $cache = unserialize($data, ['allowed_classes' => false]);
 
             if (
                 !is_array($cache)
@@ -52,7 +54,7 @@ final readonly class CacheService
         $ttl ??= $this->defaultTtl;
         $directory = $this->directory();
 
-        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+        if (!is_dir($directory) && !mkdir($directory, 0750, true) && !is_dir($directory)) {
             return false;
         }
 
@@ -75,29 +77,12 @@ final readonly class CacheService
         return !is_file($file) || unlink($file);
     }
 
-    public function clear(): bool
-    {
-        $files = glob($this->directory() . DIRECTORY_SEPARATOR . '*.cache') ?: [];
-        $success = true;
-
-        foreach ($files as $file) {
-            if (is_file($file) && !unlink($file)) {
-                $success = false;
-            }
-        }
-
-        return $success;
-    }
-
-    public function has(string $key): bool
-    {
-        return $this->get($key, null) !== null;
-    }
-
     private function directory(): string
     {
+        // Dossier propre au projet (storage/ est ignoré par git), et non le
+        // répertoire temporaire du système partagé avec d'autres applications.
         return $this->cacheDir
-            ?? (sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'viteetgourmand_cache');
+            ?? (dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'cache');
     }
 
     private function cacheFile(string $key): string

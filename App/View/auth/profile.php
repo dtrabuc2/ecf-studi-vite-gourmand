@@ -1,6 +1,7 @@
 <?php
-$errors = \App\Core\Session::pullFlash('profile_errors') ?? [];
-$oldInput = \App\Core\Session::pullFlash('profile_old_input') ?? [];
+$errors = is_array($errors ?? null) ? $errors : [];
+$oldInput = is_array($oldInput ?? null) ? $oldInput : [];
+$passwordErrors = is_array($passwordErrors ?? null) ? $passwordErrors : [];
 $value = static fn (string $key): string => (string) ($oldInput[$key] ?? $user[$key] ?? '');
 ?>
 <main class="py-5">
@@ -31,24 +32,16 @@ $value = static fn (string $key): string => (string) ($oldInput[$key] ?? $user[$
                                 </div>
                             <?php endforeach; ?>
 
+                            <?php /* le numéro enregistré (E.164) est remis dans le champ avec setNumber() par phone-input.js */ ?>
                             <?php foreach (['phone' => 'Téléphone', 'gsm' => 'GSM'] as $field => $label): ?>
                                 <div class="col-md-6">
                                     <label class="form-label" for="<?= $escape($field) ?>"><?= $escape($label) ?></label>
-                                    <div class="input-group">
-                                        <select class="form-select flex-grow-0 phone-region" name="<?= $escape($field) ?>_region" aria-label="Pays du <?= $escape(strtolower($label)) ?>" style="max-width: 170px;">
-                                            <option value="FR">France +33</option>
-                                            <option value="ES">Espagne +34</option>
-                                            <option value="BE">Belgique +32</option>
-                                            <option value="GB">Royaume-Uni +44</option>
-                                            <option value="IT">Italie +39</option>
-                                        </select>
-                                        <input class="form-control <?= isset($errors[$field]) ? 'is-invalid' : '' ?>"
-                                               id="<?= $escape($field) ?>" name="<?= $escape($field) ?>" type="tel"
-                                               value="<?= $escape($value($field)) ?>" required>
-                                    </div>
-                                    <?php if (isset($errors[$field])): ?>
-                                        <div class="invalid-feedback d-block"><?= $escape($errors[$field]) ?></div>
-                                    <?php endif; ?>
+                                    <input class="form-control <?= isset($errors[$field]) ? 'is-invalid' : '' ?>"
+                                           id="<?= $escape($field) ?>" name="<?= $escape($field) ?>" type="tel"
+                                           autocomplete="tel" inputmode="tel" data-phone-input
+                                           aria-describedby="<?= $escape($field) ?>_error"
+                                           value="<?= $escape($value($field)) ?>" required>
+                                    <div class="invalid-feedback <?= isset($errors[$field]) ? 'd-block' : '' ?>" id="<?= $escape($field) ?>_error"><?= $escape($errors[$field] ?? '') ?></div>
                                 </div>
                             <?php endforeach; ?>
 
@@ -69,6 +62,50 @@ $value = static fn (string $key): string => (string) ($oldInput[$key] ?? $user[$
 
                             <div class="col-12">
                                 <button class="btn btn-primary" type="submit">Enregistrer</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <section class="card border-0 shadow-sm mt-4" aria-labelledby="passwordTitle">
+                    <div class="card-body p-4 p-md-5">
+                        <h2 class="h4 text-primary" id="passwordTitle">Changer mon mot de passe</h2>
+                        <p class="text-muted small" id="passwordRules">
+                            10 caractères minimum, avec au moins une majuscule, une minuscule, un chiffre et un caractère spécial.
+                        </p>
+
+                        <?php if ($passwordErrors !== []): ?>
+                            <div class="alert alert-danger" role="alert">
+                                <?php foreach ($passwordErrors as $passwordError): ?>
+                                    <p class="mb-0"><?= $escape((string) $passwordError) ?></p>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <form method="post" action="/password" class="row g-3">
+                            <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="current_password">Mot de passe actuel</label>
+                                <input class="form-control" id="current_password" name="current_password"
+                                       type="password" autocomplete="current-password" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="new_password">Nouveau mot de passe</label>
+                                <input class="form-control" id="new_password" name="new_password"
+                                       type="password" autocomplete="new-password" minlength="10"
+                                       aria-describedby="passwordRules" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="confirm_password">Confirmation</label>
+                                <input class="form-control" id="confirm_password" name="confirm_password"
+                                       type="password" autocomplete="new-password" minlength="10" required>
+                            </div>
+
+                            <div class="col-12">
+                                <button class="btn btn-outline-primary" type="submit">Modifier le mot de passe</button>
                             </div>
                         </form>
                     </div>

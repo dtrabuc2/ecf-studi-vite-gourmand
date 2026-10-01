@@ -1,9 +1,5 @@
 <?php
-$old = $_SESSION['quote_old_input'] ?? [];
-unset($_SESSION['quote_old_input']);
-if (!isset($old['number_of_people']) && isset($_GET['number_of_people'])) {
-    $old['number_of_people'] = (int) $_GET['number_of_people'];
-}
+$old = is_array($old ?? null) ? $old : [];
 ?>
 <main class="py-5">
     <div class="container">
@@ -14,8 +10,9 @@ if (!isset($old['number_of_people']) && isset($_GET['number_of_people'])) {
                         <span class="badge bg-primary-subtle text-primary">Événements importants</span>
                         <h1 class="h2 text-primary mt-3">Demander un devis traiteur</h1>
                         <p class="text-muted">
-                            Pour les mariages, séminaires, repas d'entreprise et autres prestations
-                            au-delà de 30 personnes, nous préparons une proposition adaptée.
+                            Pour les mariages, séminaires, repas d'entreprise ou toute prestation
+                            sur mesure, nous préparons une proposition adaptée. Cette demande est facultative :
+                            tous nos menus peuvent aussi être <a href="/menus">commandés directement</a>.
                         </p>
 
                         <div class="alert alert-info">
@@ -43,18 +40,12 @@ if (!isset($old['number_of_people']) && isset($_GET['number_of_people'])) {
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="quote_phone">Téléphone</label>
-                                <div class="input-group">
-                                    <select class="form-select phone-region flex-grow-0" name="phone_region" id="quote_phone_region" style="max-width: 170px;" aria-label="Pays du téléphone">
-                                        <option value="FR">France +33</option>
-                                        <option value="ES">Espagne +34</option>
-                                        <option value="BE">Belgique +32</option>
-                                        <option value="GB">Royaume-Uni +44</option>
-                                        <option value="IT">Italie +39</option>
-                                    </select>
-                                    <input class="form-control" id="quote_phone" name="phone" type="tel"
-                                           placeholder="+33 6 12 34 56 78"
-                                           value="<?= $escape($old['phone'] ?? '') ?>" required>
-                                </div>
+                                <?php /* pays choisi dans la liste d'intl-tel-input, plus de select à part */ ?>
+                                <input class="form-control" id="quote_phone" name="phone" type="tel"
+                                       autocomplete="tel" inputmode="tel" data-phone-input
+                                       aria-describedby="quote_phone_error"
+                                       value="<?= $escape($old['phone'] ?? '') ?>" required>
+                                <div class="invalid-feedback" id="quote_phone_error"></div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="quote_company">Société</label>
@@ -64,7 +55,7 @@ if (!isset($old['number_of_people']) && isset($_GET['number_of_people'])) {
                             <div class="col-md-6">
                                 <label class="form-label" for="quote_people">Nombre de personnes</label>
                                 <input class="form-control" id="quote_people" name="number_of_people"
-                                       type="number" min="31" required
+                                       type="number" min="1" required
                                        value="<?= $escape($old['number_of_people'] ?? '') ?>">
                             </div>
                             <div class="col-md-6">

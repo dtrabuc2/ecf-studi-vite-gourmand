@@ -18,7 +18,7 @@
                     <label class="form-label" for="filterTheme">Thème</label>
                     <select id="filterTheme" name="theme" class="form-select">
                         <option value="">Tous les thèmes</option>
-                        <?php foreach (array_unique(array_map(static fn ($menu) => $menu->getTheme(), $menus)) as $theme): ?>
+                        <?php foreach ($themes ?? [] as $theme): ?>
                             <option value="<?= $escape($theme) ?>"><?= $escape($theme) ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -27,10 +27,9 @@
                     <label class="form-label" for="filterRegime">Régime</label>
                     <select id="filterRegime" name="dietary_regime" class="form-select">
                         <option value="">Tous les régimes</option>
-                        <option value="classic">Classique</option>
-                        <option value="vegetarian">Végétarien</option>
-                        <option value="vegan">Végétalien</option>
-                        <option value="other">Autre</option>
+                        <?php foreach (\App\Core\Labels::DIETARY_REGIME as $regimeValue => $regimeLabel): ?>
+                            <option value="<?= $escape($regimeValue) ?>"><?= $escape($regimeLabel) ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="col-md-2">
