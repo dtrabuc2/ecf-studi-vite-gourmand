@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Core\Exception\NotFoundException;
+use App\Core\Labels;
 use App\Core\Session;
 use App\Repository\UserRepository;
 use App\Service\CommentService;
@@ -38,6 +40,7 @@ final class OrderController extends BaseController
         }
 
         $this->render('order/index', [
+            'phoneInput' => true, // page avec champ téléphone : charge intl-tel-input
             'orders' => $orders,
             'history' => $history,
             'reviews' => $reviews,
@@ -53,19 +56,25 @@ final class OrderController extends BaseController
         }
 
         $menus = $this->menuService->getAllMenus();
-        $selectedMenuId = isset($_GET['menu']) ? (int) $_GET['menu'] : 0;
         $user = $this->userRepository->findById($userId);
 
         $errors = Session::pullFlash('order_errors', []);
         $oldInput = Session::pullFlash('order_old_input', []);
 
+        // Menu pré-sélectionné : valeur ressaisie après une erreur, sinon ?menu=ID.
+        $requestedMenuId = is_array($oldInput) && isset($oldInput['menu_id'])
+            ? $oldInput['menu_id']
+            : ($_GET['menu'] ?? null);
+        $selectedMenuId = filter_var($requestedMenuId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $selectedMenu = $selectedMenuId !== false ? $this->menuService->getMenuById($selectedMenuId) : null;
+
         $this->render('order/new', [
+            'phoneInput' => true, // page avec champ téléphone : charge intl-tel-input
             'menus' => $menus,
-            'selectedMenuId' => $selectedMenuId,
-            'selectedServiceType' => is_array($oldInput) && in_array(
-                $oldInput['service_type'] ?? '',
-                ['delivery', 'pickup', 'on_site'],
-                true
+            'selectedMenu' => $selectedMenu,
+            'selectedServiceType' => is_array($oldInput) && array_key_exists(
+                (string) ($oldInput['service_type'] ?? ''),
+                Labels::SERVICE_TYPE
             ) ? $oldInput['service_type'] : 'delivery',
             'errors' => is_array($errors) ? $errors : [],
             'oldInput' => is_array($oldInput) ? $oldInput : [],
@@ -85,22 +94,10 @@ final class OrderController extends BaseController
             $this->json(['success' => false, 'error' => 'Nombre de convives invalide.'], 422);
         }
 
-        if ($numberOfPeople > 30) {
-            $this->json([
-                'success' => true,
-                'data' => [
-                    'menus' => [],
-                    'quote_required' => true,
-                    'quote_url' => '/quote',
-                ],
-            ]);
-        }
-
         $this->json([
             'success' => true,
             'data' => [
                 'menus' => $this->orderService->getMenuAvailabilityForPeople($numberOfPeople),
-                'quote_required' => false,
             ],
         ]);
     }
@@ -141,10 +138,6 @@ final class OrderController extends BaseController
         }
 
         $serviceType = trim((string) ($_GET['service_type'] ?? 'delivery'));
-        $deliveryCity = trim((string) ($_GET['delivery_city'] ?? ''));
-        $deliveryDistanceKm = ($_GET['delivery_distance_km'] ?? '') !== ''
-            ? (float) $_GET['delivery_distance_km']
-            : null;
 
         try {
             $this->json([
@@ -153,8 +146,9 @@ final class OrderController extends BaseController
                     $menuId,
                     $numberOfPeople,
                     $serviceType,
-                    $deliveryCity,
-                    $deliveryDistanceKm
+                    trim((string) ($_GET['delivery_address'] ?? '')),
+                    trim((string) ($_GET['delivery_postal_code'] ?? '')),
+                    trim((string) ($_GET['delivery_city'] ?? ''))
                 ),
             ]);
         } catch (InvalidArgumentException $exception) {
@@ -170,154 +164,68 @@ final class OrderController extends BaseController
             $this->redirect('/login');
         }
 
-        $menuId = $_POST['menu_id'] ?? null;
-        $numberOfPeople = $_POST['number_of_people'] ?? null;
-        $confirmedGuestCount = $_POST['confirmed_guest_count'] ?? null;
-        $serviceType = trim((string) ($_POST['service_type'] ?? 'delivery'));
+        $input = $this->postFields([
+            'menu_id',
+            'number_of_people',
+            'confirmed_guest_count',
+            'service_type',
+            'delivery_date',
+            'delivery_time',
+            'delivery_address',
+            'delivery_city',
+            'delivery_postal_code',
+            'delivery_instructions',
+            'contact_phone',
+        ]);
 
-        if (is_numeric($numberOfPeople) && (int) $numberOfPeople > 30) {
-            Session::flash(
-                'quote_old_input',
-                [
-                    'number_of_people' => (int) $numberOfPeople,
-                    'event_date' => trim((string) ($_POST['delivery_date'] ?? '')),
-                    'service_type' => in_array($serviceType, ['delivery', 'pickup', 'on_site'], true) ? $serviceType : 'delivery',
-                    'event_location' => trim((string) ($_POST['delivery_address'] ?? '')),
-                    'postal_code' => trim((string) ($_POST['delivery_postal_code'] ?? '')),
-                    'request_details' => 'Demande traiteur pour ' . (int) $numberOfPeople . ' convives.',
-                ]
-            );
-            $this->redirect('/quote');
-        }
-
-        $deliveryDate = trim((string) ($_POST['delivery_date'] ?? ''));
-        $deliveryTime = trim((string) ($_POST['delivery_time'] ?? ''));
-        $deliveryAddress = trim((string) ($_POST['delivery_address'] ?? ''));
-        $deliveryCity = trim((string) ($_POST['delivery_city'] ?? ''));
-        $deliveryPostalCode = trim((string) ($_POST['delivery_postal_code'] ?? ''));
-        $deliveryDistanceKm = isset($_POST['delivery_distance_km']) && $_POST['delivery_distance_km'] !== ''
-            ? (float) $_POST['delivery_distance_km']
-            : null;
-        $deliveryInstructions = trim((string) ($_POST['delivery_instructions'] ?? ''));
-        $contactPhone = trim((string) ($_POST['contact_phone'] ?? ''));
-
+        // Contrôles propres au formulaire. Les règles métier (menu, stock, minimum,
+        // créneau, téléphone, adresse, livraison) sont appliquées par OrderService.
+        $menuId = filter_var($input['menu_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $numberOfPeople = filter_var($input['number_of_people'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         $errors = [];
 
-        if (!is_numeric($menuId) || (int) $menuId <= 0) {
+        if ($menuId === false) {
             $errors['menu_id'] = 'Menu requis.';
         }
 
-        if (!is_numeric($numberOfPeople) || (int) $numberOfPeople < 1) {
+        if ($numberOfPeople === false) {
             $errors['number_of_people'] = 'Nombre de personnes requis et supérieur à 0.';
-        } elseif (
-            (int) $numberOfPeople < 50
-            && (!is_numeric($confirmedGuestCount) || (int) $confirmedGuestCount !== (int) $numberOfPeople)
-        ) {
+        } elseif ((int) $input['confirmed_guest_count'] !== $numberOfPeople) {
             $errors['number_of_people'] = 'Confirmez le nombre de convives avant de sélectionner un menu.';
-        }
-
-        if ($menuId !== null && is_numeric($menuId) && $numberOfPeople !== null && is_numeric($numberOfPeople) && (int) $numberOfPeople <= 30) {
-            $menu = $this->menuService->getMenuById((int) $menuId);
-
-            if ($menu === null || $menu->getAvailableStock() < 1) {
-                $errors['menu_id'] = 'Ce menu n’est plus disponible.';
-            }
-        }
-
-        if ($deliveryDate === '') {
-            $errors['delivery_date'] = 'Date de prestation invalide.';
-        }
-
-        if ($deliveryTime === '') {
-            $errors['delivery_time'] = 'Heure de prestation invalide.';
-        }
-
-        if ($deliveryDate !== '' && $deliveryTime !== '') {
-            try {
-                $this->orderService->validateServiceDateTime($deliveryDate, $deliveryTime);
-            } catch (InvalidArgumentException $exception) {
-                if (str_contains($exception->getMessage(), 'heure') || str_contains($exception->getMessage(), 'créneau')) {
-                    $errors['delivery_time'] = $exception->getMessage();
-                } else {
-                    $errors['delivery_date'] = $exception->getMessage();
-                }
-            }
-        }
-
-        if (!in_array($serviceType, ['delivery', 'pickup', 'on_site'], true)) {
-            $errors['service_type'] = 'Mode de prestation invalide.';
-        }
-
-        if ($contactPhone === '') {
-            $errors['contact_phone'] = 'Un numéro de téléphone est requis pour cette commande.';
-        } elseif ($this->authPhoneError($contactPhone) !== null) {
-            $errors['contact_phone'] = $this->authPhoneError($contactPhone);
-        }
-
-        if ($serviceType === 'delivery') {
-            if ($deliveryDistanceKm !== null && (!is_finite($deliveryDistanceKm) || $deliveryDistanceKm < 0)) {
-                $errors['delivery_distance_km'] = 'Distance de livraison invalide.';
-            }
-
-            if ($deliveryAddress === '') {
-                $errors['delivery_address'] = 'Adresse de livraison requise.';
-            }
-            if ($deliveryCity === '') {
-                $errors['delivery_city'] = 'Ville de livraison requise.';
-            }
-            if ($deliveryPostalCode === '') {
-                $errors['delivery_postal_code'] = 'Code postal requis pour une livraison.';
-            }
-            if (
-                $deliveryCity !== ''
-                && mb_strtolower($deliveryCity) !== 'bordeaux'
-                && ($deliveryDistanceKm === null || $deliveryDistanceKm < 0)
-            ) {
-                $errors['delivery_distance_km'] = 'Distance de livraison requise hors Bordeaux.';
-            }
-        }
-
-        if ($serviceType === 'pickup' || $serviceType === 'on_site') {
-            $deliveryAddress = '';
-            $deliveryCity = '';
-            $deliveryPostalCode = '';
-            $deliveryDistanceKm = null;
-            $deliveryInstructions = '';
         }
 
         if ($errors !== []) {
             Session::flash('order_errors', $errors);
-            Session::flash('order_old_input', $_POST);
+            Session::flash('order_old_input', $input);
             $this->redirect('/orders/new');
         }
 
         try {
             $result = $this->orderService->createOrder(
                 $userId,
-                (int) $menuId,
-                (int) $numberOfPeople,
-                $deliveryDate,
-                $deliveryTime,
-                $deliveryAddress,
-                $deliveryCity,
-                $deliveryPostalCode,
-                $deliveryDistanceKm,
+                $menuId,
+                $numberOfPeople,
+                $input['delivery_date'],
+                $input['delivery_time'],
+                $input['delivery_address'],
+                $input['delivery_city'],
+                $input['delivery_postal_code'],
                 null,
-                $serviceType,
+                $input['service_type'] !== '' ? $input['service_type'] : 'delivery',
                 'cash_on_site',
-                $deliveryInstructions,
-                $contactPhone
+                $input['delivery_instructions'],
+                $input['contact_phone']
             );
 
             $this->redirect('/orders/confirmation/' . $result['order_id']);
         } catch (InvalidArgumentException $exception) {
             Session::flash('order_errors', ['general' => $exception->getMessage()]);
-            Session::flash('order_old_input', $_POST);
+            Session::flash('order_old_input', $input);
             $this->redirect('/orders/new');
         } catch (\Throwable $exception) {
             error_log('Order creation error: ' . $exception->getMessage());
             Session::flash('order_errors', ['general' => 'Une erreur est survenue lors de la création de la commande.']);
-            Session::flash('order_old_input', $_POST);
+            Session::flash('order_old_input', $input);
             $this->redirect('/orders/new');
         }
     }
@@ -348,25 +256,17 @@ final class OrderController extends BaseController
         }
 
         try {
-            $distance = ($_POST['delivery_distance_km'] ?? '') !== ''
-                ? (float) $_POST['delivery_distance_km']
-                : null;
-
             $this->orderService->updateCustomerOrder(
                 $id,
                 $userId,
-                (int) $_POST['number_of_people'],
-                trim((string) $_POST['delivery_date']),
-                trim((string) $_POST['delivery_time']),
-                trim((string) $_POST['delivery_address']),
-                trim((string) $_POST['delivery_city']),
-                trim((string) $_POST['delivery_postal_code']),
-                $distance
+                $this->postFields(OrderService::EDITABLE_FIELDS)
             );
-
             Session::flash('order_success', 'Commande modifiée.');
-        } catch (\Throwable $exception) {
+        } catch (InvalidArgumentException $exception) {
             Session::flash('order_error', $exception->getMessage());
+        } catch (\Throwable $exception) {
+            error_log('Order customer update error: ' . $exception->getMessage());
+            Session::flash('order_error', 'La commande n’a pas pu être modifiée.');
         }
 
         $this->redirect('/orders');
@@ -382,9 +282,9 @@ final class OrderController extends BaseController
 
         $order = $this->orderService->getOrderById($id);
 
+        // commande inconnue ou d'un autre client : 404 commune, on ne dit pas si elle existe
         if ($order === null || $order->getUserId() !== $userId) {
-            http_response_code(403);
-            return;
+            throw new NotFoundException('Commande introuvable.');
         }
 
         if ($order->getStatus() !== 'completed') {
@@ -418,20 +318,11 @@ final class OrderController extends BaseController
         }
 
         $order = $this->orderService->getOrderById($id);
-
-        if ($order === null) {
-            http_response_code(404);
-            echo 'Commande introuvable';
-            return;
-        }
-
-        $isOwner = $order->getUserId() === $userId;
         $isStaff = in_array($role, ['employee', 'admin'], true);
 
-        if (!$isOwner && !$isStaff) {
-            http_response_code(403);
-            echo 'Accès refusé';
-            return;
+        // commande inconnue ou d'un autre client : 404 commune
+        if ($order === null || ($order->getUserId() !== $userId && !$isStaff)) {
+            throw new NotFoundException('Commande introuvable.');
         }
 
         $status = trim((string) ($_POST['status'] ?? ''));
@@ -441,18 +332,15 @@ final class OrderController extends BaseController
             ? ((string) $_POST['equipment_loaned'] === '1')
             : null;
 
+        // formulaire HTML (bouton « Annuler la commande ») : erreurs en message flash, plus de texte brut
         if (!$isStaff && ($status !== 'cancelled' || $order->getStatus() !== 'pending')) {
-            http_response_code(403);
-            echo 'Une commande ne peut être annulée par le client que lorsqu’elle est en attente.';
-            return;
+            $this->failStatusUpdate('Une commande ne peut être annulée par le client que lorsqu’elle est en attente.');
         }
 
         if ($status === 'cancelled' && $isStaff) {
             $contactMode = trim((string) ($_POST['contact_mode'] ?? ''));
             if ($contactMode === '') {
-                http_response_code(400);
-                echo 'Le mode de contact du client est obligatoire pour une annulation.';
-                return;
+                $this->failStatusUpdate('Le mode de contact du client est obligatoire pour une annulation.');
             }
 
             $notes = 'Contact client : ' . $contactMode
@@ -460,9 +348,7 @@ final class OrderController extends BaseController
         }
 
         if ($status === 'cancelled' && $cancellationReason === '') {
-            http_response_code(400);
-            echo 'Le motif d’annulation est obligatoire.';
-            return;
+            $this->failStatusUpdate('Le motif d’annulation est obligatoire.');
         }
 
         try {
@@ -474,30 +360,19 @@ final class OrderController extends BaseController
                 $cancellationReason !== '' ? $cancellationReason : null,
                 $equipmentLoaned
             );
-
-            $this->redirect('/orders');
         } catch (\InvalidArgumentException $exception) {
-            http_response_code(400);
-            echo $exception->getMessage();
+            $this->failStatusUpdate($exception->getMessage());
         } catch (\Throwable $exception) {
             error_log('Order status update error: ' . $exception->getMessage());
-            http_response_code(500);
-            echo 'Erreur serveur';
+            $this->failStatusUpdate('La commande n’a pas pu être mise à jour.');
         }
+
+        $this->redirect('/orders');
     }
-    private function authPhoneError(string $phone): ?string
+
+    private function failStatusUpdate(string $message): never
     {
-        $value = preg_replace('/[\s().-]+/', '', $phone) ?? '';
-
-        if (preg_match('/^(?:\+33[67]\d{8}|0[67]\d{8})$/', $value)) {
-            return null;
-        }
-
-        if (preg_match('/^(?:\+34[6789]\d{8}|[6789]\d{8})$/', $value)) {
-            return null;
-        }
-
-        return 'Numéro de téléphone invalide. Formats acceptés : France (+33 6/7 ou 06/07) ou Espagne (+34 6/7/8/9).';
+        Session::flash('order_error', $message);
+        $this->redirect('/orders');
     }
-
 }

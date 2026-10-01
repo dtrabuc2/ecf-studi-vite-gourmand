@@ -7,6 +7,9 @@ use App\Core\Session;
 use App\Repository\UserRepository;
 use App\Service\AuthService;
 use App\Service\MailService;
+use App\Service\PasswordPolicy;
+use App\Service\PhoneValidator;
+use App\Service\RateLimiter;
 use Throwable;
 
 final class AuthController extends BaseController
@@ -14,7 +17,10 @@ final class AuthController extends BaseController
     public function __construct(
         private readonly AuthService $authService,
         private readonly UserRepository $userRepository,
-        private readonly MailService $mailService
+        private readonly MailService $mailService,
+        private readonly RateLimiter $rateLimiter,
+        private readonly PhoneValidator $phoneValidator,
+        private readonly PasswordPolicy $passwordPolicy
     ) {
     }
 
@@ -31,9 +37,12 @@ final class AuthController extends BaseController
         );
 
         if ($user === null) {
+            $this->rateLimiter->hit('/login');
             Session::flash('login_error', 'Identifiants invalides, compte indisponible ou accès réservé à l’espace équipe.');
             $this->redirect('/login');
         }
+
+        $this->rateLimiter->clear('/login');
 
         if (!in_array($user->getRole(), ['user'], true)) {
             Session::flash(
@@ -54,7 +63,11 @@ final class AuthController extends BaseController
 
     public function showRegister(): void
     {
-        $this->render('auth/register');
+        $this->render('auth/register', [
+            'phoneInput' => true, // page avec champ téléphone : charge intl-tel-input
+            'oldInput' => (array) Session::pullFlash('register_old_input', []),
+            'errors' => (array) Session::pullFlash('register_errors', []),
+        ]);
     }
 
     public function register(): void
@@ -97,6 +110,7 @@ final class AuthController extends BaseController
         }
 
         $this->render('auth/profile', [
+            'phoneInput' => true, // page avec champ téléphone : charge intl-tel-input
             'user' => [
                 'email' => $user->getEmail(),
                 'first_name' => $user->getFirstName(),
@@ -105,6 +119,9 @@ final class AuthController extends BaseController
                 'gsm' => $user->getGsm(),
                 'address' => $user->getAddress(),
             ],
+            'errors' => (array) Session::pullFlash('profile_errors', []),
+            'oldInput' => (array) Session::pullFlash('profile_old_input', []),
+            'passwordErrors' => (array) Session::pullFlash('password_errors', []),
         ]);
     }
 
@@ -116,8 +133,6 @@ final class AuthController extends BaseController
             'last_name' => trim((string) ($_POST['last_name'] ?? '')),
             'phone' => trim((string) ($_POST['phone'] ?? '')),
             'gsm' => trim((string) ($_POST['gsm'] ?? '')),
-            'phone_region' => strtoupper(trim((string) ($_POST['phone_region'] ?? 'FR'))),
-            'gsm_region' => strtoupper(trim((string) ($_POST['gsm_region'] ?? 'FR'))),
             'address' => trim((string) ($_POST['address'] ?? '')),
         ];
 
@@ -134,13 +149,12 @@ final class AuthController extends BaseController
         }
 
         foreach (['phone', 'gsm'] as $field) {
-            $regionKey = $field . '_region';
+            $phoneError = $data[$field] !== ''
+                ? $this->phoneValidator->validate($data[$field])
+                : null;
 
-            if (
-                $data[$field] !== ''
-                && $this->authService->validatePhone($data[$field], $data[$regionKey] ?? 'FR') !== null
-            ) {
-                $errors[$field] = $this->authService->validatePhone($data[$field], $data[$regionKey] ?? 'FR');
+            if ($phoneError !== null) {
+                $errors[$field] = $phoneError;
             }
         }
 
@@ -269,8 +283,6 @@ final class AuthController extends BaseController
             'last_name' => trim((string) ($_POST['last_name'] ?? '')),
             'phone' => trim((string) ($_POST['phone'] ?? '')),
             'gsm' => trim((string) ($_POST['gsm'] ?? '')),
-            'phone_region' => strtoupper(trim((string) ($_POST['phone_region'] ?? 'FR'))),
-            'gsm_region' => strtoupper(trim((string) ($_POST['gsm_region'] ?? 'FR'))),
             'address' => trim((string) ($_POST['address'] ?? '')),
         ];
     }
@@ -290,24 +302,23 @@ final class AuthController extends BaseController
         }
 
         foreach (['phone', 'gsm'] as $field) {
-            $regionKey = $field . '_region';
+            $phoneError = $data[$field] !== '' && !isset($errors[$field])
+                ? $this->phoneValidator->validate($data[$field])
+                : null;
 
-            if (
-                $data[$field] !== ''
-                && !isset($errors[$field])
-                && $this->authService->validatePhone($data[$field], $data[$regionKey] ?? 'FR')
-            ) {
-                $errors[$field] = $this->authService->validatePhone(
-                    $data[$field],
-                    $data[$regionKey] ?? 'FR'
-                );
+            if ($phoneError !== null) {
+                $errors[$field] = $phoneError;
             }
         }
 
-        $passwordErrors = $this->authService->validatePassword($data['password']);
+        $passwordErrors = $this->passwordPolicy->validate($data['password']);
 
-        if ($passwordErrors !== null) {
+        if ($passwordErrors !== []) {
             $errors['password'] = implode(' ', $passwordErrors);
+        }
+
+        if (($_POST['privacy_consent'] ?? '') !== '1') {
+            $errors['privacy_consent'] = 'Vous devez accepter la politique de confidentialité et les CGV pour créer un compte.';
         }
 
         return $errors;

@@ -1,7 +1,7 @@
 <main class="py-5"><div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h2 text-primary mb-0">Gestion des clients</h1>
-        <?php if (($_SESSION['role'] ?? '') === 'admin'): ?><a class="btn btn-outline-primary" href="/admin/employees">Employés</a><?php endif; ?>
+        <?php if (!empty($isAdmin)): ?><a class="btn btn-outline-primary" href="/admin/employees">Employés</a><?php endif; ?>
     </div>
 
     <form method="get" action="/admin/customers" class="row g-2 mb-4">

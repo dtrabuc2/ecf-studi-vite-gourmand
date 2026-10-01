@@ -47,12 +47,12 @@ $sent = $sent ?? null;
                         <label class="form-label fw-semibold" for="email_reply">Répondre</label>
                         <textarea class="form-control" id="email_reply" name="body" rows="5" required placeholder="Votre réponse..."></textarea>
                         <div class="d-flex justify-content-between gap-2 mt-3">
-                            <button class="btn btn-outline-secondary" formaction="/admin/emails/<?= (int) $selectedMessage['source'] ?>/<?= (int) $selectedMessage['id'] ?>/trash" type="submit">Corbeille</button>
+                            <button class="btn btn-outline-secondary" formaction="/admin/emails/<?= $escape($selectedMessage['source'] === 'outbox' ? 'outbox' : 'inbox') ?>/<?= (int) $selectedMessage['id'] ?>/trash" type="submit">Corbeille</button>
                             <button class="btn btn-primary" type="submit">Envoyer la réponse</button>
                         </div>
                     </form>
                 <?php else: ?>
-                    <form method="post" action="/admin/emails/<?= $escape($selectedMessage['source']) ?>/<?= (int) $selectedMessage['id'] ?>/trash" class="email-reply text-end">
+                    <form method="post" action="/admin/emails/<?= $escape($selectedMessage['source'] === 'outbox' ? 'outbox' : 'inbox') ?>/<?= (int) $selectedMessage['id'] ?>/trash" class="email-reply text-end">
                         <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
                         <input type="hidden" name="mailbox" value="<?= $escape($mailbox) ?>">
                         <button class="btn btn-outline-secondary" type="submit">Déplacer dans la corbeille</button>

@@ -15,6 +15,12 @@
                         <label class="form-label" for="employee_<?= $field ?>"><?= $label ?></label>
                         <?php if ($field === 'address'): ?>
                             <textarea class="form-control" id="employee_<?= $field ?>" name="<?= $field ?>" required></textarea>
+                        <?php elseif ($field === 'phone' || $field === 'gsm'): ?>
+                            <?php /* même champ téléphone que côté client (intl-tel-input) */ ?>
+                            <input class="form-control" id="employee_<?= $field ?>" name="<?= $field ?>" type="tel"
+                                   autocomplete="tel" inputmode="tel" data-phone-input
+                                   aria-describedby="employee_<?= $field ?>_error" required>
+                            <div class="invalid-feedback" id="employee_<?= $field ?>_error"></div>
                         <?php else: ?>
                             <input class="form-control" id="employee_<?= $field ?>" name="<?= $field ?>" type="<?= $field === 'email' ? 'email' : 'text' ?>" required>
                         <?php endif; ?>

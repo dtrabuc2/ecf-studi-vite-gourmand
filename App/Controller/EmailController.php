@@ -132,7 +132,12 @@ final class EmailController extends BaseController
 
     public function trash(string $source, int $id): never
     {
-        $this->emailService->moveToTrash($source === 'outbox' ? 'outbox' : 'inbox', $id);
+        if (!in_array($source, ['inbox', 'outbox'], true)) {
+            Session::flash('admin_error', 'Dossier de message inconnu.');
+            $this->redirect('/admin/emails');
+        }
+
+        $this->emailService->moveToTrash($source, $id);
         Session::flash('admin_success', 'Message déplacé dans la corbeille.');
         $mailbox = ($_POST['mailbox'] ?? 'contact') === 'mail.ai' ? 'mail.ai' : 'contact';
         $this->redirect('/admin/emails?mailbox=' . $mailbox . '&folder=trash');

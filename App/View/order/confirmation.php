@@ -1,14 +1,4 @@
 <?php
-$statusLabels = [
-    'pending' => 'En attente',
-    'accepted' => 'Acceptée',
-    'preparing' => 'En préparation',
-    'delivering' => 'En livraison',
-    'delivered' => 'Livrée',
-    'awaiting_return' => 'En attente de retour',
-    'completed' => 'Terminée',
-    'cancelled' => 'Annulée',
-];
 $status = $order->getStatus();
 ?>
 <main class="py-5">
@@ -20,7 +10,7 @@ $status = $order->getStatus();
                         <div class="text-center mb-4">
                             <div class="d-flex flex-wrap justify-content-center gap-2">
                                 <span class="badge text-bg-success">Commande enregistrée</span>
-                                <span class="badge text-bg-secondary"><?= $escape($statusLabels[$status] ?? $status) ?></span>
+                                <span class="badge text-bg-secondary"><?= $escape(\App\Core\Labels::orderStatus($status)) ?></span>
                             </div>
                             <h1 class="h2 text-primary mt-3">Merci pour votre commande</h1>
                             <p class="mb-1">Référence : <strong><?= $escape($order->getOrderNumber()) ?></strong></p>
@@ -31,11 +21,7 @@ $status = $order->getStatus();
                             <div class="col-12 col-md-4">
                                 <div class="summary-box p-3 h-100">
                                     <span class="small text-muted d-block">Prestation</span>
-                                    <strong><?= $escape([
-                                        'delivery' => 'Livraison',
-                                        'on_site' => 'Sur place',
-                                        'pickup' => 'À emporter',
-                                    ][$order->getServiceType()] ?? $order->getServiceType()) ?></strong>
+                                    <strong><?= $escape(\App\Core\Labels::serviceType($order->getServiceType())) ?></strong>
                                 </div>
                             </div>
                             <div class="col-12 col-md-4">

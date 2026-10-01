@@ -1,4 +1,4 @@
-<?php $labels=['pending'=>'En attente','accepted'=>'Acceptée','preparing'=>'En préparation','delivering'=>'En livraison','delivered'=>'Livrée','awaiting_return'=>'En attente de retour','completed'=>'Terminée','cancelled'=>'Annulée']; ?>
+<?php $labels = \App\Core\Labels::ORDER_STATUS; ?>
 <main class="py-5">
     <div class="container">
         <div class="mb-4">
@@ -33,7 +33,7 @@
             </div>
         </form>
 
-        <?php foreach ($orders as $order): ?><section class="card border-0 shadow-sm mb-4">
+        <?php foreach ($orders as $order): ?><section class="card border-0 shadow-sm mb-4" id="order-<?= $order->getId() ?>">
     <div class="card-body p-4">
         <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
             <div>
@@ -49,7 +49,7 @@
             <div class="col-12 col-sm-6 col-lg-3">
                 <div class="summary-box h-100 p-3">
                     <span class="small text-muted d-block">Client</span>
-                    <strong><?= $escape($order->getUserId()) ?></strong>
+                    <strong><?= $escape($order->getCustomerName() ?? ('#' . $order->getUserId())) ?></strong>
                 </div>
             </div>
             <div class="col-12 col-sm-6 col-lg-3">
@@ -62,11 +62,7 @@
             <div class="col-12 col-sm-6 col-lg-3">
                 <div class="summary-box h-100 p-3">
                     <span class="small text-muted d-block">Type</span>
-                    <strong><?= $escape([
-                        'delivery' => 'Livraison',
-                        'on_site' => 'Sur place',
-                        'pickup' => 'À emporter',
-                    ][$order->getServiceType()] ?? $order->getServiceType()) ?></strong>
+                    <strong><?= $escape(\App\Core\Labels::serviceType($order->getServiceType())) ?></strong>
                 </div>
             </div>
             <div class="col-12 col-sm-6 col-lg-3">
@@ -79,7 +75,7 @@
 
         <div class="row g-3 mb-3">
             <div class="col-12 col-lg-6">
-                <p class="small mb-1"><strong>Client ID :</strong> <?= $order->getUserId() ?></p>
+                <p class="small mb-1"><strong>E-mail :</strong> <?= $escape($order->getCustomerEmail() ?? '') ?></p>
                 <p class="small mb-1"><strong>Téléphone :</strong> <?= $escape($order->getContactPhone()) ?></p>
                 <p class="small mb-0"><strong>Lieu :</strong> <?= $escape($order->getDeliveryAddress()) ?>
                     <?= $order->getDeliveryCity() !== '' ? ' — ' . $escape($order->getDeliveryPostalCode() . ' ' . $order->getDeliveryCity()) : '' ?>
@@ -87,7 +83,7 @@
             </div>
             <div class="col-12 col-lg-6">
                 <p class="small mb-1"><strong>Personnes :</strong> <?= $order->getNumberOfPeople() ?></p>
-                <p class="small mb-1"><strong>Menu :</strong> #<?= $order->getMenuId() ?></p>
+                <p class="small mb-1"><strong>Menu :</strong> <?= $escape($order->getMenuTitle() ?? ('#' . $order->getMenuId())) ?></p>
                 <p class="small mb-0"><strong>Total :</strong> <?= number_format($order->getTotalPrice(), 2, ',', ' ') ?> €</p>
             </div>
         </div>
@@ -109,16 +105,54 @@
         <p class="small text-muted mb-3">
             Matériel prêté : <?= $order->isEquipmentLoaned() ? 'Oui' : 'Non' ?>
         </p>
+
+        <details class="mb-3">
+            <summary class="fw-semibold small">Historique de la commande</summary>
+            <ol class="small ps-3 mt-2 mb-0">
+                <?php foreach (($history[$order->getId()] ?? []) as $entry): ?>
+                    <li>
+                        <?= $escape($labels[$entry['status']] ?? $entry['status']) ?>
+                        — <?= $entry['changed_at'] instanceof \DateTimeInterface ? $escape($entry['changed_at']->format('d/m/Y H:i')) : '' ?>
+                        <?php if (($entry['notes'] ?? '') !== ''): ?>
+                            <span class="d-block text-muted"><?= $escape($entry['notes']) ?></span>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ol>
+        </details>
+
+        <?php if (in_array($order->getStatus(), $editableStatuses ?? [], true)): ?>
+            <details class="mb-3">
+                <summary class="fw-semibold small">Modifier la commande (après contact avec le client)</summary>
+                <form method="post" action="/admin/orders/<?= $order->getId() ?>/edit" class="row g-2 mt-2 order-edit-form">
+                    <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
+                    <?php $fieldPrefix = 'staff'; require dirname(__DIR__) . '/order/_edit_fields.php'; ?>
+                    <div class="col-md-4">
+                        <label class="form-label" for="edit_contact_<?= $order->getId() ?>">Mode de contact du client</label>
+                        <select class="form-select" id="edit_contact_<?= $order->getId() ?>" name="contact_mode" required>
+                            <option value="">Choisir</option>
+                            <option value="Téléphone">Téléphone</option>
+                            <option value="E-mail">E-mail</option>
+                            <option value="Sur place">Sur place</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label" for="edit_reason_<?= $order->getId() ?>">Motif de la modification</label>
+                        <input class="form-control" id="edit_reason_<?= $order->getId() ?>" name="modification_reason" maxlength="255" required>
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-outline-primary btn-sm" type="submit">Enregistrer la modification</button>
+                    </div>
+                </form>
+            </details>
+        <?php endif; ?>
 <?php
-$next = match ($order->getStatus()) {
-    'pending' => ['accepted', 'cancelled'],
-    'accepted' => ['preparing', 'cancelled'],
-    'preparing' => ['delivering', 'cancelled'],
-    'delivering' => ['delivered', 'cancelled'],
-    'delivered' => $order->isEquipmentLoaned() ? ['awaiting_return'] : ['completed'],
-    'awaiting_return' => ['completed'],
-    default => [],
-};
+/* statuts possibles : table OrderService::ALLOWED_TRANSITIONS passée par le contrôleur */
+$next = $transitions[$order->getStatus()] ?? [];
+// livrée sans matériel prêté : « Terminée » en premier (le serveur tranche avec la case « Matériel prêté »)
+if ($order->getStatus() === 'delivered' && !$order->isEquipmentLoaned()) {
+    $next = array_reverse($next);
+}
 if($next): ?>
 <form method="post" action="/admin/orders/<?= $order->getId() ?>/status" class="row g-2"><input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>"><div class="col-12 col-md-6 col-xl-3">
 <label class="form-label" for="status_<?= $order->getId() ?>">Statut</label>

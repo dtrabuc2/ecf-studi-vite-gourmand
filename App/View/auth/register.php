@@ -1,6 +1,6 @@
 <?php
-$oldInput = \App\Core\Session::pullFlash('register_old_input') ?? [];
-$errors = \App\Core\Session::pullFlash('register_errors') ?? [];
+$oldInput = is_array($oldInput ?? null) ? $oldInput : [];
+$errors = is_array($errors ?? null) ? $errors : [];
 ?>
 <main class="py-5">
     <div class="container">
@@ -29,24 +29,16 @@ $errors = \App\Core\Session::pullFlash('register_errors') ?? [];
                                 </div>
                             <?php endforeach; ?>
 
+                            <?php /* téléphone et GSM : le pays se choisit dans la liste d'intl-tel-input (phone-input.js) */ ?>
                             <?php foreach (['phone' => 'Téléphone', 'gsm' => 'GSM'] as $field => $label): ?>
                                 <div class="col-md-6">
                                     <label class="form-label" for="<?= $escape($field) ?>"><?= $escape($label) ?></label>
-                                    <div class="input-group">
-                                        <select class="form-select flex-grow-0 phone-region" name="<?= $escape($field) ?>_region" aria-label="Pays du <?= $escape(strtolower($label)) ?>" style="max-width: 170px;">
-                                            <option value="FR">France +33</option>
-                                            <option value="ES">Espagne +34</option>
-                                            <option value="BE">Belgique +32</option>
-                                            <option value="GB">Royaume-Uni +44</option>
-                                            <option value="IT">Italie +39</option>
-                                        </select>
-                                        <input class="form-control <?= isset($errors[$field]) ? 'is-invalid' : '' ?>"
-                                               id="<?= $escape($field) ?>" name="<?= $escape($field) ?>" type="tel"
-                                               value="<?= $escape($oldInput[$field] ?? '') ?>" placeholder="+33 6 12 34 56 78" required>
-                                    </div>
-                                    <?php if (isset($errors[$field])): ?>
-                                        <div class="invalid-feedback d-block"><?= $escape($errors[$field]) ?></div>
-                                    <?php endif; ?>
+                                    <input class="form-control <?= isset($errors[$field]) ? 'is-invalid' : '' ?>"
+                                           id="<?= $escape($field) ?>" name="<?= $escape($field) ?>" type="tel"
+                                           autocomplete="tel" inputmode="tel" data-phone-input
+                                           aria-describedby="<?= $escape($field) ?>_error"
+                                           value="<?= $escape($oldInput[$field] ?? '') ?>" required>
+                                    <div class="invalid-feedback <?= isset($errors[$field]) ? 'd-block' : '' ?>" id="<?= $escape($field) ?>_error"><?= $escape($errors[$field] ?? '') ?></div>
                                 </div>
                             <?php endforeach; ?>
 
@@ -80,6 +72,24 @@ $errors = \App\Core\Session::pullFlash('register_errors') ?? [];
                                 <?php if (isset($errors['address'])): ?>
                                     <div class="invalid-feedback"><?= $escape($errors['address']) ?></div>
                                 <?php endif; ?>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input <?= isset($errors['privacy_consent']) ? 'is-invalid' : '' ?>"
+                                           type="checkbox" id="privacy_consent" name="privacy_consent" value="1"
+                                           aria-describedby="privacyConsentHelp" required>
+                                    <label class="form-check-label" for="privacy_consent">
+                                        J’ai lu la <a href="/confidentialite" target="_blank" rel="noopener">politique de confidentialité</a>
+                                        et j’accepte les <a href="/cgv" target="_blank" rel="noopener">conditions générales de vente</a>.
+                                    </label>
+                                    <?php if (isset($errors['privacy_consent'])): ?>
+                                        <div class="invalid-feedback"><?= $escape($errors['privacy_consent']) ?></div>
+                                    <?php endif; ?>
+                                </div>
+                                <p class="form-text mb-0" id="privacyConsentHelp">
+                                    Vos données servent uniquement à gérer votre compte et vos commandes. Vous pouvez demander leur suppression à tout moment.
+                                </p>
                             </div>
 
                             <?php if (isset($errors['general'])): ?>

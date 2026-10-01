@@ -8,9 +8,11 @@ use App\Repository\OpeningHoursRepository;
 use App\Service\AdminService;
 use App\Service\AuthService;
 use App\Service\CommentService;
+use App\Service\MailService;
 use App\Service\MenuService;
 use App\Service\OrderService;
 use App\Service\QuoteService;
+use App\Service\RateLimiter;
 use Throwable;
 
 final class AdminController extends BaseController
@@ -22,7 +24,9 @@ final class AdminController extends BaseController
         private readonly CommentService $commentService,
         private readonly OrderService $orderService,
         private readonly OpeningHoursRepository $openingHoursRepository,
-        private readonly QuoteService $quoteService
+        private readonly QuoteService $quoteService,
+        private readonly RateLimiter $rateLimiter,
+        private readonly MailService $mailService
     ) {
     }
 
@@ -39,9 +43,12 @@ final class AdminController extends BaseController
         );
 
         if ($user === null) {
+            $this->rateLimiter->hit('/admin/login');
             Session::flash('login_error', 'Identifiants invalides ou compte indisponible.');
             $this->redirect('/admin/login');
         }
+
+        $this->rateLimiter->clear('/admin/login');
 
         $role = $user->getRole();
 
@@ -82,14 +89,49 @@ final class AdminController extends BaseController
         $status = trim((string) ($_GET['status'] ?? ''));
         $customer = trim((string) ($_GET['customer'] ?? ''));
 
+        $orders = $this->orderService->getOrdersForStaff(
+            $status !== '' ? $status : null,
+            $customer !== '' ? $customer : null
+        );
+        $history = [];
+
+        foreach ($orders as $order) {
+            $history[$order->getId()] = $this->orderService->getOrderHistory($order->getId());
+        }
+
         $this->render('admin/orders', [
-            'orders' => $this->orderService->getOrdersForStaff(
-                $status !== '' ? $status : null,
-                $customer !== '' ? $customer : null
-            ),
+            'phoneInput' => true, // page avec champ téléphone : charge intl-tel-input
+            'orders' => $orders,
+            'history' => $history,
+            'editableStatuses' => OrderService::STAFF_EDITABLE_STATUSES,
+            'transitions' => OrderService::ALLOWED_TRANSITIONS,
             'selectedStatus' => $status,
             'customer' => $customer,
         ]);
+    }
+
+    /**
+     * Modification du contenu d'une commande après contact avec le client.
+     */
+    public function updateOrder(int $id): never
+    {
+        try {
+            $this->orderService->updateOrderByStaff(
+                $id,
+                (int) Session::id(),
+                $this->postFields(OrderService::EDITABLE_FIELDS),
+                trim((string) ($_POST['contact_mode'] ?? '')),
+                trim((string) ($_POST['modification_reason'] ?? ''))
+            );
+            Session::flash('admin_success', 'Commande modifiée. Le changement est inscrit dans son historique.');
+        } catch (\InvalidArgumentException $exception) {
+            Session::flash('admin_error', $exception->getMessage());
+        } catch (Throwable $exception) {
+            error_log('Order staff update error: ' . $exception->getMessage());
+            Session::flash('admin_error', 'La commande n’a pas pu être modifiée.');
+        }
+
+        $this->redirect('/admin/orders#order-' . $id);
     }
 
     public function quotes(): void
@@ -202,6 +244,7 @@ final class AdminController extends BaseController
             'customers' => $this->adminService->getCustomers($search !== '' ? $search : null, $active),
             'search' => $search,
             'active' => $active,
+            'isAdmin' => Session::role() === 'admin',
         ]);
     }
 
@@ -232,7 +275,19 @@ final class AdminController extends BaseController
         try {
             $this->adminService->createEmployee($data);
 
-            Session::flash('admin_success', 'Employé créé avec succès.');
+            // Mail d'information sans le mot de passe (communiqué par l'administrateur).
+            $mailSent = $this->mailService->sendEmployeeAccountEmail(
+                mb_strtolower($data['email']),
+                $data['first_name'],
+                rtrim((string) config('app.url', ''), '/') . '/admin/login'
+            );
+
+            Session::flash(
+                'admin_success',
+                $mailSent
+                    ? 'Employé créé avec succès. Un e-mail l’en a informé (sans le mot de passe).'
+                    : 'Employé créé avec succès, mais l’e-mail d’information n’a pas pu être envoyé.'
+            );
         } catch (Throwable $exception) {
             Session::flash('admin_error', $exception->getMessage());
         }
@@ -243,26 +298,37 @@ final class AdminController extends BaseController
     public function getEmployees(): void
     {
         $this->render('admin/employees', [
+            'phoneInput' => true, // page avec champ téléphone : charge intl-tel-input
             'employees' => $this->adminService->getEmployees(),
         ]);
     }
 
     public function disableEmployee(int $id): never
     {
-        $this->adminService->disableEmployee($id);
-        $this->json(['success' => true]);
+        $this->flashResult(
+            fn () => $this->adminService->disableEmployee($id),
+            'Compte employé désactivé.',
+            'Le compte employé n’a pas pu être désactivé.'
+        );
+        $this->redirect('/admin/employees');
     }
 
     public function enableEmployee(int $id): never
     {
-        $this->adminService->enableEmployee($id);
-        $this->json(['success' => true]);
+        $this->flashResult(
+            fn () => $this->adminService->enableEmployee($id),
+            'Compte employé réactivé.',
+            'Le compte employé n’a pas pu être réactivé.'
+        );
+        $this->redirect('/admin/employees');
     }
 
     public function getMenus(): void
     {
+        // Les menus épuisés restent visibles pour pouvoir être réapprovisionnés.
         $this->render('admin/menus', [
-            'menus' => $this->menuService->getAllMenus(),
+            'menus' => $this->menuService->getMenusForAdmin(),
+            'themes' => MenuService::THEMES,
         ]);
     }
 
@@ -290,14 +356,14 @@ final class AdminController extends BaseController
         $this->redirect('/admin/menus');
     }
 
-    public function deleteMenu(int $id): void
+    public function deleteMenu(int $id): never
     {
-        try {
-            $this->menuService->deleteMenu($id);
-            $this->json(['success' => true]);
-        } catch (Throwable $exception) {
-            $this->json(['success' => false, 'error' => $exception->getMessage()], 500);
-        }
+        $this->flashResult(
+            fn () => $this->menuService->deleteMenu($id),
+            'Menu désactivé : il n’est plus proposé aux clients.',
+            'Le menu n’a pas pu être désactivé.'
+        );
+        $this->redirect('/admin/menus');
     }
 
     public function getPendingComments(): void
@@ -309,14 +375,38 @@ final class AdminController extends BaseController
 
     public function validateComment(string $id): never
     {
-        $this->commentService->validateComment($id);
-        $this->json(['success' => true]);
+        $this->flashResult(
+            fn () => $this->commentService->validateComment($id),
+            'Avis validé : il est maintenant visible sur l’accueil.',
+            'L’avis n’a pas pu être validé.'
+        );
+        $this->redirect('/admin/comments/pending');
     }
 
     public function rejectComment(string $id): never
     {
-        $this->commentService->rejectComment($id);
-        $this->json(['success' => true]);
+        $this->flashResult(
+            fn () => $this->commentService->rejectComment($id),
+            'Avis refusé.',
+            'L’avis n’a pas pu être refusé.'
+        );
+        $this->redirect('/admin/comments/pending');
+    }
+
+    /**
+     * Exécute une action de formulaire et affiche le résultat par message flash.
+     */
+    private function flashResult(callable $action, string $success, string $failure): void
+    {
+        try {
+            $action();
+            Session::flash('admin_success', $success);
+        } catch (\InvalidArgumentException $exception) {
+            Session::flash('admin_error', $exception->getMessage());
+        } catch (Throwable $exception) {
+            error_log($failure . ' ' . $exception->getMessage());
+            Session::flash('admin_error', $failure);
+        }
     }
 
     public function revenuePage(): void
@@ -333,23 +423,11 @@ final class AdminController extends BaseController
                 $to !== '' ? $to : null,
                 $menuId
             ),
-            'menus' => $this->menuService->getAllMenus(),
+            'menus' => $this->menuService->getMenusForAdmin(),
             'from' => $from,
             'to' => $to,
             'menuId' => $menuId,
         ]);
     }
 
-    public function revenueByMenu(): never
-    {
-        $from = isset($_GET['from']) ? trim((string) $_GET['from']) : null;
-        $to = isset($_GET['to']) ? trim((string) $_GET['to']) : null;
-        $menuId = isset($_GET['menu_id']) && is_numeric($_GET['menu_id'])
-            ? (int) $_GET['menu_id']
-            : null;
-
-        $this->json(
-            $this->adminService->getRevenueByMenu($from, $to, $menuId)
-        );
-    }
 }

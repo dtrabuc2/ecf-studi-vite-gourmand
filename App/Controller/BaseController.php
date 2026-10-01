@@ -34,6 +34,24 @@ abstract class BaseController
         echo View::render('layout/layout', $layoutData);
     }
 
+    /**
+     * Lit des champs texte de $_POST (valeur absente : chaîne vide).
+     *
+     * @param string[] $fields
+     * @return array<string, string>
+     */
+    protected function postFields(array $fields): array
+    {
+        $values = [];
+
+        foreach ($fields as $field) {
+            $value = $_POST[$field] ?? '';
+            $values[$field] = is_scalar($value) ? trim((string) $value) : '';
+        }
+
+        return $values;
+    }
+
     protected function json(array $data, int $status = 200): never
     {
         Response::json($data, $status);
@@ -54,6 +72,9 @@ abstract class BaseController
             'home/index' => 'Accueil',
             'home/menus' => 'Nos menus',
             'home/menu_detail' => 'Détail du menu',
+            'home/legal' => 'Mentions légales',
+            'home/cgv' => 'Conditions générales de vente',
+            'home/privacy' => 'Politique de confidentialité',
             'contact/index' => 'Contact',
             'quote/index' => 'Demander un devis',
             'order/new' => 'Nouvelle commande',

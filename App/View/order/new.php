@@ -4,9 +4,11 @@ $oldInput = is_array($oldInput ?? null) ? $oldInput : [];
 $old = static function (string $key, mixed $default = '') use ($oldInput): string {
     return htmlspecialchars((string) ($oldInput[$key] ?? $default), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 };
-$selectedId = isset($selectedId) ? (int) $selectedId : (int) ($selectedMenuId ?? 0);
+$selectedMenu = $selectedMenu ?? null;
 $selectedServiceType = (string) ($selectedServiceType ?? $oldInput['service_type'] ?? 'delivery');
 $orderUser = $orderUser ?? null;
+// Sans saisie précédente, le nombre de convives proposé est le minimum du menu choisi.
+$defaultGuests = $selectedMenu !== null ? $selectedMenu->getMinPeople() : '';
 ?>
 <main class="py-5">
     <div class="container">
@@ -25,14 +27,48 @@ $orderUser = $orderUser ?? null;
             </div>
         <?php endif; ?>
 
-        <form id="orderFinalForm" method="post" action="/orders" class="card border-0 shadow-sm p-4 p-lg-5">
+        <form
+            id="orderFinalForm"
+            method="post"
+            action="/orders"
+            class="card border-0 shadow-sm p-4 p-lg-5"
+            data-old-menu-id="<?= $selectedMenu !== null ? (int) $selectedMenu->getId() : '' ?>"
+        >
             <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
             <input type="hidden" id="confirmedGuestCount" name="confirmed_guest_count" value="<?= $old('number_of_people') ?>">
 
             <div class="row g-3">
+                <?php if ($orderUser !== null): ?>
+                    <div class="col-12">
+                        <h2 class="h3 text-primary">Vos informations</h2>
+                        <p class="text-muted small">Issues de votre compte. Pour les modifier, rendez-vous sur <a href="/profile">votre profil</a>.</p>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="order_last_name">Nom</label>
+                                <input class="form-control-plaintext border rounded px-2 bg-light" id="order_last_name" type="text" value="<?= $escape($orderUser->getLastName()) ?>" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="order_first_name">Prénom</label>
+                                <input class="form-control-plaintext border rounded px-2 bg-light" id="order_first_name" type="text" value="<?= $escape($orderUser->getFirstName()) ?>" readonly>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="order_email">Adresse e-mail</label>
+                                <input class="form-control-plaintext border rounded px-2 bg-light" id="order_email" type="email" value="<?= $escape($orderUser->getEmail()) ?>" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12"><hr></div>
+                <?php endif; ?>
+
                 <div class="col-12">
                     <h2 class="h3 text-primary">1. Préparer la commande</h2>
                     <p class="text-muted mb-0">Le nombre de convives est confirmé avant l’affichage des menus disponibles.</p>
+                    <?php if ($selectedMenu !== null): ?>
+                        <p class="mb-0 mt-2">
+                            Menu choisi : <strong><?= $escape($selectedMenu->getTitle()) ?></strong>
+                            (minimum <?= (int) $selectedMenu->getMinPeople() ?> personne<?= $selectedMenu->getMinPeople() > 1 ? 's' : '' ?>).
+                        </p>
+                    <?php endif; ?>
                 </div>
 
                 <div class="col-12">
@@ -63,11 +99,12 @@ $orderUser = $orderUser ?? null;
                                     type="number"
                                     min="1"
                                     max="999"
-                                    value="<?= $old('number_of_people') ?>"
+                                    value="<?= $old('number_of_people', $defaultGuests) ?>"
                                     required
                                 >
                                 <div class="form-text">
-                                    De 1 à 30 convives, les formules compatibles avec le nombre de personnes et le stock sont proposées. Chaque formule indique son minimum. Au-delà de 30 convives, une demande de devis est obligatoire.
+                                    Les formules compatibles avec le nombre de personnes et le stock sont proposées. Chaque formule indique son minimum.
+                                    Pour une prestation sur mesure, vous pouvez aussi <a href="/quote">demander un devis</a> (facultatif).
                                 </div>
                                 <div id="guestValidationMessage" class="alert alert-danger d-none mt-3"></div>
                             </div>
@@ -110,10 +147,13 @@ $orderUser = $orderUser ?? null;
                                 type="tel"
                                 inputmode="tel"
                                 autocomplete="tel"
+                                data-phone-input
+                                aria-describedby="contact_phone_error"
                                 value="<?= $old('contact_phone', $orderUser?->getGsm() ?: $orderUser?->getPhone() ?? '') ?>"
-                                placeholder="+33 6 12 34 56 78"
                                 required
                             >
+                            <?php /* zone d'erreur remplie par phone-input.js */ ?>
+                            <div class="invalid-feedback" id="contact_phone_error"></div>
                         </div>
 
                         <div class="col-12"><hr></div>
@@ -123,15 +163,17 @@ $orderUser = $orderUser ?? null;
                                 <legend class="form-label fw-bold">3. Mode de prestation</legend>
                                 <div class="row g-2">
                                     <?php foreach ([
-                                        'delivery' => ['Livraison', 'Adresse, ville, code postal et téléphone requis.'],
-                                        'pickup' => ['À emporter', 'Téléphone et heure de retrait requis.'],
-                                        'on_site' => ['Sur place', 'Téléphone et heure d’arrivée requis.'],
-                                    ] as $type => [$label, $description]): ?>
+                                        'delivery' => 'Adresse, ville, code postal et téléphone requis.',
+                                        'pickup' => 'Téléphone et heure de retrait requis.',
+                                        'on_site' => 'Téléphone et heure d’arrivée requis.',
+                                    ] as $type => $description): ?>
+                                        <?php $label = \App\Core\Labels::serviceType($type); ?>
                                         <div class="col-md-4">
-                                            <label class="form-check h-100 border rounded p-3 service-type-option">
+                                            <label class="form-check h-100 border rounded p-3 service-type-option" for="service_type_<?= $type ?>">
                                                 <input
                                                     class="form-check-input me-2"
                                                     type="radio"
+                                                    id="service_type_<?= $type ?>"
                                                     name="service_type"
                                                     value="<?= $type ?>"
                                                     <?= $selectedServiceType === $type ? 'checked' : '' ?>
@@ -167,14 +209,13 @@ $orderUser = $orderUser ?? null;
                                 <option value="">Choisir une date</option>
                             </select>
                             <div class="form-text">
-                                Créneaux de 15 minutes. Mardi/mercredi/vendredi/samedi : 11h30–15h30 puis 18h00–23h00.
-                                Jeudi/dimanche : 12h00–20h00. Lundi : fermé.
+                                Créneaux de 15 minutes, selon les horaires d’ouverture indiqués en bas de page.
                             </div>
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label">Tarification serveur</label>
-                            <div class="border rounded bg-light p-3 small">
+                            <h3 class="form-label fs-6 fw-normal" id="orderPriceTitle">Tarification serveur</h3>
+                            <div class="border rounded bg-light p-3 small" role="group" aria-labelledby="orderPriceTitle" aria-live="polite">
                                 <div class="d-flex justify-content-between">
                                     <span>Prix menu</span>
                                     <strong id="orderMenuPrice">0,00 €</strong>
@@ -184,7 +225,7 @@ $orderUser = $orderUser ?? null;
                                     <strong id="orderDiscount">0 %</strong>
                                 </div>
                                 <div class="d-flex justify-content-between">
-                                    <span>Livraison</span>
+                                    <span>Livraison <span id="orderDeliveryDistance" class="text-muted"></span></span>
                                     <strong id="orderDeliveryPrice">À renseigner</strong>
                                 </div>
                                 <hr class="my-2">
@@ -230,9 +271,9 @@ $orderUser = $orderUser ?? null;
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label" for="delivery_distance_km">Distance depuis Bordeaux (km)</label>
-                                <input class="form-control" id="delivery_distance_km" name="delivery_distance_km" type="number" min="0" step="0.01" value="<?= $old('delivery_distance_km') ?>">
-                                <div class="form-text">Requise hors Bordeaux. 5 € + 0,59 €/km.</div>
+                                <p class="form-text mb-0 mt-md-4" id="deliveryFeeInfo">
+                                    Livraison offerte dans Bordeaux. Ailleurs : 5 € + 0,59 €/km, distance calculée automatiquement depuis notre adresse.
+                                </p>
                             </div>
 
                             <div class="col-12" id="deliveryInstructionsField">
