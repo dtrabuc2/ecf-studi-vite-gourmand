@@ -43,11 +43,6 @@ final readonly class CommentRepository
         return $reviews;
     }
 
-    public function findAllValidated(): array
-    {
-        return $this->loadReviews(['isValidated' => true]);
-    }
-
     public function getHomepageReviews(): array
     {
         return $this->loadReviews(

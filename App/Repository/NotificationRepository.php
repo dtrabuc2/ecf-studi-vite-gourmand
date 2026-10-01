@@ -50,19 +50,6 @@ final class NotificationRepository
         return $stmt->fetchAll();
     }
 
-    public function countUnread(int $userId): int
-    {
-        $stmt = Database::pdo()->prepare(
-            'SELECT COUNT(*)
-             FROM user_notifications
-             WHERE user_id = :user_id
-               AND is_read = 0'
-        );
-        $stmt->execute(['user_id' => $userId]);
-
-        return (int) $stmt->fetchColumn();
-    }
-
     public function markRead(int $id, int $userId): void
     {
         $stmt = Database::pdo()->prepare(

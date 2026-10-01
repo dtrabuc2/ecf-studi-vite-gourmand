@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Core\Database;
-use App\Repository\MenuRepository;
 use App\Repository\OrderRepository;
 use App\Repository\UserRepository;
 use InvalidArgumentException;
@@ -14,15 +12,16 @@ final readonly class AdminService
     public function __construct(
         private UserRepository $userRepository,
         private OrderRepository $orderRepository,
-        private MenuRepository $menuRepository,
-        private MenuStatisticsService $menuStatisticsService
+        private MenuStatisticsService $menuStatisticsService,
+        private PasswordPolicy $passwordPolicy,
+        private PhoneValidator $phoneValidator
     ) {
     }
 
     public function createEmployee(array $data): int
     {
         $password = (string) ($data['password'] ?? '');
-        $errors = $this->validatePassword($password);
+        $errors = $this->passwordPolicy->validate($password);
 
         if ($errors !== []) {
             throw new InvalidArgumentException(implode(' ', $errors));
@@ -38,14 +37,27 @@ final readonly class AdminService
             throw new InvalidArgumentException('Cette adresse email est déjà utilisée.');
         }
 
+        // même règle que pour les clients : numéros validés puis stockés en E.164
+        $phones = [];
+        foreach (['phone' => 'Téléphone', 'gsm' => 'GSM'] as $field => $label) {
+            $value = trim((string) ($data[$field] ?? ''));
+            $error = $this->phoneValidator->validate($value);
+
+            if ($error !== null) {
+                throw new InvalidArgumentException($label . ' : ' . $error);
+            }
+
+            $phones[$field] = $this->phoneValidator->normalize($value);
+        }
+
         return $this->userRepository->create([
             'email' => $email,
-            'password' => password_hash($password, PASSWORD_DEFAULT),
+            'password' => $this->passwordPolicy->hash($password),
             'role' => 'employee',
             'first_name' => trim((string) $data['first_name']),
             'last_name' => trim((string) $data['last_name']),
-            'phone' => trim((string) $data['phone']),
-            'gsm' => trim((string) $data['gsm']),
+            'phone' => $phones['phone'],
+            'gsm' => $phones['gsm'],
             'address' => trim((string) $data['address']),
         ]);
     }
@@ -67,27 +79,7 @@ final readonly class AdminService
 
     public function getEmployees(): array
     {
-        $stmt = Database::pdo()->query(
-            "SELECT id, email, first_name, last_name, role, is_active, created_at
-             FROM users
-             WHERE role = 'employee'
-             ORDER BY created_at DESC"
-        );
-
-        return array_map(
-            static fn (array $row): array => [
-                'id' => (int) $row['id'],
-                'email' => $row['email'],
-                'first_name' => $row['first_name'],
-                'last_name' => $row['last_name'],
-                'role' => $row['role'],
-                'is_active' => (bool) $row['is_active'],
-                'created_at' => !empty($row['created_at'])
-                    ? new \DateTimeImmutable($row['created_at'])
-                    : null,
-            ],
-            $stmt->fetchAll()
-        );
+        return $this->userRepository->findEmployees();
     }
 
     public function disableEmployee(int $id): void
@@ -102,18 +94,10 @@ final readonly class AdminService
 
     public function getDashboardStats(): array
     {
-        $pdo = Database::pdo();
-
-        $totalUsers = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
-        $totalOrders = (int) $pdo->query('SELECT COUNT(*) FROM orders')->fetchColumn();
-        $pendingOrders = (int) $pdo->query(
-            "SELECT COUNT(*) FROM orders WHERE status = 'pending'"
-        )->fetchColumn();
-        $totalRevenue = (float) $pdo->query(
-            "SELECT COALESCE(SUM(total_price), 0)
-             FROM orders
-             WHERE status = 'completed'"
-        )->fetchColumn();
+        $totalUsers = $this->userRepository->countAll();
+        $totalOrders = $this->orderRepository->countAll();
+        $pendingOrders = $this->orderRepository->countByStatus('pending');
+        $totalRevenue = $this->orderRepository->sumCompletedRevenue();
 
         $menuStats = [];
         $menuStatsError = null;
@@ -152,43 +136,6 @@ final readonly class AdminService
         ?string $to = null,
         ?int $menuId = null
     ): array {
-        $sql = "SELECT
-                    m.id AS menu_id,
-                    m.title AS menu_title,
-                    COUNT(o.id) AS order_count,
-                    COALESCE(SUM(o.total_price), 0) AS revenue
-                FROM menus m
-                LEFT JOIN orders o
-                    ON o.menu_id = m.id
-                   AND o.status = 'completed'";
-
-        $where = [];
-        $params = [];
-
-        if ($from !== null && $from !== '') {
-            $where[] = 'o.delivery_date >= :from_date';
-            $params['from_date'] = $from;
-        }
-
-        if ($to !== null && $to !== '') {
-            $where[] = 'o.delivery_date <= :to_date';
-            $params['to_date'] = $to;
-        }
-
-        if ($menuId !== null && $menuId > 0) {
-            $where[] = 'm.id = :menu_id';
-            $params['menu_id'] = $menuId;
-        }
-
-        if ($where !== []) {
-            $sql .= ' WHERE ' . implode(' AND ', $where);
-        }
-
-        $sql .= ' GROUP BY m.id, m.title ORDER BY revenue DESC';
-
-        $stmt = Database::pdo()->prepare($sql);
-        $stmt->execute($params);
-
         return array_map(
             static fn (array $row): array => [
                 'menu_id' => (int) $row['menu_id'],
@@ -196,30 +143,7 @@ final readonly class AdminService
                 'order_count' => (int) $row['order_count'],
                 'revenue' => (float) $row['revenue'],
             ],
-            $stmt->fetchAll()
+            $this->orderRepository->revenueByMenu($from, $to, $menuId)
         );
-    }
-
-    private function validatePassword(string $password): array
-    {
-        $errors = [];
-
-        if (strlen($password) < 10) {
-            $errors[] = 'Le mot de passe doit contenir au moins 10 caractères.';
-        }
-        if (!preg_match('/[A-Z]/', $password)) {
-            $errors[] = 'Le mot de passe doit contenir au moins une majuscule.';
-        }
-        if (!preg_match('/[a-z]/', $password)) {
-            $errors[] = 'Le mot de passe doit contenir au moins une minuscule.';
-        }
-        if (!preg_match('/[0-9]/', $password)) {
-            $errors[] = 'Le mot de passe doit contenir au moins un chiffre.';
-        }
-        if (!preg_match('/[^A-Za-z0-9]/', $password)) {
-            $errors[] = 'Le mot de passe doit contenir au moins un caractère spécial.';
-        }
-
-        return $errors;
     }
 }

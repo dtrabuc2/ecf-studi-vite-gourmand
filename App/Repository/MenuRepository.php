@@ -1,21 +1,24 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Repository;
 
 use App\Entity\Menu;
 use App\Core\Database;
+use App\Core\Labels;
 
 class MenuRepository
 {
     public function findAll(): array
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->query('SELECT * FROM menus WHERE is_active = 1 AND available_stock > 0 ORDER BY id DESC');
         return $this->hydrateMany($stmt->fetchAll());
     }
 
     public function findById(int $id): ?Menu
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->prepare('SELECT * FROM menus WHERE id = :id AND is_active = 1');
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch();
@@ -24,7 +27,7 @@ class MenuRepository
 
     public function findAllForOrderSelection(): array
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->query(
             'SELECT * FROM menus
              WHERE is_active = 1
@@ -36,7 +39,6 @@ class MenuRepository
 
     public function filter(array $filters): array
     {
-        $pdo = Database::getPDO();
         $query = 'SELECT * FROM menus WHERE is_active = 1 AND available_stock > 0';
         $params = [];
 
@@ -64,9 +66,8 @@ class MenuRepository
         }
 
         if (!empty($filters['dietary_regime'])) {
-            $allowedRegimes = ['classic', 'vegetarian', 'vegan', 'other'];
             $regime = trim((string) $filters['dietary_regime']);
-            if (!in_array($regime, $allowedRegimes, true)) {
+            if (!array_key_exists($regime, Labels::DIETARY_REGIME)) {
                 throw new \InvalidArgumentException('Le régime alimentaire est invalide.');
             }
             $query .= ' AND dietary_regime = :dietary_regime';
@@ -87,14 +88,15 @@ class MenuRepository
         }
 
         $query .= ' ORDER BY id DESC';
-        $stmt = $pdo->prepare($query);
+        // Connexion ouverte seulement une fois tous les filtres validés.
+        $stmt = Database::pdo()->prepare($query);
         $stmt->execute($params);
         return $this->hydrateMany($stmt->fetchAll());
     }
 
     public function findDetails(int $menuId): array
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->prepare(
             'SELECT
                 d.id,
@@ -112,9 +114,11 @@ class MenuRepository
         $stmt->execute(['menu_id' => $menuId]);
         $rows = $stmt->fetchAll();
 
+        // Allergènes de chaque plat actif du menu.
         $allergenStmt = $pdo->prepare(
-            'SELECT DISTINCT a.name
+            'SELECT da.dish_id, a.name
              FROM menu_dishes md
+             INNER JOIN dishes d ON d.id = md.dish_id AND d.is_active = 1
              INNER JOIN dish_allergens da ON da.dish_id = md.dish_id
              INNER JOIN allergens a ON a.id = da.allergen_id
              WHERE md.menu_id = :menu_id
@@ -122,18 +126,115 @@ class MenuRepository
         );
         $allergenStmt->execute(['menu_id' => $menuId]);
 
+        $byDish = [];
+        foreach ($allergenStmt->fetchAll() as $row) {
+            $byDish[(int) $row['dish_id']][] = (string) $row['name'];
+        }
+
+        foreach ($rows as &$row) {
+            $row['allergens'] = $byDish[(int) $row['id']] ?? [];
+        }
+        unset($row);
+
+        $allAllergens = array_values(array_unique(array_merge([], ...array_values($byDish))));
+        sort($allAllergens);
+
         return [
             'dishes' => $rows,
-            'allergens' => array_map(
-                static fn (array $row): string => (string) $row['name'],
-                $allergenStmt->fetchAll()
-            ),
+            'allergens' => $allAllergens,
         ];
+    }
+
+    /**
+     * Plats actifs de plusieurs menus en une seule requête (listes de menus).
+     *
+     * @param int[] $menuIds
+     * @return array<int, array<int, array{name: string, category: string}>> Indexé par menu.
+     */
+    public function findDishesForMenus(array $menuIds): array
+    {
+        $menuIds = array_values(array_unique(array_map('intval', $menuIds)));
+
+        if ($menuIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($menuIds), '?'));
+        $stmt = Database::pdo()->prepare(
+            "SELECT md.menu_id, d.name, d.category
+             FROM menu_dishes md
+             INNER JOIN dishes d ON d.id = md.dish_id
+             WHERE md.menu_id IN ({$placeholders}) AND d.is_active = 1
+             ORDER BY md.menu_id, md.position, d.id"
+        );
+        $stmt->execute($menuIds);
+
+        $dishes = array_fill_keys($menuIds, []);
+        foreach ($stmt->fetchAll() as $row) {
+            $dishes[(int) $row['menu_id']][] = [
+                'name' => (string) $row['name'],
+                'category' => (string) $row['category'],
+            ];
+        }
+
+        return $dishes;
+    }
+
+    /**
+     * @return int[] Identifiants des plats composant le menu, dans l'ordre.
+     */
+    public function findDishIds(int $menuId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT dish_id FROM menu_dishes WHERE menu_id = :menu_id ORDER BY position, dish_id'
+        );
+        $stmt->execute(['menu_id' => $menuId]);
+
+        return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+    }
+
+    /**
+     * Remplace la composition du menu. Les positions suivent l'ordre du tableau.
+     *
+     * @param int[] $dishIds
+     */
+    public function replaceDishes(int $menuId, array $dishIds): void
+    {
+        $pdo = Database::pdo();
+        $pdo->beginTransaction();
+
+        try {
+            $pdo->prepare('DELETE FROM menu_dishes WHERE menu_id = :menu_id')
+                ->execute(['menu_id' => $menuId]);
+
+            $insert = $pdo->prepare(
+                'INSERT INTO menu_dishes (menu_id, dish_id, position) VALUES (:menu_id, :dish_id, :position)'
+            );
+
+            foreach (array_values($dishIds) as $index => $dishId) {
+                $insert->execute([
+                    'menu_id' => $menuId,
+                    'dish_id' => $dishId,
+                    'position' => $index + 1,
+                ]);
+            }
+
+            $pdo->prepare('UPDATE menus SET updated_at = NOW() WHERE id = :id')
+                ->execute(['id' => $menuId]);
+
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            throw $exception;
+        }
     }
 
     public function create(Menu $menu): int
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->prepare('INSERT INTO menus
             (title, description, theme, dietary_regime, min_people, base_price, conditions, available_stock)
             VALUES (:title, :description, :theme, :dietary_regime, :min_people, :base_price, :conditions, :available_stock)');
@@ -152,7 +253,7 @@ class MenuRepository
 
     public function update(Menu $menu): void
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->prepare('UPDATE menus SET
             title = :title, description = :description, theme = :theme,
             dietary_regime = :dietary_regime, min_people = :min_people,
@@ -174,7 +275,7 @@ class MenuRepository
 
     public function delete(int $id): void
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->prepare('UPDATE menus SET is_active = 0, updated_at = NOW() WHERE id = :id');
         $stmt->execute(['id' => $id]);
     }

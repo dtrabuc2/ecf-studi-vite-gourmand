@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Repository;
 
 use App\Entity\Order;
@@ -8,7 +10,7 @@ class OrderRepository
 {
     public function create(array $data): int
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->prepare('INSERT INTO orders
             (user_id, menu_id, number_of_people, order_date, delivery_date, delivery_time,
              delivery_address, delivery_city, delivery_postal_code, delivery_distance_km,
@@ -58,8 +60,12 @@ class OrderRepository
 
     public function findForStaff(?string $status = null, ?string $customer = null): array
     {
-        $sql = "SELECT o.*, CONCAT(u.first_name, ' ', u.last_name) AS customer_name, u.email AS customer_email
-                FROM orders o JOIN users u ON u.id = o.user_id WHERE 1=1";
+        $sql = "SELECT o.*, CONCAT(u.first_name, ' ', u.last_name) AS customer_name, u.email AS customer_email,
+                       m.title AS menu_title
+                FROM orders o
+                JOIN users u ON u.id = o.user_id
+                JOIN menus m ON m.id = o.menu_id
+                WHERE 1=1";
         $params = [];
         if ($status !== null && $status !== '') { $sql .= ' AND o.status = :status'; $params['status'] = $status; }
         if ($customer !== null && $customer !== '') {
@@ -67,14 +73,14 @@ class OrderRepository
             $params['customer'] = '%' . $customer . '%';
         }
         $sql .= ' ORDER BY o.delivery_date ASC, o.delivery_time ASC';
-        $stmt = Database::getPDO()->prepare($sql);
+        $stmt = Database::pdo()->prepare($sql);
         $stmt->execute($params);
         return $this->hydrateMany($stmt->fetchAll());
     }
 
     public function findByUserId(int $userId): array
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->prepare('SELECT * FROM orders WHERE user_id = :user_id ORDER BY created_at DESC');
         $stmt->execute(['user_id' => $userId]);
         return $this->hydrateMany($stmt->fetchAll());
@@ -82,7 +88,7 @@ class OrderRepository
 
     public function findById(int $id): ?Order
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->prepare('SELECT * FROM orders WHERE id = :id');
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch();
@@ -91,30 +97,46 @@ class OrderRepository
 
     public function increaseMenuStock(int $menuId): void
     {
-        $stmt = Database::getPDO()->prepare('UPDATE menus SET available_stock = available_stock + 1 WHERE id = :id');
+        $stmt = Database::pdo()->prepare('UPDATE menus SET available_stock = available_stock + 1 WHERE id = :id');
         $stmt->execute(['id' => $menuId]);
     }
 
-    public function updateCustomerOrder(int $id, int $numberOfPeople, string $deliveryDate, string $deliveryTime, string $address, string $city, string $postalCode, ?float $distanceKm, float $menuPrice, float $deliveryCost, float $discountRate, float $totalPrice): void
+    /**
+     * Met à jour le contenu d'une commande (tout sauf le menu et le statut).
+     */
+    public function updateDetails(int $id, array $data): void
     {
-        $stmt = Database::getPDO()->prepare(
+        $stmt = Database::pdo()->prepare(
             'UPDATE orders SET number_of_people = :people, delivery_date = :delivery_date, delivery_time = :delivery_time,
+             service_type = :service_type, contact_phone = :contact_phone,
              delivery_address = :address, delivery_city = :city, delivery_postal_code = :postal_code,
-             delivery_distance_km = :distance, menu_price = :menu_price, delivery_cost = :delivery_cost,
+             delivery_distance_km = :distance, delivery_instructions = :instructions,
+             menu_price = :menu_price, delivery_cost = :delivery_cost,
              discount_rate = :discount_rate, total_price = :total_price, updated_at = NOW()
              WHERE id = :id'
         );
         $stmt->execute([
-            'id' => $id, 'people' => $numberOfPeople, 'delivery_date' => $deliveryDate,
-            'delivery_time' => $deliveryTime, 'address' => $address, 'city' => $city,
-            'postal_code' => $postalCode, 'distance' => $distanceKm, 'menu_price' => $menuPrice,
-            'delivery_cost' => $deliveryCost, 'discount_rate' => $discountRate, 'total_price' => $totalPrice,
+            'id' => $id,
+            'people' => $data['number_of_people'],
+            'delivery_date' => $data['delivery_date'],
+            'delivery_time' => $data['delivery_time'],
+            'service_type' => $data['service_type'],
+            'contact_phone' => $data['contact_phone'],
+            'address' => $data['delivery_address'],
+            'city' => $data['delivery_city'],
+            'postal_code' => $data['delivery_postal_code'],
+            'distance' => $data['delivery_distance_km'],
+            'instructions' => $data['delivery_instructions'],
+            'menu_price' => $data['menu_price'],
+            'delivery_cost' => $data['delivery_cost'],
+            'discount_rate' => $data['discount_rate'],
+            'total_price' => $data['total_price'],
         ]);
     }
 
     public function setEquipmentLoaned(int $id, bool $equipmentLoaned): void
     {
-        $stmt = Database::getPDO()->prepare(
+        $stmt = Database::pdo()->prepare(
             'UPDATE orders SET equipment_loaned = :equipment_loaned, updated_at = NOW() WHERE id = :id'
         );
         $stmt->execute([
@@ -125,14 +147,14 @@ class OrderRepository
 
     public function updateStatus(int $id, string $status, ?string $cancellationReason = null): void
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->prepare('UPDATE orders SET status = :status, cancellation_reason = :reason, updated_at = NOW() WHERE id = :id');
         $stmt->execute(['id' => $id, 'status' => $status, 'reason' => $cancellationReason]);
     }
 
     public function getHistory(int $orderId): array
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->prepare('SELECT * FROM order_status_history WHERE order_id = :order_id ORDER BY changed_at ASC');
         $stmt->execute(['order_id' => $orderId]);
         $history = [];
@@ -151,7 +173,7 @@ class OrderRepository
 
     public function addToHistory(int $orderId, string $status, ?int $changedBy, string $notes = ''): void
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->prepare('INSERT INTO order_status_history (order_id, status, changed_by, changed_at, notes)
                                VALUES (:order_id, :status, :changed_by, NOW(), :notes)');
         $stmt->execute([
@@ -162,9 +184,107 @@ class OrderRepository
         ]);
     }
 
+    public function countAll(): int
+    {
+        return (int) Database::pdo()->query('SELECT COUNT(*) FROM orders')->fetchColumn();
+    }
+
+    public function countByStatus(string $status): int
+    {
+        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM orders WHERE status = :status');
+        $stmt->execute(['status' => $status]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Chiffre d'affaires des commandes terminées.
+     */
+    public function sumCompletedRevenue(): float
+    {
+        return (float) Database::pdo()->query(
+            "SELECT COALESCE(SUM(total_price), 0) FROM orders WHERE status = 'completed'"
+        )->fetchColumn();
+    }
+
+    /**
+     * Commandes terminées et chiffre d'affaires par menu (tous les menus, y compris sans vente).
+     */
+    public function revenueByMenu(?string $from = null, ?string $to = null, ?int $menuId = null): array
+    {
+        $sql = "SELECT
+                    m.id AS menu_id,
+                    m.title AS menu_title,
+                    COUNT(o.id) AS order_count,
+                    COALESCE(SUM(o.total_price), 0) AS revenue
+                FROM menus m
+                LEFT JOIN orders o
+                    ON o.menu_id = m.id
+                   AND o.status = 'completed'";
+
+        $where = [];
+        $params = [];
+
+        if ($from !== null && $from !== '') {
+            $where[] = 'o.delivery_date >= :from_date';
+            $params['from_date'] = $from;
+        }
+
+        if ($to !== null && $to !== '') {
+            $where[] = 'o.delivery_date <= :to_date';
+            $params['to_date'] = $to;
+        }
+
+        if ($menuId !== null && $menuId > 0) {
+            $where[] = 'm.id = :menu_id';
+            $params['menu_id'] = $menuId;
+        }
+
+        if ($where !== []) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+
+        $sql .= ' GROUP BY m.id, m.title ORDER BY revenue DESC';
+
+        $stmt = Database::pdo()->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Nombre de commandes terminées et CA par menu, sur une période facultative
+     * (source des statistiques MongoDB).
+     */
+    public function completedTotalsByMenu(?string $periodStart = null, ?string $periodEnd = null): array
+    {
+        $sql = "SELECT o.menu_id, m.title AS menu_title, COUNT(o.id) AS order_count, SUM(o.total_price) AS revenue
+                FROM orders o
+                INNER JOIN menus m ON m.id = o.menu_id
+                WHERE o.status = 'completed'";
+        $params = [];
+
+        if ($periodStart !== null) {
+            $sql .= ' AND o.delivery_date >= :period_start';
+            $params['period_start'] = $periodStart;
+        }
+
+        if ($periodEnd !== null) {
+            $sql .= ' AND o.delivery_date <= :period_end';
+            $params['period_end'] = $periodEnd;
+        }
+
+        $sql .= ' GROUP BY o.menu_id, m.title';
+
+        $stmt = Database::pdo()->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
+    }
+
     public function decreaseMenuStock(int $menuId): void
     {
-        $pdo = Database::getPDO();
+        $pdo = Database::pdo();
         $stmt = $pdo->prepare('UPDATE menus SET available_stock = available_stock - 1
                                WHERE id = :id AND is_active = 1 AND available_stock > 0');
         $stmt->execute(['id' => $menuId]);
@@ -207,6 +327,9 @@ class OrderRepository
         $order->setCancellationReason($row['cancellation_reason'] ?? null);
         $order->setCreatedAt(!empty($row['created_at']) ? new \DateTimeImmutable($row['created_at']) : null);
         $order->setUpdatedAt(!empty($row['updated_at']) ? new \DateTimeImmutable($row['updated_at']) : null);
+        $order->setCustomerName(isset($row['customer_name']) ? (string) $row['customer_name'] : null);
+        $order->setCustomerEmail(isset($row['customer_email']) ? (string) $row['customer_email'] : null);
+        $order->setMenuTitle(isset($row['menu_title']) ? (string) $row['menu_title'] : null);
         return $order;
     }
 }

@@ -202,6 +202,36 @@ final class UserRepository
         return $stmt->fetchAll();
     }
 
+    public function findEmployees(): array
+    {
+        $stmt = Database::pdo()->query(
+            "SELECT id, email, first_name, last_name, role, is_active, created_at
+             FROM users
+             WHERE role = 'employee'
+             ORDER BY created_at DESC"
+        );
+
+        return array_map(
+            static fn (array $row): array => [
+                'id' => (int) $row['id'],
+                'email' => $row['email'],
+                'first_name' => $row['first_name'],
+                'last_name' => $row['last_name'],
+                'role' => $row['role'],
+                'is_active' => (bool) $row['is_active'],
+                'created_at' => !empty($row['created_at'])
+                    ? new DateTimeImmutable($row['created_at'])
+                    : null,
+            ],
+            $stmt->fetchAll()
+        );
+    }
+
+    public function countAll(): int
+    {
+        return (int) Database::pdo()->query('SELECT COUNT(*) FROM users')->fetchColumn();
+    }
+
     public function findStaffIds(): array
     {
         $stmt = Database::pdo()->query(

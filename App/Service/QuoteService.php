@@ -3,16 +3,17 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Core\Database;
-use App\Service\AuthService;
+use App\Core\Labels;
+use App\Repository\QuoteRequestRepository;
 use InvalidArgumentException;
 
 final readonly class QuoteService
 {
     public function __construct(
+        private QuoteRequestRepository $quoteRequestRepository,
         private MailService $mailService,
         private NotificationService $notificationService,
-        private AuthService $authService
+        private PhoneValidator $phoneValidator
     ) {
     }
 
@@ -22,7 +23,6 @@ final readonly class QuoteService
         $firstName = trim((string) ($data['first_name'] ?? ''));
         $lastName = trim((string) ($data['last_name'] ?? ''));
         $phone = trim((string) ($data['phone'] ?? ''));
-        $phoneRegion = strtoupper(trim((string) ($data['phone_region'] ?? 'FR')));
         $company = trim((string) ($data['company'] ?? ''));
         $eventDate = trim((string) ($data['event_date'] ?? ''));
         $numberOfPeople = filter_var($data['number_of_people'] ?? null, FILTER_VALIDATE_INT);
@@ -35,13 +35,15 @@ final readonly class QuoteService
             throw new InvalidArgumentException('Adresse email invalide.');
         }
 
-        if (
-            $phone !== ''
-            && $this->authService->validatePhone($phone, $phoneRegion) !== null
-        ) {
-            throw new InvalidArgumentException(
-                $this->authService->validatePhone($phone, $phoneRegion)
-            );
+        $phoneError = $phone !== '' ? $this->phoneValidator->validate($phone) : null;
+
+        if ($phoneError !== null) {
+            throw new InvalidArgumentException($phoneError);
+        }
+
+        // le téléphone est facultatif ici, mais s'il y en a un on le stocke en E.164 comme partout
+        if ($phone !== '') {
+            $phone = $this->phoneValidator->normalize($phone);
         }
 
         if ($eventDate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $eventDate)) {
@@ -52,13 +54,11 @@ final readonly class QuoteService
             throw new InvalidArgumentException('La date de réception ne peut pas être passée.');
         }
 
-        if ($numberOfPeople === false || $numberOfPeople <= 30) {
-            throw new InvalidArgumentException('La demande de devis est prévue pour les prestations de plus de 30 personnes.');
+        if ($numberOfPeople === false || $numberOfPeople < 1) {
+            throw new InvalidArgumentException('Le nombre de personnes est invalide.');
         }
 
-        $allowedServices = ['pickup', 'delivery', 'on_site'];
-
-        if (!in_array($serviceType, $allowedServices, true)) {
+        if (!array_key_exists($serviceType, Labels::SERVICE_TYPE)) {
             throw new InvalidArgumentException('Mode de prestation invalide.');
         }
 
@@ -66,20 +66,7 @@ final readonly class QuoteService
             throw new InvalidArgumentException('Le lieu de réception est requis pour une livraison ou une prestation sur place.');
         }
 
-        $pdo = Database::pdo();
-        $stmt = $pdo->prepare(
-            'INSERT INTO quote_requests (
-                user_id, email, first_name, last_name, phone, company,
-                event_date, number_of_people, service_type,
-                event_location, postal_code, request_details
-            ) VALUES (
-                :user_id, :email, :first_name, :last_name, :phone, :company,
-                :event_date, :number_of_people, :service_type,
-                :event_location, :postal_code, :request_details
-            )'
-        );
-
-        $stmt->execute([
+        $id = $this->quoteRequestRepository->create([
             'user_id' => $userId,
             'email' => $email,
             'first_name' => $firstName !== '' ? $firstName : null,
@@ -94,8 +81,6 @@ final readonly class QuoteService
             'request_details' => $details !== '' ? $details : null,
         ]);
 
-        $id = (int) $pdo->lastInsertId();
-
         $this->mailService->sendQuoteRequestAcknowledgement(
             $email,
             $firstName,
@@ -107,9 +92,7 @@ final readonly class QuoteService
             ]
         );
 
-        $companyEmail = $_ENV['MAIL_TO_ADDRESS']
-            ?? $_ENV['MAIL_FROM_ADDRESS']
-            ?? 'noreply@viteetgourmand.com';
+        $companyEmail = $this->mailService->companyAddress();
 
         if ($userId !== null) {
             $this->notificationService->notify(
@@ -153,24 +136,7 @@ final readonly class QuoteService
 
     public function findForStaff(?string $status = null): array
     {
-        $sql = 'SELECT q.*,
-                       CONCAT(COALESCE(q.first_name, \'\'), \' \',
-                              COALESCE(q.last_name, \'\')) AS contact_name
-                FROM quote_requests q
-                WHERE 1 = 1';
-        $params = [];
-
-        if ($status !== null && $status !== '') {
-            $sql .= ' AND q.status = :status';
-            $params['status'] = $status;
-        }
-
-        $sql .= ' ORDER BY q.event_date ASC, q.created_at ASC';
-
-        $stmt = Database::pdo()->prepare($sql);
-        $stmt->execute($params);
-
-        return $stmt->fetchAll();
+        return $this->quoteRequestRepository->findForStaff($status);
     }
 
     public function updateStatus(int $id, string $status, string $reply): void
@@ -181,13 +147,9 @@ final readonly class QuoteService
             throw new InvalidArgumentException('Statut de demande invalide.');
         }
 
-        $stmt = Database::pdo()->prepare(
-            'SELECT * FROM quote_requests WHERE id = :id LIMIT 1'
-        );
-        $stmt->execute(['id' => $id]);
-        $request = $stmt->fetch();
+        $request = $this->quoteRequestRepository->findById($id);
 
-        if ($request === false) {
+        if ($request === null) {
             throw new InvalidArgumentException('Demande de devis introuvable.');
         }
 
@@ -200,17 +162,7 @@ final readonly class QuoteService
             throw new InvalidArgumentException('Une réponse est requise pour ce statut.');
         }
 
-        Database::pdo()->prepare(
-            'UPDATE quote_requests
-             SET status = :status,
-                 employee_reply = :reply,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = :id'
-        )->execute([
-            'id' => $id,
-            'status' => $status,
-            'reply' => $reply !== '' ? $reply : null,
-        ]);
+        $this->quoteRequestRepository->updateStatus($id, $status, $reply !== '' ? $reply : null);
 
         if ($request['user_id'] !== null) {
             $this->notificationService->notify(
@@ -218,7 +170,7 @@ final readonly class QuoteService
                 'quote',
                 'Réponse à votre demande de devis',
                 'Votre demande de devis #' . $id . ' a été mise à jour : ' .
-                ($reply !== '' ? $reply : ($status . '.')),
+                ($reply !== '' ? $reply : (Labels::quoteStatus($status) . '.')),
                 null,
                 $id
             );

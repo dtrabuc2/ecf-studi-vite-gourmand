@@ -20,35 +20,52 @@ final readonly class CommentService
         return $this->commentRepository->findPending();
     }
 
-    public function getAllValidated(): array
-    {
-        $cached = $this->cacheService->get('comments_all_validated');
-        if ($cached !== null) {
-            return $cached;
-        }
-
-        $comments = $this->commentRepository->findAllValidated();
-        $this->cacheService->set('comments_all_validated', $comments, 1800);
-
-        return $comments;
-    }
-
-    public function getApprovedReviews(): array
-    {
-        return $this->getAllValidated();
-    }
-
     public function getHomepageReviews(): array
     {
         $cached = $this->cacheService->get('comments_homepage');
-        if ($cached !== null) {
-            return $cached;
+        if (is_array($cached)) {
+            return $this->reviewsFromCache($cached);
         }
 
         $comments = $this->commentRepository->getHomepageReviews();
-        $this->cacheService->set('comments_homepage', $comments, 300);
+        $this->cacheService->set('comments_homepage', $this->reviewsToCache($comments), 300);
 
         return $comments;
+    }
+
+    /**
+     * Le cache n'accepte aucun objet : les dates sont stockées au format ISO 8601.
+     */
+    private function reviewsToCache(array $reviews): array
+    {
+        return array_map(
+            static function (array $review): array {
+                foreach (['created_at', 'updated_at'] as $field) {
+                    if (($review[$field] ?? null) instanceof \DateTimeInterface) {
+                        $review[$field] = $review[$field]->format(\DateTimeInterface::ATOM);
+                    }
+                }
+
+                return $review;
+            },
+            $reviews
+        );
+    }
+
+    private function reviewsFromCache(array $reviews): array
+    {
+        return array_map(
+            static function (array $review): array {
+                foreach (['created_at', 'updated_at'] as $field) {
+                    if (is_string($review[$field] ?? null)) {
+                        $review[$field] = new \DateTimeImmutable($review[$field]);
+                    }
+                }
+
+                return $review;
+            },
+            $reviews
+        );
     }
 
     public function getByOrderId(int $orderId): ?array
@@ -107,7 +124,6 @@ final readonly class CommentService
 
     private function clearCommentCache(): void
     {
-        $this->cacheService->delete('comments_all_validated');
         $this->cacheService->delete('comments_homepage');
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Core\Database;
+use App\Core\Labels;
 use App\Entity\Order;
 use App\Repository\MenuRepository;
 use App\Repository\OpeningHoursRepository;
@@ -20,7 +21,10 @@ final readonly class OrderService
         private OpeningHoursRepository $openingHoursRepository,
         private MailService $mailService,
         private MenuStatisticsService $menuStatisticsService,
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private DeliveryDistanceService $deliveryDistanceService,
+        private MenuService $menuService,
+        private PhoneValidator $phoneValidator
     ) {
     }
 
@@ -33,7 +37,6 @@ final readonly class OrderService
         string $deliveryAddress,
         string $deliveryCity,
         string $deliveryPostalCode,
-        ?float $deliveryDistanceKm = null,
         ?string $customization = null,
         string $serviceType = 'delivery',
         string $paymentMethod = 'cash_on_site',
@@ -55,19 +58,13 @@ final readonly class OrderService
             throw new InvalidArgumentException('Le nombre de personnes doit être supérieur à 0.');
         }
 
-        if ($numberOfPeople > 30) {
-            throw new InvalidArgumentException(
-                'Au-delà de 30 personnes, une demande de devis traiteur est obligatoire.'
-            );
-        }
-
         if ($numberOfPeople < $menu->getMinPeople()) {
             throw new InvalidArgumentException(
                 sprintf('Ce menu nécessite au minimum %d personne(s).', $menu->getMinPeople())
             );
         }
 
-        if (!in_array($serviceType, ['delivery', 'on_site', 'pickup'], true)) {
+        if (!array_key_exists($serviceType, Labels::SERVICE_TYPE)) {
             throw new InvalidArgumentException('Mode de prestation invalide.');
         }
 
@@ -75,51 +72,30 @@ final readonly class OrderService
             throw new InvalidArgumentException('Le paiement est effectué en espèces sur place.');
         }
 
-        if ($contactPhone === null || trim($contactPhone) === '') {
-            throw new InvalidArgumentException('Un numéro de téléphone est requis pour la commande.');
-        }
+        $contactPhone = $this->validContactPhone(trim((string) $contactPhone));
 
-        $normalizedPhone = preg_replace('/[\\s().-]+/', '', trim($contactPhone)) ?? '';
-        if (!preg_match('/^(?:\\+33[67]\\d{8}|0[67]\\d{8}|\\+34[6789]\\d{8}|[6789]\\d{8})$/', $normalizedPhone)) {
-            throw new InvalidArgumentException('Numéro de téléphone invalide.');
-        }
-
-        if (!preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $deliveryDate) || $deliveryDate < date('Y-m-d')) {
-            throw new InvalidArgumentException('La date de prestation est invalide.');
-        }
-
-        if (!preg_match('/^\\d{2}:\\d{2}$/', $deliveryTime)) {
-            throw new InvalidArgumentException('L’heure de prestation est invalide.');
-        }
-
-        [$hour, $minute] = array_map('intval', explode(':', $deliveryTime));
-        if ($hour > 23 || $minute > 59) {
-            throw new InvalidArgumentException('L’heure de prestation est invalide.');
-        }
-
+        // format, pas de 15 min, date passée et horaires : tout est vérifié ici (comme pour les modifications)
         $this->validateServiceDateTime($deliveryDate, $deliveryTime);
 
-        if ($deliveryDistanceKm !== null && (!is_finite($deliveryDistanceKm) || $deliveryDistanceKm < 0)) {
-            throw new InvalidArgumentException('La distance de livraison est invalide.');
-        }
+        $deliveryDistanceKm = null;
+        $deliveryCost = 0.00;
 
-        if ($serviceType === 'delivery' && (trim($deliveryAddress) === '' || trim($deliveryCity) === '')) {
-            throw new InvalidArgumentException('L’adresse et la ville de livraison sont requises.');
+        if ($serviceType === 'delivery') {
+            // Distance calculée par le serveur ; en cas d'échec, la commande est refusée.
+            $delivery = $this->deliveryDistanceService->quote($deliveryAddress, $deliveryPostalCode, $deliveryCity);
+            $deliveryDistanceKm = $delivery['distance_km'];
+            $deliveryCost = $delivery['cost'];
         }
 
         if ($serviceType === 'pickup') {
             $deliveryAddress = '';
             $deliveryCity = '';
             $deliveryPostalCode = '';
-            $deliveryDistanceKm = null;
             $deliveryInstructions = null;
         }
 
         if ($serviceType === 'on_site') {
-            $deliveryAddress = '12 Quai des Chartrons';
-            $deliveryCity = 'Bordeaux';
-            $deliveryPostalCode = '33000';
-            $deliveryDistanceKm = null;
+            [$deliveryAddress, $deliveryCity, $deliveryPostalCode] = DeliveryDistanceService::COMPANY_ADDRESS;
             $deliveryInstructions = null;
         }
 
@@ -128,10 +104,6 @@ final readonly class OrderService
             $menu->getMinPeople(),
             $numberOfPeople
         );
-
-        $deliveryCost = $serviceType === 'delivery'
-            ? $this->calculateDeliveryCost($deliveryCity, $deliveryDistanceKm)
-            : 0.00;
 
         $orderData = [
             'user_id' => $userId,
@@ -181,6 +153,9 @@ final readonly class OrderService
             throw $exception;
         }
 
+        // Le stock a changé : le menu mis en cache n'est plus à jour.
+        $this->menuService->invalidateMenu($menuId);
+
         $mailDetails = [
             'id' => $orderId,
             'order_date' => $orderData['order_date'],
@@ -210,14 +185,10 @@ final readonly class OrderService
                 $mailDetails
             );
 
-            $staffEmail = (string) ($_ENV['MAIL_TO_ADDRESS'] ?? '');
-
-            if ($staffEmail !== '' && filter_var($staffEmail, FILTER_VALIDATE_EMAIL)) {
-                $this->mailService->sendOrderNotificationToStaff(
-                    $staffEmail,
-                    $mailDetails
-                );
-            }
+            $this->mailService->sendOrderNotificationToStaff(
+                $this->mailService->companyAddress(),
+                $mailDetails
+            );
         } catch (\Throwable $exception) {
             error_log('Order email notification error: ' . $exception->getMessage());
         }
@@ -240,7 +211,7 @@ final readonly class OrderService
                 . ' — ' . $menu->getTitle()
                 . ' — ' . $numberOfPeople . ' personne(s)'
                 . ' — total ' . number_format((float) $orderData['total_price'], 2, ',', ' ') . ' €.'
-                . ' Prestation : ' . $serviceType
+                . ' Prestation : ' . Labels::serviceType($serviceType)
                 . ' le ' . $deliveryDate . ' à ' . $deliveryTime . '.',
                 $orderId
             );
@@ -397,10 +368,6 @@ final readonly class OrderService
             throw new InvalidArgumentException('Le nombre de convives doit être supérieur à 0.');
         }
 
-        if ($numberOfPeople > 30) {
-            return [];
-        }
-
         $menus = $this->menuRepository->findAllForOrderSelection();
         $result = [];
 
@@ -446,14 +413,15 @@ final readonly class OrderService
         int $menuId,
         int $numberOfPeople,
         string $serviceType,
-        string $deliveryCity = '',
-        ?float $deliveryDistanceKm = null
+        string $deliveryAddress = '',
+        string $deliveryPostalCode = '',
+        string $deliveryCity = ''
     ): array {
-        if ($numberOfPeople < 1 || $numberOfPeople > 30) {
-            throw new InvalidArgumentException('Le nombre de convives est invalide pour une commande directe.');
+        if ($numberOfPeople < 1) {
+            throw new InvalidArgumentException('Le nombre de convives est invalide.');
         }
 
-        if (!in_array($serviceType, ['delivery', 'pickup', 'on_site'], true)) {
+        if (!array_key_exists($serviceType, Labels::SERVICE_TYPE)) {
             throw new InvalidArgumentException('Mode de prestation invalide.');
         }
 
@@ -467,10 +435,6 @@ final readonly class OrderService
             throw new InvalidArgumentException(
                 sprintf('Ce menu nécessite au minimum %d personne(s).', $menu->getMinPeople())
             );
-        }
-
-        if ($numberOfPeople < 1 || $numberOfPeople > 30) {
-            throw new InvalidArgumentException('Le nombre de convives est invalide pour une commande directe.');
         }
 
         [$menuPrice, $discountRate] = $this->calculateMenuPrice(
@@ -489,38 +453,32 @@ final readonly class OrderService
             ];
         }
 
-        $city = mb_strtolower(trim($deliveryCity));
+        $notReady = static fn (string $message): array => [
+            'ready' => false,
+            'menu_price' => $menuPrice,
+            'discount_rate' => $discountRate,
+            'delivery_cost' => null,
+            'total_price' => null,
+            'message' => $message,
+        ];
 
-        if ($city === '') {
-            return [
-                'ready' => false,
-                'menu_price' => $menuPrice,
-                'discount_rate' => $discountRate,
-                'delivery_cost' => null,
-                'total_price' => null,
-                'message' => 'Renseignez la ville de livraison.',
-            ];
+        if (trim($deliveryAddress) === '' || trim($deliveryPostalCode) === '' || trim($deliveryCity) === '') {
+            return $notReady('Renseignez l’adresse, le code postal et la ville pour calculer la livraison.');
         }
 
-        if ($city !== 'bordeaux' && ($deliveryDistanceKm === null || !is_finite($deliveryDistanceKm) || $deliveryDistanceKm < 0)) {
-            return [
-                'ready' => false,
-                'menu_price' => $menuPrice,
-                'discount_rate' => $discountRate,
-                'delivery_cost' => null,
-                'total_price' => null,
-                'message' => 'Renseignez la distance de livraison hors Bordeaux.',
-            ];
+        try {
+            $delivery = $this->deliveryDistanceService->quote($deliveryAddress, $deliveryPostalCode, $deliveryCity);
+        } catch (InvalidArgumentException $exception) {
+            return $notReady($exception->getMessage());
         }
-
-        $deliveryCost = $this->calculateDeliveryCost($deliveryCity, $deliveryDistanceKm);
 
         return [
             'ready' => true,
             'menu_price' => $menuPrice,
             'discount_rate' => $discountRate,
-            'delivery_cost' => $deliveryCost,
-            'total_price' => round($menuPrice + $deliveryCost, 2),
+            'delivery_cost' => $delivery['cost'],
+            'distance_km' => $delivery['distance_km'],
+            'total_price' => round($menuPrice + $delivery['cost'], 2),
         ];
     }
 
@@ -555,17 +513,48 @@ final readonly class OrderService
         return $this->orderRepository->findById($orderId);
     }
 
-    public function updateCustomerOrder(
-        int $orderId,
-        int $userId,
-        int $numberOfPeople,
-        string $deliveryDate,
-        string $deliveryTime,
-        string $address,
-        string $city,
-        string $postalCode,
-        ?float $distanceKm
-    ): void {
+    /**
+     * Statuts qu'on peut atteindre depuis chaque statut. Seule source de vérité :
+     * la liste de l'écran équipe (admin/orders.php) est construite à partir d'ici.
+     * Pour « livrée », le serveur tranche selon la case « matériel prêté ».
+     */
+    public const ALLOWED_TRANSITIONS = [
+        'pending' => ['accepted', 'cancelled'],
+        'accepted' => ['preparing', 'cancelled'],
+        'preparing' => ['delivering', 'cancelled'],
+        'delivering' => ['delivered', 'cancelled'],
+        'delivered' => ['awaiting_return', 'completed'],
+        'awaiting_return' => ['completed'],
+        'completed' => [],
+        'cancelled' => [],
+    ];
+
+    /**
+     * Statuts dans lesquels l'équipe peut encore modifier le contenu d'une commande.
+     */
+    public const STAFF_EDITABLE_STATUSES = ['pending', 'accepted', 'preparing'];
+
+    /**
+     * Champs modifiables d'une commande (tout sauf le menu).
+     */
+    public const EDITABLE_FIELDS = [
+        'number_of_people',
+        'delivery_date',
+        'delivery_time',
+        'service_type',
+        'contact_phone',
+        'delivery_address',
+        'delivery_city',
+        'delivery_postal_code',
+        'delivery_instructions',
+    ];
+
+    /**
+     * Modification par le client : possible tant que la commande n'est pas acceptée,
+     * quel que soit le mode de prestation. Le menu ne peut pas être changé.
+     */
+    public function updateCustomerOrder(int $orderId, int $userId, array $input): void
+    {
         $order = $this->orderRepository->findById($orderId);
 
         if ($order === null || $order->getUserId() !== $userId) {
@@ -573,22 +562,94 @@ final readonly class OrderService
         }
 
         if ($order->getStatus() !== 'pending') {
-            throw new InvalidArgumentException('Cette commande ne peut plus être modifiée.');
+            throw new InvalidArgumentException('Cette commande a déjà été acceptée et ne peut plus être modifiée.');
         }
 
-        if ($numberOfPeople < 1 || $numberOfPeople > 30) {
-            throw new InvalidArgumentException('Une commande directe doit comprendre entre 1 et 30 convives.');
+        $this->applyOrderChanges($order, $input, $userId, 'Modification par le client');
+    }
+
+    /**
+     * Modification par un employé après avoir contacté le client : le mode de contact
+     * et le motif sont obligatoires et conservés dans l'historique de la commande.
+     */
+    public function updateOrderByStaff(
+        int $orderId,
+        int $staffId,
+        array $input,
+        string $contactMode,
+        string $reason
+    ): void {
+        $order = $this->orderRepository->findById($orderId);
+
+        if ($order === null) {
+            throw new InvalidArgumentException('Commande introuvable.');
         }
 
+        if (!in_array($order->getStatus(), self::STAFF_EDITABLE_STATUSES, true)) {
+            throw new InvalidArgumentException(
+                'Une commande en livraison, livrée, terminée ou annulée ne peut plus être modifiée.'
+            );
+        }
+
+        $contactMode = trim($contactMode);
+        $reason = trim($reason);
+
+        if ($contactMode === '' || $reason === '') {
+            throw new InvalidArgumentException(
+                'Le mode de contact du client et le motif de la modification sont obligatoires.'
+            );
+        }
+
+        $summary = $this->applyOrderChanges(
+            $order,
+            $input,
+            $staffId,
+            'Modification par l’équipe — Contact client : ' . $contactMode . ' — Motif : ' . $reason
+        );
+
+        try {
+            $this->notificationService->notify(
+                $order->getUserId(),
+                'order',
+                'Commande modifiée',
+                'Suite à notre échange (' . $contactMode . '), la commande #' . $orderId
+                    . ' a été modifiée : ' . $summary . '.',
+                $orderId
+            );
+        } catch (\Throwable $exception) {
+            error_log('Order internal notification error: ' . $exception->getMessage());
+        }
+    }
+
+    /**
+     * Valide les nouvelles valeurs, recalcule le prix, enregistre la commande et
+     * ajoute une ligne à l'historique (statut inchangé) décrivant les changements.
+     *
+     * @return string Résumé des changements.
+     */
+    private function applyOrderChanges(Order $order, array $input, int $actorId, string $notePrefix): string
+    {
+        $numberOfPeople = filter_var(
+            $input['number_of_people'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
+
+        if ($numberOfPeople === false) {
+            throw new InvalidArgumentException('Nombre de convives invalide.');
+        }
+
+        $serviceType = trim((string) ($input['service_type'] ?? ''));
+
+        if (!array_key_exists($serviceType, Labels::SERVICE_TYPE)) {
+            throw new InvalidArgumentException('Mode de prestation invalide.');
+        }
+
+        $deliveryDate = trim((string) ($input['delivery_date'] ?? ''));
+        $deliveryTime = substr(trim((string) ($input['delivery_time'] ?? '')), 0, 5);
         $this->validateServiceDateTime($deliveryDate, $deliveryTime);
 
-        if (trim($address) === '' || trim($city) === '') {
-            throw new InvalidArgumentException('L’adresse et la ville sont requises.');
-        }
-
-        if ($distanceKm !== null && $distanceKm < 0) {
-            throw new InvalidArgumentException('La distance de livraison est invalide.');
-        }
+        $contactPhone = $this->validContactPhone(trim((string) ($input['contact_phone'] ?? '')));
 
         $menu = $this->menuRepository->findById($order->getMenuId());
 
@@ -602,28 +663,120 @@ final readonly class OrderService
             );
         }
 
+        $address = trim((string) ($input['delivery_address'] ?? ''));
+        $city = trim((string) ($input['delivery_city'] ?? ''));
+        $postalCode = trim((string) ($input['delivery_postal_code'] ?? ''));
+        $instructions = trim((string) ($input['delivery_instructions'] ?? ''));
+
+        if ($serviceType === 'delivery') {
+            // Distance recalculée par le serveur ; en cas d'échec, la modification est refusée.
+            $delivery = $this->deliveryDistanceService->quote($address, $postalCode, $city);
+            $distanceKm = $delivery['distance_km'];
+            $deliveryCost = $delivery['cost'];
+        } else {
+            [$address, $city, $postalCode] = $serviceType === 'on_site'
+                ? DeliveryDistanceService::COMPANY_ADDRESS
+                : ['', '', ''];
+            $distanceKm = null;
+            $instructions = '';
+            $deliveryCost = 0.00;
+        }
+
         [$menuPrice, $discountRate] = $this->calculateMenuPrice(
             $menu->getBasePrice(),
             $menu->getMinPeople(),
             $numberOfPeople
         );
 
-        $deliveryCost = $this->calculateDeliveryCost($city, $distanceKm);
+        $data = [
+            'number_of_people' => $numberOfPeople,
+            'delivery_date' => $deliveryDate,
+            'delivery_time' => $deliveryTime,
+            'service_type' => $serviceType,
+            'contact_phone' => $contactPhone,
+            'delivery_address' => $address,
+            'delivery_city' => $city,
+            'delivery_postal_code' => $postalCode,
+            'delivery_distance_km' => $distanceKm,
+            'delivery_instructions' => $instructions !== '' ? $instructions : null,
+            'menu_price' => $menuPrice,
+            'delivery_cost' => $deliveryCost,
+            'discount_rate' => $discountRate,
+            'total_price' => round($menuPrice + $deliveryCost, 2),
+        ];
 
-        $this->orderRepository->updateCustomerOrder(
-            $orderId,
-            $numberOfPeople,
-            $deliveryDate,
-            $deliveryTime,
-            trim($address),
-            trim($city),
-            trim($postalCode),
-            $distanceKm,
-            $menuPrice,
-            $deliveryCost,
-            $discountRate,
-            round($menuPrice + $deliveryCost, 2)
-        );
+        $summary = $this->describeChanges($order, $data);
+
+        if ($summary === '') {
+            throw new InvalidArgumentException('Aucune modification n’a été saisie.');
+        }
+
+        $pdo = Database::pdo();
+        $pdo->beginTransaction();
+
+        try {
+            $this->orderRepository->updateDetails($order->getId(), $data);
+            $this->orderRepository->addToHistory(
+                $order->getId(),
+                $order->getStatus(),
+                $actorId,
+                $notePrefix . ' — ' . $summary
+            );
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            throw $exception;
+        }
+
+        return $summary;
+    }
+
+    private function describeChanges(Order $order, array $data): string
+    {
+        $money = static fn (float $value): string => number_format($value, 2, ',', ' ') . ' €';
+
+        $fields = [
+            'Personnes' => [(string) $order->getNumberOfPeople(), (string) $data['number_of_people']],
+            'Date' => [$order->getDeliveryDate(), $data['delivery_date']],
+            'Heure' => [substr($order->getDeliveryTime(), 0, 5), $data['delivery_time']],
+            'Prestation' => [
+                Labels::serviceType($order->getServiceType()),
+                Labels::serviceType($data['service_type']),
+            ],
+            'Téléphone' => [$order->getContactPhone(), $data['contact_phone']],
+            'Adresse' => [
+                trim($order->getDeliveryAddress() . ' ' . $order->getDeliveryPostalCode() . ' ' . $order->getDeliveryCity()),
+                trim($data['delivery_address'] . ' ' . $data['delivery_postal_code'] . ' ' . $data['delivery_city']),
+            ],
+            'Instructions' => [(string) $order->getDeliveryInstructions(), (string) $data['delivery_instructions']],
+            'Total' => [$money($order->getTotalPrice()), $money($data['total_price'])],
+        ];
+
+        $changes = [];
+        foreach ($fields as $label => [$before, $after]) {
+            if ($before !== $after) {
+                $changes[] = $label . ' : ' . ($before !== '' ? $before : '—') . ' → ' . ($after !== '' ? $after : '—');
+            }
+        }
+
+        return implode(' ; ', $changes);
+    }
+
+    /**
+     * Même règle qu'à l'inscription (PhoneValidator). Retourne le numéro au format E.164.
+     */
+    private function validContactPhone(string $contactPhone): string
+    {
+        $error = $this->phoneValidator->validate($contactPhone);
+
+        if ($error !== null) {
+            throw new InvalidArgumentException($error);
+        }
+
+        return $this->phoneValidator->normalize($contactPhone);
     }
 
     public function updateOrderStatus(
@@ -640,18 +793,7 @@ final readonly class OrderService
             throw new InvalidArgumentException('Commande non trouvée.');
         }
 
-        $validStatuses = [
-            'pending',
-            'accepted',
-            'preparing',
-            'delivering',
-            'delivered',
-            'awaiting_return',
-            'completed',
-            'cancelled',
-        ];
-
-        if (!in_array($status, $validStatuses, true)) {
+        if (!array_key_exists($status, Labels::ORDER_STATUS)) {
             throw new InvalidArgumentException('Statut de commande invalide.');
         }
 
@@ -659,25 +801,18 @@ final readonly class OrderService
             throw new InvalidArgumentException('La commande possède déjà ce statut.');
         }
 
-        $allowedTransitions = [
-            'pending' => ['accepted', 'cancelled'],
-            'accepted' => ['preparing', 'cancelled'],
-            'preparing' => ['delivering', 'cancelled'],
-            'delivering' => ['delivered', 'cancelled'],
-            'delivered' => ['awaiting_return', 'completed'],
-            'awaiting_return' => ['completed'],
-            'completed' => [],
-            'cancelled' => [],
-        ];
-
-        if (!in_array($status, $allowedTransitions[$order->getStatus()] ?? [], true)) {
+        if (!in_array($status, self::ALLOWED_TRANSITIONS[$order->getStatus()] ?? [], true)) {
             throw new InvalidArgumentException('Transition de statut non autorisée.');
         }
+
+        // Le contrôle porte sur la valeur de « matériel prêté » après application
+        // de la case cochée dans le même envoi, et non sur l'ancienne valeur.
+        $equipmentAfterUpdate = $equipmentLoaned ?? $order->isEquipmentLoaned();
 
         if (
             $order->getStatus() === 'delivered'
             && $status === 'awaiting_return'
-            && !$order->isEquipmentLoaned()
+            && !$equipmentAfterUpdate
         ) {
             throw new InvalidArgumentException(
                 'Le statut « en attente du retour de matériel » nécessite un prêt de matériel.'
@@ -687,7 +822,7 @@ final readonly class OrderService
         if (
             $order->getStatus() === 'delivered'
             && $status === 'completed'
-            && $order->isEquipmentLoaned()
+            && $equipmentAfterUpdate
         ) {
             throw new InvalidArgumentException(
                 'Cette commande doit passer par le retour du matériel avant d’être terminée.'
@@ -733,12 +868,17 @@ final readonly class OrderService
             throw $exception;
         }
 
+        if ($status === 'cancelled') {
+            // Stock rendu : invalide le menu mis en cache.
+            $this->menuService->invalidateMenu($order->getMenuId());
+        }
+
         try {
             $this->notificationService->notify(
                 $order->getUserId(),
                 'order',
                 'Mise à jour de votre commande',
-                'La commande #' . $orderId . ' est maintenant « ' . $status . ' ».'
+                'La commande #' . $orderId . ' est maintenant « ' . Labels::orderStatus($status) . ' ».'
                     . ($notes !== '' ? ' ' . $notes : ''),
                 $orderId
             );
@@ -777,22 +917,4 @@ final readonly class OrderService
         return $this->orderRepository->getHistory($orderId);
     }
 
-    private function calculateDeliveryCost(string $deliveryCity, ?float $deliveryDistanceKm): float
-    {
-        $city = mb_strtolower(trim($deliveryCity));
-
-        if ($city === '') {
-            throw new InvalidArgumentException('La ville de livraison est requise.');
-        }
-
-        if ($city === 'bordeaux') {
-            return 0.00;
-        }
-
-        if ($deliveryDistanceKm === null || $deliveryDistanceKm < 0) {
-            throw new InvalidArgumentException('La distance de livraison est requise hors Bordeaux.');
-        }
-
-        return round(5.00 + (0.59 * $deliveryDistanceKm), 2);
-    }
 }

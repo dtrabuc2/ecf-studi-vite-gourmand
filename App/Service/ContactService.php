@@ -1,20 +1,19 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Service;
 
-use App\Core\Database;
+use App\Repository\MailboxRepository;
 
-class ContactService
+final readonly class ContactService
 {
+    public function __construct(
+        private MailboxRepository $mailboxRepository
+    ) {
+    }
+
     public function createMessage(string $email, string $subject, string $message): int
     {
-        $stmt = Database::getPDO()->prepare(
-            'INSERT INTO contact_messages (email, subject, message) VALUES (:email, :subject, :message)'
-        );
-        $stmt->execute([
-            'email' => $email,
-            'subject' => $subject,
-            'message' => $message,
-        ]);
-        return (int) Database::getPDO()->lastInsertId();
+        return $this->mailboxRepository->createContactMessage($email, $subject, $message);
     }
 }

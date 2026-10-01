@@ -1,46 +1,105 @@
 <?php
+declare(strict_types=1);
+
 namespace App\Service;
 
+use App\Core\Labels;
+use PHPMailer\PHPMailer\Exception as MailerException;
+use PHPMailer\PHPMailer\PHPMailer;
+
+/**
+ * Point d'envoi unique des e-mails de l'application.
+ *
+ * Transport SMTP via PHPMailer, configuré par les variables MAIL_* du .env
+ * (voir config/app.php, clé "mail").
+ */
 class MailService
 {
-    public function __construct(private readonly string $fromAddress = 'noreply@viteetgourmand.com', private readonly string $fromName = 'Vite & Gourmand')
+    public function __construct(private readonly array $config)
     {
     }
 
     /**
-     * Send an email.
-     * @param string $to
-     * @param string $subject
-     * @param string $body
-     * @param bool $isHTML
-     * @return bool True if email was sent successfully, false otherwise.
+     * Adresse de l'entreprise qui reçoit les messages de contact et les alertes
+     * (MAIL_TO_ADDRESS, à défaut MAIL_FROM_ADDRESS).
+     */
+    public function companyAddress(): string
+    {
+        $to = trim((string) ($this->config['to_address'] ?? ''));
+
+        return filter_var($to, FILTER_VALIDATE_EMAIL) ? $to : $this->fromAddress();
+    }
+
+    /**
+     * Envoie un e-mail.
+     *
+     * @return bool true si le serveur SMTP a accepté le message.
      */
     public function send(string $to, string $subject, string $body, bool $isHTML = false): bool
     {
-        $headers = "From: {$this->fromName} <{$this->fromAddress}>\r\n";
-        if ($isHTML) {
-            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-        } else {
-            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $host = trim((string) ($this->config['host'] ?? ''));
+
+        if (($this->config['driver'] ?? 'smtp') !== 'smtp' || $host === '') {
+            error_log('Email non envoyé à ' . $to . ' : SMTP non configuré (MAIL_DRIVER=smtp et MAIL_HOST requis).');
+            return false;
         }
 
-        // Additional headers
-        $headers .= "MIME-Version: 1.0\r\n";
-        $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
+        $mailer = new PHPMailer(true);
 
-        $sent = @mail($to, $subject, $body, $headers);
+        try {
+            $mailer->isSMTP();
+            $mailer->Host = $host;
+            $mailer->Port = (int) ($this->config['port'] ?? 587);
+            $mailer->Timeout = 10;
+            $mailer->CharSet = PHPMailer::CHARSET_UTF8;
 
-        if (!$sent) {
-            error_log('Email non envoyé à ' . $to . ' : serveur SMTP indisponible.');
+            $username = (string) ($this->config['username'] ?? '');
+            if ($username !== '') {
+                $mailer->SMTPAuth = true;
+                $mailer->Username = $username;
+                $mailer->Password = (string) ($this->config['password'] ?? '');
+            }
+
+            switch (strtolower((string) ($this->config['encryption'] ?? 'tls'))) {
+                case 'ssl':
+                case 'smtps':
+                    $mailer->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+                    break;
+                case 'tls':
+                case 'starttls':
+                    $mailer->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                    break;
+                default:
+                    // "none" ou vide : serveur local de test (Mailpit, MailHog…).
+                    $mailer->SMTPSecure = '';
+                    $mailer->SMTPAutoTLS = false;
+            }
+
+            $mailer->setFrom($this->fromAddress(), (string) ($this->config['from_name'] ?? 'Vite & Gourmand'));
+            $mailer->addAddress($to);
+            $mailer->Subject = $subject;
+            $mailer->isHTML($isHTML);
+            $mailer->Body = $body;
+
+            if ($isHTML) {
+                $mailer->AltBody = trim(html_entity_decode(
+                    strip_tags(preg_replace('/<br\s*\/?>/i', "\n", $body) ?? $body),
+                    ENT_QUOTES | ENT_HTML5,
+                    'UTF-8'
+                ));
+            }
+
+            return $mailer->send();
+        } catch (MailerException $exception) {
+            error_log('Email non envoyé à ' . $to . ' : ' . $mailer->ErrorInfo);
+            return false;
         }
-
-        return $sent;
     }
 
     public function sendWelcomeEmail(string $to, string $firstName): bool
     {
         $subject = 'Bienvenue chez Vite & Gourmand !';
-        $body = <<<HTML
+        $body = <<<TEXT
 Bonjour {$firstName},
 
 Bienvenue chez Vite & Gourmand ! Nous sommes ravis de vous compter parmi nos utilisateurs.
@@ -49,15 +108,39 @@ Vous pouvez dès maintenant vous connecter à votre espace personnel et commence
 
 À très bientôt,
 L'équipe Vite & Gourmand
-HTML;
+TEXT;
 
         return $this->send($to, $subject, $body);
+    }
+
+    /**
+     * Informe un employé de la création de son compte. Le mot de passe n'est
+     * jamais transmis par e-mail : l'employé doit le demander à l'administrateur.
+     */
+    public function sendEmployeeAccountEmail(string $to, string $firstName, string $loginUrl): bool
+    {
+        $body = <<<TEXT
+Bonjour {$firstName},
+
+Un compte employé Vite & Gourmand vient d'être créé pour vous.
+
+Identifiant de connexion : {$to}
+Espace équipe : {$loginUrl}
+
+Pour des raisons de sécurité, votre mot de passe ne vous est pas envoyé par e-mail.
+Rapprochez-vous de l'administrateur pour l'obtenir.
+
+À bientôt,
+L'équipe Vite & Gourmand
+TEXT;
+
+        return $this->send($to, 'Création de votre compte employé', $body);
     }
 
     public function sendPasswordResetEmail(string $to, string $firstName, string $resetUrl): bool
     {
         $subject = 'Réinitialisation de votre mot de passe';
-        $body = <<<HTML
+        $body = <<<TEXT
 Bonjour {$firstName},
 
 Vous avez demandé à réinitialiser votre mot de passe. Veuillez cliquer sur le lien ci-dessous pour choisir un nouveau mot de passe :
@@ -68,7 +151,7 @@ Ce lien est valable pour une durée limitée. Si vous n'êtes pas à l'origine d
 
 À bientôt,
 L'équipe Vite & Gourmand
-HTML;
+TEXT;
 
         return $this->send($to, $subject, $body);
     }
@@ -78,7 +161,7 @@ HTML;
         return $this->send(
             $to,
             'Votre commande est terminée : donnez votre avis',
-            "Bonjour {$firstName},\\n\\nVotre commande #{$orderId} est terminée. Vous pouvez maintenant vous connecter à votre espace client pour laisser une note de 1 à 5 et un commentaire.\\n\\nÀ bientôt,\\nL'équipe Vite & Gourmand"
+            "Bonjour {$firstName},\n\nVotre commande #{$orderId} est terminée. Vous pouvez maintenant vous connecter à votre espace client pour laisser une note de 1 à 5 et un commentaire.\n\nÀ bientôt,\nL'équipe Vite & Gourmand"
         );
     }
 
@@ -87,7 +170,7 @@ HTML;
         return $this->send(
             $to,
             'Retour du matériel prêté — commande #' . $orderId,
-            "Bonjour {$firstName},\\n\\nLe matériel prêté pour la commande #{$orderId} doit être restitué. À défaut de restitution sous 10 jours ouvrés, des frais de 600 euros sont prévus selon les conditions générales de vente.\\n\\nPour organiser le retour, veuillez prendre contact avec Vite & Gourmand."
+            "Bonjour {$firstName},\n\nLe matériel prêté pour la commande #{$orderId} doit être restitué. À défaut de restitution sous 10 jours ouvrés, des frais de 600 euros sont prévus selon les conditions générales de vente.\n\nPour organiser le retour, veuillez prendre contact avec Vite & Gourmand."
         );
     }
 
@@ -96,14 +179,7 @@ HTML;
         string $firstName,
         array $details
     ): bool {
-        $serviceLabels = [
-            'pickup' => 'Retrait / à emporter',
-            'delivery' => 'Livraison',
-            'on_site' => 'Prestation sur place',
-        ];
-
-        $serviceType = $details['service_type'] ?? '';
-        $serviceLabel = $serviceLabels[$serviceType] ?? $serviceType;
+        $serviceLabel = Labels::serviceType((string) ($details['service_type'] ?? ''));
 
         $body = <<<TEXT
 Bonjour {$firstName},
@@ -127,14 +203,7 @@ TEXT;
         string $to,
         array $details
     ): bool {
-        $serviceLabels = [
-            'pickup' => 'Retrait / à emporter',
-            'delivery' => 'Livraison',
-            'on_site' => 'Prestation sur place',
-        ];
-
-        $serviceType = $details['service_type'] ?? '';
-        $serviceLabel = $serviceLabels[$serviceType] ?? $serviceType;
+        $serviceLabel = Labels::serviceType((string) ($details['service_type'] ?? ''));
 
         $body = <<<TEXT
 Nouvelle demande de devis grand événement #{$details['id']}
@@ -166,16 +235,7 @@ TEXT;
         string $status,
         string $reply
     ): bool {
-        $labels = [
-            'new' => 'Nouvelle',
-            'in_review' => 'En cours de traitement',
-            'quoted' => 'Devis envoyé',
-            'accepted' => 'Demande acceptée',
-            'declined' => 'Demande refusée',
-            'closed' => 'Demande clôturée',
-        ];
-
-        $statusLabel = $labels[$status] ?? $status;
+        $statusLabel = Labels::quoteStatus($status);
 
         $body = <<<TEXT
 Bonjour {$firstName},
@@ -195,13 +255,7 @@ TEXT;
 
     public function sendOrderNotificationToStaff(string $to, array $details): bool
     {
-        $serviceLabels = [
-            'delivery' => 'Livraison',
-            'on_site' => 'Prestation sur place',
-            'pickup' => 'À emporter',
-        ];
-
-        $serviceLabel = $serviceLabels[$details['service_type'] ?? ''] ?? ($details['service_type'] ?? '');
+        $serviceLabel = Labels::serviceType((string) ($details['service_type'] ?? ''));
 
         $body = <<<TEXT
 Nouvelle commande #{$details['id']}
@@ -232,7 +286,7 @@ TEXT;
     public function sendOrderConfirmationEmail(string $to, string $firstName, array $orderDetails): bool
     {
         $subject = 'Confirmation de votre commande';
-        $body = <<<HTML
+        $body = <<<TEXT
 Bonjour {$firstName},
 
 Merci pour votre commande ! Voici les détails :
@@ -249,8 +303,13 @@ Nous vous contacterons bientôt pour confirmer les détails de la livraison.
 
 À bientôt,
 L'équipe Vite & Gourmand
-HTML;
+TEXT;
 
         return $this->send($to, $subject, $body);
+    }
+
+    private function fromAddress(): string
+    {
+        return (string) ($this->config['from_address'] ?? 'noreply@viteetgourmand.com');
     }
 }
