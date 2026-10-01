@@ -32,16 +32,16 @@
 
   const getGuests = () => Number(confirmedField?.value || numberField?.value || 0);
   const getServiceType = () => document.querySelector('input[name="service_type"]:checked')?.value || 'delivery';
-  const getDeliveryCity = () => document.getElementById('delivery_city')?.value?.trim() || '';
-  const getDeliveryDistance = () => {
-    const value = document.getElementById('delivery_distance_km')?.value ?? '';
-    return value === '' ? '' : value;
-  };
+  const fieldValue = (id) => document.getElementById(id)?.value?.trim() || '';
+  const previewDistance = document.getElementById('orderDeliveryDistance');
+  let priceRequest = 0;
+  let addressTimer = null;
 
   const setPriceState = ({
     menuPrice = 0,
     discountRate = 0,
     deliveryCost = null,
+    distanceKm = null,
     totalPrice = 0,
     ready = false,
     message = ''
@@ -49,6 +49,11 @@
     if (previewMenu) previewMenu.textContent = formatPrice(menuPrice);
     if (previewDiscount) previewDiscount.textContent = Number(discountRate || 0).toLocaleString('fr-FR') + ' %';
     if (previewDelivery) previewDelivery.textContent = deliveryCost === null ? 'À renseigner' : formatPrice(deliveryCost);
+    if (previewDistance) {
+      previewDistance.textContent = distanceKm === null || distanceKm === undefined
+        ? ''
+        : '(' + Number(distanceKm).toLocaleString('fr-FR') + ' km)';
+    }
     if (previewTotal) previewTotal.textContent = ready ? formatPrice(totalPrice) : 'À calculer';
     if (priceMessage) {
       priceMessage.textContent = message || (ready
@@ -65,15 +70,10 @@
     menuSelect.disabled = true;
 
     try {
-      const payload = await window.VgApi.get(
+      // VgApi.get() renvoie déjà le contenu de "data".
+      const data = await window.VgApi.get(
         '/orders/menu-options?number_of_people=' + encodeURIComponent(people)
-      );
-
-      const data = payload?.data || {};
-      if (data.quote_required) {
-        window.location.assign(data.quote_url || '/quote');
-        return;
-      }
+      ) || {};
 
       menuOptions = Array.isArray(data.menus) ? data.menus : [];
       menuSelect.innerHTML = '<option value="">Sélectionnez un menu</option>';
@@ -122,16 +122,17 @@
 
       const oldMenuId = Number(form.dataset.oldMenuId || 0);
       if (oldMenuId > 0) {
-        const oldOption = Array.from(menuSelect.options).find(
-          (option) => Number(option.value) === oldMenuId && !option.disabled
-        );
+        const oldMenu = menuOptions.find((menu) => Number(menu.id) === oldMenuId);
 
-        if (oldOption) {
-          menuSelect.value = oldOption.value;
+        if (oldMenu && oldMenu.available) {
+          menuSelect.value = String(oldMenu.id);
+        } else if (oldMenu && menuMessage) {
+          menuMessage.className = 'alert alert-warning';
+          menuMessage.textContent = 'Le menu « ' + oldMenu.title + ' » n’est pas disponible pour '
+            + people + ' convive(s) : ' + (oldMenu.reason || 'conditions non remplies') + ' '
+            + available + ' autre(s) menu(s) disponible(s).';
         }
       }
-
-      await updatePrice();
     } catch (error) {
       menuOptions = [];
       menuSelect.innerHTML = '<option value="">Menus indisponibles</option>';
@@ -141,36 +142,58 @@
         menuMessage.textContent = error?.message || 'Impossible de charger les disponibilités.';
       }
       setPriceState();
+      return;
     } finally {
       loadingMenus = false;
     }
+
+    await updatePrice();
   };
 
   const updatePrice = async () => {
     const menuId = Number(menuSelect?.value || 0);
     const people = getGuests();
+    // Seule la réponse à la dernière demande est affichée.
+    const requestId = ++priceRequest;
 
     if (!menuId || !people || loadingMenus) {
       setPriceState();
       return;
     }
 
+    // La distance de livraison est calculée par le serveur à partir de l'adresse.
     const params = new URLSearchParams({
       menu_id: String(menuId),
       number_of_people: String(people),
       service_type: getServiceType(),
-      delivery_city: getDeliveryCity(),
-      delivery_distance_km: getDeliveryDistance()
+      delivery_address: fieldValue('delivery_address'),
+      delivery_postal_code: fieldValue('delivery_postal_code'),
+      delivery_city: fieldValue('delivery_city')
     });
 
     try {
-      const payload = await window.VgApi.get('/orders/price-preview?' + params.toString());
-      setPriceState(payload?.data || {});
+      const data = await window.VgApi.get('/orders/price-preview?' + params.toString()) || {};
+      if (requestId !== priceRequest) return;
+      setPriceState({
+        menuPrice: data.menu_price,
+        discountRate: data.discount_rate,
+        deliveryCost: data.delivery_cost ?? null,
+        distanceKm: data.distance_km ?? null,
+        totalPrice: data.total_price,
+        ready: data.ready === true,
+        message: data.message || ''
+      });
     } catch (error) {
+      if (requestId !== priceRequest) return;
       setPriceState({
         message: error?.message || 'Impossible de calculer le prix.'
       });
     }
+  };
+
+  const updatePriceLater = () => {
+    window.clearTimeout(addressTimer);
+    addressTimer = window.setTimeout(() => void updatePrice(), 700);
   };
 
   const loadSlots = async () => {
@@ -187,10 +210,9 @@
     }
 
     try {
-      const payload = await window.VgApi.get(
+      const data = await window.VgApi.get(
         '/orders/availability?date=' + encodeURIComponent(date)
-      );
-      const data = payload?.data || {};
+      ) || {};
       const slots = Array.isArray(data.slots) ? data.slots : [];
 
       slots.forEach((slot) => {
@@ -263,11 +285,6 @@
       return;
     }
 
-    if (people > 30) {
-      window.location.assign('/quote?number_of_people=' + encodeURIComponent(people));
-      return;
-    }
-
     await loadMenuOptions(people);
 
     if (menuOptions.length === 0) {
@@ -331,8 +348,10 @@
     input.addEventListener('change', syncServiceType);
   });
 
-  ['delivery_city', 'delivery_distance_km'].forEach((id) => {
-    document.getElementById(id)?.addEventListener('input', () => void updatePrice());
+  ['delivery_address', 'delivery_postal_code', 'delivery_city'].forEach((id) => {
+    const field = document.getElementById(id);
+    field?.addEventListener('input', updatePriceLater);
+    field?.addEventListener('change', updatePriceLater);
   });
 
   form.addEventListener('submit', preventInvalidSubmit);

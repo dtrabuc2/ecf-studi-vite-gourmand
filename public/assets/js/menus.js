@@ -11,47 +11,25 @@
     return div.innerHTML;
   };
 
-  const imageUrl = (image) => String(image?.url || image?.path || '').trim();
+  const imageUrl = (image) => String(image?.url || '').trim();
 
   const formatPrice = (value) => Number(value || 0).toLocaleString('fr-FR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }) + ' €';
 
-  const regimeLabel = (regime) => ({
-    classic: 'Classique',
-    vegetarian: 'Végétarien',
-    vegan: 'Végétalien',
-    other: 'Autre'
-  }[regime] || regime || 'Non précisé');
 
+  // Couverture du menu (première image de la galerie), fournie par l'API.
   const renderGallery = (menu) => {
     const images = Array.isArray(menu.images) ? menu.images : [];
     const primary = imageUrl(images[0]);
 
     if (!primary) {
-      return '<div class="bg-light d-flex align-items-center justify-content-center text-muted" style="height:250px;">Aucune image disponible</div>';
+      return '<div class="bg-light d-flex align-items-center justify-content-center text-muted home-menu-placeholder">Aucune image disponible</div>';
     }
 
-    const thumbs = images.slice(1).map((image) => {
-      const url = imageUrl(image);
-      if (!url) return '';
-      const href = String(image.href || url).trim();
-      return '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener noreferrer">' +
-        '<img src="' + escapeHtml(url) + '" class="rounded" alt="' +
-        escapeHtml(image.alt_text || menu.title) +
-        '" style="width:72px;height:52px;object-fit:cover;" loading="lazy">' +
-        '</a>';
-    }).join('');
-
-    return '<div class="position-relative">' +
-      '<a href="' + escapeHtml(String(images[0]?.href || primary)) + '" target="_blank" rel="noopener noreferrer">' +
-      '<img src="' + escapeHtml(primary) + '" class="card-img-top" alt="' +
-      escapeHtml(images[0]?.alt_text || menu.title) +
-      '" style="height:250px;object-fit:cover;">' +
-      '</a>' +
-      (thumbs ? '<div class="position-absolute bottom-0 start-0 end-0 d-flex gap-2 p-2 bg-dark bg-opacity-50">' + thumbs + '</div>' : '') +
-      '</div>';
+    return '<img src="' + escapeHtml(primary) + '" class="card-img-top home-menu-image" alt="' +
+      escapeHtml(images[0]?.alt_text || menu.title) + '">';
   };
 
   const renderDishes = (menu) => {
@@ -87,7 +65,7 @@
         '<div class="card-body d-flex flex-column">' +
         '<div class="d-flex flex-wrap gap-2 align-items-center">' +
         '<span class="badge bg-primary-subtle text-primary">' + escapeHtml(menu.theme) + '</span>' +
-        '<span class="badge bg-success-subtle text-success">' + escapeHtml(regimeLabel(menu.dietary_regime)) + '</span>' +
+        '<span class="badge bg-success-subtle text-success">' + escapeHtml(menu.dietary_regime_label || 'Non précisé') + '</span>' +
         '</div>' +
         '<h2 class="h4 text-primary mt-3">' + escapeHtml(menu.title) + '</h2>' +
         '<p class="text-muted flex-grow-1">' + escapeHtml(menu.description) + '</p>' +
@@ -158,5 +136,5 @@
     window.setTimeout(() => load('/public/menus'), 0);
   });
 
-  load('/public/menus');
+  // Pas de rechargement initial : la grille est déjà rendue par PHP.
 })();

@@ -44,6 +44,8 @@
         address.value = item.address || item.label || '';
         if (postalCode && item.postal_code) postalCode.value = item.postal_code;
         if (city && item.city) city.value = item.city;
+        // Prévient le calcul du prix que l'adresse a changé.
+        address.dispatchEvent(new Event('change', { bubbles: true }));
 
         if (hint) {
           hint.textContent = 'Adresse proposée par Google. Vous pouvez compléter avec résidence, bâtiment, étage ou appartement.';
