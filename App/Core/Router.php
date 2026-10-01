@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Core;
 
+use App\Controller\ErrorController;
+use App\Core\Exception\NotFoundException;
 use ReflectionMethod;
 use RuntimeException;
 
@@ -82,15 +84,31 @@ final class Router
                 continue;
             }
 
-            $this->runMiddlewareStack($route['middlewares']);
-            $this->runAction($route['action'], $parameters);
+            try {
+                $this->runMiddlewareStack($route['middlewares']);
+                $this->runAction($route['action'], $parameters);
+            } catch (NotFoundException) {
+                $this->notFound();
+            }
+
             return;
         }
 
-        Response::json(
-            ['success' => false, 'error' => 'Page introuvable.'],
-            404
-        );
+        $this->notFound();
+    }
+
+    /**
+     * 404 en page HTML, ou en JSON pour les appels d'API.
+     */
+    private function notFound(): void
+    {
+        $controller = $this->container->get(ErrorController::class);
+
+        if (!$controller instanceof ErrorController) {
+            throw new RuntimeException('Contrôleur d’erreur non configuré.');
+        }
+
+        $controller->notFound();
     }
 
     private function match(string $routeUri, string $requestPath): ?array
@@ -175,10 +193,17 @@ final class Router
             $name = $parameter->getName();
 
             if (array_key_exists($name, $parameters)) {
-                $arguments[] = $this->castParameter(
+                $value = $this->castParameter(
                     $parameters[$name],
                     $parameter->getType()?->getName()
                 );
+
+                // Paramètre d'URL non convertible (ex. /menus/abc pour un int) : 404.
+                if ($value === null && !$parameter->allowsNull()) {
+                    throw new NotFoundException('Paramètre de route invalide : ' . $name);
+                }
+
+                $arguments[] = $value;
                 continue;
             }
 

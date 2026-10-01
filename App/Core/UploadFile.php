@@ -5,80 +5,94 @@ namespace App\Core;
 
 use App\Core\Exception\FileException;
 
+/**
+ * Enregistrement sécurisé d'une image envoyée par formulaire dans public/uploads/.
+ */
 final class UploadFile
 {
-    public static function upload(): ?string
+    private const MAX_SIZE = 5 * 1024 * 1024;
+
+    private const ALLOWED = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+    ];
+
+    /**
+     * @return string Chemin public de l'image, par exemple /uploads/menus/abc.jpg
+     */
+    public static function upload(string $field = 'file', string $subDirectory = ''): string
     {
-        if (!isset($_FILES['file']) || !is_array($_FILES['file'])) {
-            throw new FileException('No file was uploaded');
+        if (!isset($_FILES[$field]) || !is_array($_FILES[$field])) {
+            throw new FileException('Aucun fichier n’a été envoyé.');
         }
 
-        $file = $_FILES['file'];
+        $file = $_FILES[$field];
         $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
 
         if ($error !== UPLOAD_ERR_OK) {
             throw new FileException(match ($error) {
-                UPLOAD_ERR_PARTIAL => 'File only partially uploaded',
-                UPLOAD_ERR_NO_FILE => 'No file was uploaded',
-                UPLOAD_ERR_EXTENSION => 'File upload stopped by a PHP extension',
-                UPLOAD_ERR_FORM_SIZE => 'File exceeds MAX_FILE_SIZE in the HTML form',
-                UPLOAD_ERR_INI_SIZE => 'File exceeds upload_max_filesize',
-                UPLOAD_ERR_NO_TMP_DIR => 'Temporary folder not found',
-                UPLOAD_ERR_CANT_WRITE => 'Failed to write file',
-                default => 'Unknown upload error',
+                UPLOAD_ERR_PARTIAL => 'Le fichier n’a été envoyé que partiellement.',
+                UPLOAD_ERR_NO_FILE => 'Aucun fichier n’a été envoyé.',
+                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Le fichier dépasse la taille autorisée (5 Mo).',
+                default => 'L’envoi du fichier a échoué.',
             });
         }
 
         $tmpName = (string) ($file['tmp_name'] ?? '');
-        $originalName = (string) ($file['name'] ?? '');
-        $size = (int) ($file['size'] ?? 0);
 
-        if ($tmpName === '' || $originalName === '' || !is_uploaded_file($tmpName)) {
-            throw new FileException('Invalid uploaded file');
+        if ($tmpName === '' || !is_uploaded_file($tmpName)) {
+            throw new FileException('Fichier envoyé invalide.');
         }
 
-        if ($size > 5 * 1024 * 1024) {
-            throw new FileException('File exceeds upload_max_filesize');
+        if ((int) ($file['size'] ?? 0) > self::MAX_SIZE) {
+            throw new FileException('Le fichier dépasse la taille autorisée (5 Mo).');
         }
 
-        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+        // Le type est déterminé par le contenu du fichier, jamais par son nom.
+        $info = @getimagesize($tmpName);
+        $mime = is_array($info) ? (string) ($info['mime'] ?? '') : '';
 
-        if (!in_array($extension, $allowed, true)) {
-            throw new FileException('Invalid format file');
+        if (!isset(self::ALLOWED[$mime])) {
+            throw new FileException('Format d’image non accepté (JPEG, PNG ou WebP).');
         }
 
-        $mime = mime_content_type($tmpName);
-
-        if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
-            throw new FileException('Invalid image MIME type');
-        }
-
-        $baseName = pathinfo($originalName, PATHINFO_FILENAME);
-        $baseName = preg_replace('/[^A-Za-z0-9_-]+/', '-', $baseName) ?? 'image';
-        $fileName = trim($baseName, '-_') . '-' . bin2hex(random_bytes(6)) . '.' . $extension;
-
-        $directory = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'uploads';
+        $subDirectory = trim(preg_replace('/[^a-z0-9_-]/i', '', $subDirectory) ?? '');
+        $directory = self::baseDirectory() . ($subDirectory !== '' ? DIRECTORY_SEPARATOR . $subDirectory : '');
 
         if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
-            throw new FileException('Unable to create upload directory');
+            throw new FileException('Impossible de créer le dossier d’envoi.');
         }
 
-        $destination = $directory . DIRECTORY_SEPARATOR . $fileName;
+        $fileName = bin2hex(random_bytes(16)) . '.' . self::ALLOWED[$mime];
 
-        if (!move_uploaded_file($tmpName, $destination)) {
-            throw new FileException('Failed to write file');
+        if (!move_uploaded_file($tmpName, $directory . DIRECTORY_SEPARATOR . $fileName)) {
+            throw new FileException('Impossible d’enregistrer le fichier.');
         }
 
-        return $fileName;
+        return '/uploads/' . ($subDirectory !== '' ? $subDirectory . '/' : '') . $fileName;
     }
 
-    public static function remove(string $fileName): void
+    /**
+     * Supprime un fichier précédemment envoyé. Les URL externes sont ignorées.
+     */
+    public static function remove(string $publicPath): void
     {
-        $path = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . basename($fileName);
+        if (!preg_match('#^/uploads/(?:([a-z0-9_-]+)/)?([a-f0-9]{32}\.(?:jpg|png|webp))$#i', $publicPath, $matches)) {
+            return;
+        }
+
+        $path = self::baseDirectory()
+            . ($matches[1] !== '' ? DIRECTORY_SEPARATOR . $matches[1] : '')
+            . DIRECTORY_SEPARATOR . $matches[2];
 
         if (is_file($path) && !unlink($path)) {
-            throw new FileException('Unable to delete image');
+            throw new FileException('Impossible de supprimer l’image.');
         }
+    }
+
+    private static function baseDirectory(): string
+    {
+        return dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'uploads';
     }
 }

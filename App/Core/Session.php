@@ -23,11 +23,6 @@ final class Session
             : null;
     }
 
-    public static function isAuthenticated(): bool
-    {
-        return self::id() !== null;
-    }
-
     public static function login(
         int $userId,
         string $role,
