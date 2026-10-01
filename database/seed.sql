@@ -1,8 +1,13 @@
 USE `viteetgourmand`;
+-- Même jeu de caractères et même collation que les tables (schema.sql).
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------
--- Comptes de démonstration historiques de l'ECF.
--- Le mot de passe reste stocké sous forme de hash bcrypt.
+-- Comptes de démonstration de l'ECF.
+-- Chaque compte a son propre mot de passe, conforme à la politique
+-- (10 caractères min., majuscule, minuscule, chiffre, caractère spécial),
+-- stocké en hash bcrypt (coût 12). Identifiants : README, « Comptes de test ».
+-- Les téléphones sont en E.164 (+33…), comme ceux enregistrés par l'application.
 -- L'upsert se fait par email afin de ne pas écraser les identifiants
 -- existants d'autres utilisateurs.
 -- ----------------------------------------------------------------
@@ -12,17 +17,17 @@ INSERT INTO `users`
      `phone`, `gsm`, `address`, `is_active`)
 VALUES
     ('admin@viteetgourmand.com',
-     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+     '$2y$12$9IfA44iCxtRAwbf4RjV7duuTrR4X3I0q8EX05cNkI9aPX8D28vhpi',
      'admin', 'Admin', 'Istrator',
-     '0123456789', '0612345678', '123 Rue de la Paix', 1),
+     '+33123456789', '+33612345678', '123 Rue de la Paix', 1),
     ('employee@viteetgourmand.com',
-     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+     '$2y$12$vZMWibdDGqi4uMI7FmkZZeyrDi5x2zZH0Stfv8MM0rZckAeyII33K',
      'employee', 'Employé', 'Modèle',
-     '0123456789', '0612345678', '456 Avenue des Champs', 1),
+     '+33123456789', '+33612345678', '456 Avenue des Champs', 1),
     ('user@viteetgourmand.com',
-     '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+     '$2y$12$0O7wW0SCX24Ok0ee2sHHcOXFWaKCXK84ebISO7whnOZURMNOsKttq',
      'user', 'Utilisateur', 'Modèle',
-     '0123456789', '0612345678', '789 Boulevard Saint-Michel', 1)
+     '+33123456789', '+33612345678', '789 Boulevard Saint-Michel', 1)
 ON DUPLICATE KEY UPDATE
     `password` = VALUES(`password`),
     `role` = VALUES(`role`),
@@ -297,27 +302,27 @@ VALUES
     (1,
      'Formule Solo Classique',
      'Entrée, plat, accompagnement et dessert. Pensée pour une personne avec une formule simple et accessible.',
-     'Essentiel',
+     'Classique',
      'classic',
      1,
      16.90,
-     'Minimum 1 personne. Commande directe possible jusqu’à 30 personnes selon le stock.',
+     'Minimum 1 personne. Commande directe possible selon le stock disponible.',
      40),
 
     (2,
      'Formule Solo Végétale',
      'Entrée végétale, plat végétalien, accompagnement et dessert fruité.',
-     'Végétal',
+     'Classique',
      'vegan',
      1,
      17.90,
-     'Minimum 1 personne. Cuisine 100 % végétale. Commande directe possible jusqu’à 30 personnes selon le stock.',
+     'Minimum 1 personne. Cuisine 100 % végétale. Commande directe possible selon le stock disponible.',
      30),
 
     (3,
      'Formule Enfant Gourmande',
      'Plat enfant, accompagnement, dessert et boisson non alcoolisée.',
-     'Famille',
+     'Classique',
      'classic',
      1,
      11.90,
@@ -327,7 +332,7 @@ VALUES
     (4,
      'Menu Duo Convivial',
      'Entrée au choix, plat généreux et dessert pour deux convives.',
-     'Convivial',
+     'Classique',
      'classic',
      2,
      34.90,
@@ -337,7 +342,7 @@ VALUES
     (5,
      'Menu Trio Végétal',
      'Entrée, plat végétarien, accompagnement et dessert pour trois convives.',
-     'Végétal',
+     'Pâques',
      'vegetarian',
      3,
      52.90,
@@ -347,7 +352,7 @@ VALUES
     (6,
      'Menu Familial Tradition',
      'Entrée, plats traditionnels, deux accompagnements et dessert familial.',
-     'Famille',
+     'Noël',
      'classic',
      3,
      64.90,
@@ -357,7 +362,7 @@ VALUES
     (7,
      'Menu Terroir & Mer',
      'Entrée raffinée, poisson ou viande, accompagnement travaillé et dessert.',
-     'Gourmet',
+     'Pâques',
      'classic',
      2,
      49.90,
@@ -367,7 +372,7 @@ VALUES
     (8,
      'Menu Végétal Élégance',
      'Entrée gastronomique, plat végétalien travaillé, garniture de saison et dessert.',
-     'Gastronomique',
+     'Évènement',
      'vegan',
      2,
      45.90,
@@ -377,7 +382,7 @@ VALUES
     (9,
      'Menu Réception Signature',
      'Entrée, deux choix de plats premium, deux garnitures et dessert signature.',
-     'Événement',
+     'Évènement',
      'classic',
      6,
      69.90,
@@ -448,7 +453,62 @@ INSERT INTO `menu_dishes` (`menu_id`, `dish_id`, `position`) VALUES
     (9, 22, 4),
     (9, 31, 5);
 
+-- ----------------------------------------------------------------
+-- Commandes de démonstration terminées (identifiants fixes 1001 à 1005)
+-- passées par le compte client user@viteetgourmand.com, retrait sur place.
+-- Elles portent les avis et les statistiques de database/mongodb-init.js.
+-- INSERT IGNORE : une commande existante portant le même identifiant
+-- ou la même référence n'est jamais écrasée.
+-- Prix = prix du menu pour son minimum de personnes (pas de remise).
+-- ----------------------------------------------------------------
+
+SET @client_id := (SELECT `id` FROM `users` WHERE `email` = 'user@viteetgourmand.com');
+SET @employee_id := (SELECT `id` FROM `users` WHERE `email` = 'employee@viteetgourmand.com');
+
+INSERT IGNORE INTO `orders`
+    (`id`, `order_number`, `user_id`, `menu_id`, `number_of_people`, `order_date`,
+     `delivery_date`, `delivery_time`, `delivery_address`, `delivery_city`, `delivery_postal_code`,
+     `delivery_distance_km`, `delivery_cost`, `service_type`, `payment_method`, `contact_phone`,
+     `menu_price`, `discount_rate`, `total_price`, `status`, `equipment_loaned`, `created_at`)
+SELECT d.id, d.order_number, @client_id, d.menu_id, d.people, d.order_date,
+       d.delivery_date, d.delivery_time, '', '', '',
+       NULL, 0.00, 'pickup', 'cash_on_site', '+33612345678',
+       d.price, 0.00, d.price, 'completed', 0, d.order_date
+FROM (
+    SELECT 1001 AS id, 'VG-DEMO-001001' AS order_number, 1 AS menu_id, 1 AS people, 16.90 AS price,
+           '2026-08-30 10:00:00' AS order_date, '2026-09-02' AS delivery_date, '12:00:00' AS delivery_time
+    UNION ALL SELECT 1002, 'VG-DEMO-001002', 2, 1, 17.90, '2026-09-01 09:30:00', '2026-09-05', '19:00:00'
+    UNION ALL SELECT 1003, 'VG-DEMO-001003', 4, 2, 34.90, '2026-09-03 14:00:00', '2026-09-08', '19:00:00'
+    UNION ALL SELECT 1004, 'VG-DEMO-001004', 7, 2, 49.90, '2026-09-05 11:15:00', '2026-09-10', '20:00:00'
+    UNION ALL SELECT 1005, 'VG-DEMO-001005', 9, 6, 69.90, '2026-09-07 16:45:00', '2026-09-12', '19:30:00'
+) AS d
+WHERE @client_id IS NOT NULL;
+
+-- Historique : création puis fin de prestation (ajouté une seule fois).
+INSERT INTO `order_status_history` (`order_id`, `status`, `changed_by`, `changed_at`, `notes`)
+SELECT h.order_id, h.status, IF(h.status = 'pending', @client_id, @employee_id), h.changed_at, h.notes
+FROM (
+    SELECT 1001 AS order_id, 'pending' AS status, '2026-08-30 10:00:00' AS changed_at, 'Commande créée (démonstration)' AS notes
+    UNION ALL SELECT 1001, 'completed', '2026-09-02 15:00:00', 'Prestation terminée (démonstration)'
+    UNION ALL SELECT 1002, 'pending', '2026-09-01 09:30:00', 'Commande créée (démonstration)'
+    UNION ALL SELECT 1002, 'completed', '2026-09-05 22:00:00', 'Prestation terminée (démonstration)'
+    UNION ALL SELECT 1003, 'pending', '2026-09-03 14:00:00', 'Commande créée (démonstration)'
+    UNION ALL SELECT 1003, 'completed', '2026-09-08 22:00:00', 'Prestation terminée (démonstration)'
+    UNION ALL SELECT 1004, 'pending', '2026-09-05 11:15:00', 'Commande créée (démonstration)'
+    UNION ALL SELECT 1004, 'completed', '2026-09-10 22:30:00', 'Prestation terminée (démonstration)'
+    UNION ALL SELECT 1005, 'pending', '2026-09-07 16:45:00', 'Commande créée (démonstration)'
+    UNION ALL SELECT 1005, 'completed', '2026-09-12 23:00:00', 'Prestation terminée (démonstration)'
+) AS h
+INNER JOIN `orders` o ON o.`id` = h.order_id AND o.`order_number` LIKE 'VG-DEMO-%'
+WHERE NOT EXISTS (
+    SELECT 1 FROM `order_status_history` x
+    WHERE x.`order_id` = h.order_id AND x.`status` = h.status
+);
+
 COMMIT;
 
 -- Les comptes de démonstration sont restaurés par ce seed. Les autres comptes
 -- peuvent être créés normalement depuis l'application.
+-- Identifiant du client de démonstration, à passer à mongodb-init.js
+-- s'il ne vaut pas 3 (voir README) :
+--   SELECT id FROM users WHERE email = 'user@viteetgourmand.com';
