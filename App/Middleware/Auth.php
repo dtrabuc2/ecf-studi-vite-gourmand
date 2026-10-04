@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Middleware;
 
+use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Repository\UserRepository;
@@ -19,6 +20,11 @@ final readonly class Auth
         $userId = Session::id();
 
         if ($userId === null) {
+            // page demandée gardée pour y revenir après la connexion (pas pour un fetch ni un POST)
+            if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !Request::wantsJson()) {
+                Session::rememberReturnUrl((string) ($_SERVER['REQUEST_URI'] ?? ''));
+            }
+
             Response::redirect('/login');
         }
 

@@ -225,13 +225,15 @@ class OrderRepository
         $where = [];
         $params = [];
 
+        // la période va dans le ON du LEFT JOIN : dans le WHERE, elle ferait
+        // disparaître les menus sans commande au lieu de les laisser à 0 €
         if ($from !== null && $from !== '') {
-            $where[] = 'o.delivery_date >= :from_date';
+            $sql .= ' AND o.delivery_date >= :from_date';
             $params['from_date'] = $from;
         }
 
         if ($to !== null && $to !== '') {
-            $where[] = 'o.delivery_date <= :to_date';
+            $sql .= ' AND o.delivery_date <= :to_date';
             $params['to_date'] = $to;
         }
 

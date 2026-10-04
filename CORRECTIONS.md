@@ -117,7 +117,7 @@ Rappel (constaté au lot 5, non modifié) : `OrderController::updateStatus` (ann
 
 Vérifications : `php -l` sans erreur (106 fichiers), rendu des vues ci-dessus sans warning, clause des 600 € et section équipe vérifiées. Aucun audit RGAA outillé (contrastes, navigation clavier complète) n'a été réalisé : il reste à faire, par exemple avec axe DevTools ou WAVE.
 
-## Lot 9 — MVC et code mort
+## Lot 10a — MVC et code mort (ancien lot 9)
 
 | # | Fichiers modifiés | Ce qui a été fait | Comment tester |
 |---|---|---|---|
@@ -300,6 +300,33 @@ Méthode : inventaire automatique des usages en lecture seule (routes, conteneur
 - Serveur `php -S localhost:8000 -t public`, MariaDB et MongoDB démarrés : **toutes les routes GET** (38) appelées en visiteur, client, employé et admin, avec les identifiants du seed. Résultat : **aucune 500 ni erreur PHP** (visiteur : 16 × 200, 22 × 302 ; client : 19 × 200 ; employé : 29 × 200 ; admin : 32 × 200 ; le reste en redirections normales).
 - **Base locale non réimportée** : les comptes ont encore l'ancien mot de passe et les anciens thèmes, et il n'y a pas de commandes de démonstration. Les pages connectées ont donc été testées avec des fichiers de session de test (aucune écriture en base, fichiers supprimés ensuite). **Incident corrigé :** mes tentatives de connexion avec les mots de passe du README ont incrémenté les compteurs d'échecs (admin verrouillé 15 minutes). J'ai remis les compteurs à leur valeur d'avant les tests (admin 3, employé 0, client 0, aucun verrou).
 
+## Corrections avant recette
+
+Points 5, 6, 8, 9 et 10 de « Problèmes non résolus », corrigés avant la recette locale.
+
+| Élément | Fichiers modifiés | Ce qui a été fait | Comment le tester en local |
+|---|---|---|---|
+| Mot de passe en session (n°6) | `App/Controller/AuthController.php` | `register()` retire `password` de la saisie (`$keptInput`) avant les deux `Session::flash('register_old_input', …)`. L'inscription n'a pas de champ de confirmation. Aucun autre formulaire ne garde un mot de passe en session : profil (`profile_old_input` sans mot de passe), changement de mot de passe et réinitialisation (messages d'erreur seulement), création d'employé, connexions client et équipe (aucune saisie gardée). | S'inscrire avec un e-mail invalide : la page revient avec les champs remplis, sauf le mot de passe. |
+| Chiffre d'affaires filtré (n°10) | `App/Repository/OrderRepository.php` (`revenueByMenu`) | Les conditions de période (`o.delivery_date >= / <=`) passent du `WHERE` au `ON` du `LEFT JOIN`. Le filtre par menu (`m.id`) reste dans le `WHERE`. Tous les menus restent listés, à 0 € s'ils n'ont aucune commande terminée sur la période. | Page CA (admin) : filtrer sur une période sans commande, tous les menus s'affichent à 0 €. Ajouter un filtre menu : une seule ligne. |
+| Retour après connexion (n°9, EX-24) | `App/Core/Session.php`, `App/Middleware/Auth.php`, `App/Controller/AuthController.php`, `App/Controller/AdminController.php`, `App/View/home/menu_detail.php`, `App/View/home/menus.php`, `App/View/home/index.php` | Nouvelles méthodes `Session::rememberReturnUrl()`, `pullReturnUrl()` et `isSafeReturnUrl()`. Le middleware `Auth` garde l'URL demandée par un visiteur (GET seulement, pas les appels `fetch`). Les liens « Connectez-vous pour commander » passent `?redirect=/orders/new?menu=…`, lu par `showLogin()`. Les deux connexions (client et équipe) renvoient vers l'URL gardée, consommée une seule fois, sinon vers la destination par défaut. Anti-redirection ouverte : seul un chemin qui commence par `/`, mais pas par `//` ni `/\`, et sans caractère de contrôle, est accepté. Après une inscription, l'URL gardée reste en session jusqu'à la connexion qui suit (l'inscription ne connecte pas). | Déconnecté, sur `/menus/3`, cliquer « Connectez-vous pour commander », se connecter : arrivée sur `/orders/new?menu=3` avec le menu choisi. Même test en passant par « Créer un compte ». `/login?redirect=//evil.com` puis connexion : retour à l'accueil. |
+| Bootstrap JS en local (n°5) | `App/View/layout/footer.php`, `App/Middleware/Security.php`, `README.md`, nouveau dossier `public/assets/vendor/bootstrap/5.3.8/` | Version du CSS servi : Bootstrap 5.3.8 (thème Bootswatch Litera). Paquet `bootstrap@5.3.8` téléchargé depuis `registry.npmjs.org`, empreinte `sha512-HP1SZDqaLDPwsNiqRqi5NcP0SSXciX2s9E+RyqJIIqGo+vJeN5AJVM98CXmW/Wux0nQ5L7jeWUdplCEf0Ee+tg==` recalculée et identique à l'`integrity` publiée. Copie de `js/bootstrap.bundle.min.js` et de `LICENSE` (MIT). Le pied de page charge `/assets/vendor/bootstrap/5.3.8/js/bootstrap.bundle.min.js`. Plus aucune URL `cdn.` ni `jsdelivr` dans les vues. `cdn.jsdelivr.net` retiré de la CSP (`script-src`, `style-src`, `font-src`), puisque plus rien n'y est chargé. README mis à jour. | Accueil en largeur mobile : le burger ouvre et ferme le menu. Onglet Réseau : `bootstrap.bundle.min.js` vient de `localhost`. |
+| Encodage (n°8) | aucun | Le message de `EmailTemplateRenderer` est déjà correct sur le disque (« Modèle email introuvable », octets `C3 A8`). Recherche des motifs `Ã`, `Â`, `â€` et du caractère de remplacement dans 133 fichiers de `App/`, `config/`, `database/`, `email-templates/` et `public/` (hors bibliothèques) : aucun texte cassé. Tous les fichiers sont en UTF-8 valide, sans BOM. Rien à modifier. | — |
+| Journal | `CORRECTIONS.md` | La première section « Lot 9 — MVC et code mort » devient « Lot 10a — MVC et code mort (ancien lot 9) », pour ne plus avoir deux « Lot 9 ». | — |
+
+### Vérifications
+
+- `php -l` : 105 fichiers de `App/`, `config/` et `public/`, 0 erreur. Aucun JS du projet modifié (seul le bundle Bootstrap a été ajouté).
+- Script CLI temporaire (supprimé) : **14 contrôles sur 14**.
+  - `isSafeReturnUrl` accepte `/orders/new?menu=3` et refuse `//evil.com`, `/\evil.com`, `https://evil.com`, `javascript:alert(1)`, la valeur vide et une valeur avec retour à la ligne ;
+  - l'URL gardée est renvoyée une fois, puis la destination par défaut ; une valeur dangereuse n'est jamais gardée ;
+  - CA sur une période sans commande : 9 lignes pour 9 menus, toutes à 0 ; avec le filtre menu, une seule ligne ; sans filtre, le total est égal à la somme SQL des commandes terminées.
+- Serveur `php -S localhost:8000 -t public` :
+  - l'accueil (200) charge `/assets/vendor/bootstrap/5.3.8/js/bootstrap.bundle.min.js` (200, `application/javascript`), sans aucune URL de CDN ; la CSP envoyée ne contient plus `jsdelivr` ;
+  - visiteur sur `/orders/new?menu=3` : 302 vers `/login`, URL gardée en session ; `/login?redirect=//evil.com` ne la remplace pas ; `/login?redirect=/orders/new?menu=5` la remplace ; un appel `fetch` (Accept JSON) ne la touche pas ;
+  - Chrome headless en 375 px : `bootstrap.Collapse` 5.3.8 chargé ; un clic sur le burger passe `#mainNavigation` à `collapse show` (hauteur 230 px, `aria-expanded="true"`), un second clic le referme ; seule erreur console, le `favicon.ico` absent (404, déjà le cas avant).
+  - Aucune 500 ni erreur PHP dans le journal du serveur.
+- Non testé ici : la connexion elle-même suivie du retour (la base locale n'est pas réimportée et les mots de passe du README n'y fonctionnent pas ; je n'ai pas retenté de connexion pour ne pas toucher aux compteurs d'échecs).
+
 ## Reste à faire
 
 ### Lot 10 (plus tard)
@@ -328,11 +355,11 @@ Déjà réalisé : P-38 à P-46, P-49 et la suppression de `old_frontend/` (anci
 | 2 | **Aucun test dans un navigateur réel** (intl-tel-input, carrousel, filtres, aperçu du prix). | Pas de navigateur piloté dans cette session. Checklist ci-dessous. |
 | 3 | Distance Matrix : la lecture de la réponse n'a pas été testée contre la vraie API ; **`GOOGLE_MAPS_API_KEY` est vide dans ton `.env`**, donc toute livraison hors Bordeaux est refusée. | Clé absente. |
 | 4 | SMTP testé seulement avec un faux serveur local ; `MAIL_HOST` est vide dans ton `.env`, donc aucun e-mail ne part. | Configuration du poste. |
-| 5 | Bootstrap JS est chargé depuis `cdn.jsdelivr.net`, alors que la consigne dit « pas de CDN ». | Hors des lots ; à internaliser dans `public/assets/vendor/` si tu le décides. |
-| 6 | En cas d'erreur à l'inscription, la saisie gardée en session flash contient aussi le **mot de passe** (`register_old_input`). Elle n'est pas affichée. | Hors des lots listés. Correction simple : retirer `password` avant `Session::flash()`. |
+| 5 | ~~Bootstrap JS est chargé depuis `cdn.jsdelivr.net`~~ : **résolu (corrections avant recette)**, servi en local depuis `public/assets/vendor/bootstrap/5.3.8/`. | — |
+| 6 | ~~La saisie gardée en session flash à l'inscription contient le mot de passe~~ : **résolu (corrections avant recette)**, `password` retiré avant `Session::flash()`. | — |
 | 7 | ~~`OrderController::updateStatus` répond en texte brut~~ : **résolu au lot 10** (redirection + flash, 404 commune). | — |
-| 8 | `EmailTemplateRenderer` : message d'exception mal encodé (« ModÃ¨le email introuvable »). | Hors des lots. |
-| 9 | Le menu choisi est perdu après la connexion (pas d'URL de retour vers `/orders/new?menu=…`). | Noté dans l'audit (EX-24), non listé dans les lots. |
-| 10 | Page CA : avec un filtre de période, les menus sans commande sur la période disparaissent (condition de date dans le `WHERE` d'un `LEFT JOIN`). | Comportement d'origine, non listé. |
+| 8 | ~~`EmailTemplateRenderer` : message d'exception mal encodé~~ : **vérifié (corrections avant recette)**, le texte est correct sur le disque et aucun autre texte cassé n'a été trouvé. | — |
+| 9 | ~~Le menu choisi est perdu après la connexion~~ : **résolu (corrections avant recette)**, URL de retour gardée en session et consommée une fois (EX-24). | — |
+| 10 | ~~Page CA : avec un filtre de période, les menus sans commande disparaissent~~ : **résolu (corrections avant recette)**, période déplacée dans le `ON` du `LEFT JOIN`. | — |
 | 11 | Le consentement à l'inscription n'est pas horodaté en base. | Il faudrait une colonne ; le schéma n'est pas modifié dans ces lots. |
 | 12 | Relancer `seed.sql` écrase les modifications faites en admin sur le catalogue de démonstration (menus 1 à 9, plats 1 à 32). | Choix du seed d'origine, documenté dans le README. |

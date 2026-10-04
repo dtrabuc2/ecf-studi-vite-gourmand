@@ -52,7 +52,7 @@ Source : `docs2/enoncer_ecf.md`, ligne.
 | EX-21 | Mot de passe oublié : lien envoyé par mail | L159 | ✅ | `AuthService.php:248-305`, `AuthController.php:197-261` | Jeton de 64 hex haché en SHA-256, valable 1 h, réponse non énumérante. Envoi SMTP (lot 3). |
 | EX-22 | Vue détaillée : toutes les informations en base | L163 | ✅ | `home/menu_detail.php` | Corrigé : galerie complète et allergènes par plat. Lot 4. |
 | EX-23 | Bouton « Commander » vers la commande **avec le menu pré-rempli** | L165, L187 | ✅ | `order/new.php:7`, `order.js:123-132` | Corrigé : `?menu=ID` pré-sélectionne le menu et propose son minimum de personnes (P-02, lot 1). |
-| EX-24 | Visiteur non connecté : invitation à se connecter ou s'inscrire | L168 | ✅ | `home/menu_detail.php:86-90`, middleware `Auth` | Présent. Le menu choisi n'est toujours pas conservé après la connexion (pas d'URL de retour). |
+| EX-24 | Visiteur non connecté : invitation à se connecter ou s'inscrire | L168 | ✅ | `home/menu_detail.php`, middleware `Auth`, `Session::rememberReturnUrl()` | Présent. Corrigé avant recette : après la connexion, retour à l'URL demandée (par exemple `/orders/new?menu=3`), chemin interne seulement. |
 | EX-25 | Conditions du menu bien mises en évidence | L168-170 | ✅ | `home/menu_detail.php:70-73` | Bloc `alert-warning`. |
 | EX-26 | Commande : nom, prénom et e-mail pré-remplis depuis le compte | L179 | ✅ | `order/new.php` | Corrigé : nom, prénom et e-mail affichés en lecture seule. Lot 1. |
 | EX-27 | Commande : adresse, date, heure et lieu de prestation | L181-183 | ✅ | `order/new.php`, `order.js:176-227` | Corrigé : créneaux chargés depuis les horaires, parcours complet possible (P-01, lot 1). |
@@ -83,7 +83,7 @@ Source : `docs2/enoncer_ecf.md`, ligne.
 | EX-52 | Compte admin créé par le développeur, pas de création d'admin via l'application | L247 | ✅ | `seed.sql:14-17`, `AdminService.php:44` | Conforme. Mots de passe du seed distincts et conformes (P-03, lot 2). |
 | EX-53 | L'admin peut faire tout ce que fait l'employé | L249 | ✅ | `Middleware/Staff.php:20` | Rôles `employee` et `admin` autorisés. |
 | EX-54 | Graphique du nombre de commandes par menu, données issues du NoSQL | L251 | ✅ | `admin/dashboard.php`, `MenuStatisticsService.php`, `AdminService.php:122` | Corrigé : statistiques `all_time` du seed alignées sur les commandes, même critère `completed` que le CA (P-16, P-27, lot 6). |
-| EX-55 | Chiffre d'affaires par menu, filtres menu et période | L251 | ✅ | `AdminService.php:150-201`, `admin/revenue.php` | Calculé en SQL, même critère que les statistiques MongoDB (P-27 corrigé). |
+| EX-55 | Chiffre d'affaires par menu, filtres menu et période | L251 | ✅ | `AdminService.php:150-201`, `OrderRepository::revenueByMenu`, `admin/revenue.php` | Calculé en SQL, même critère que les statistiques MongoDB (P-27 corrigé). Corrigé avant recette : avec un filtre de période, les menus sans commande restent listés à 0 €. |
 | EX-56 | Contact : titre, description, e-mail ; envoi par mail à l'entreprise | L255 | ✅ | `ContactController.php:25-93` | Corrigé : envoi SMTP vers `MAIL_TO_ADDRESS` lu dans `.env` (P-33, lot 3). |
 | EX-57 | Application déployée, en ligne et fonctionnelle | L257 | ❌ | — | Aucune configuration de déploiement (Dockerfile, fly.toml, Procfile…). |
 | EX-58 | Accessibilité conforme RGAA | L257 | 🟡 | vues | Labels tous reliés (`for`), erreurs liées par `aria-describedby`, carrousel sans défilement automatique (lots 7 bis et 8). Aucun audit RGAA outillé (contrastes, clavier complet) : conformité non vérifiée. |

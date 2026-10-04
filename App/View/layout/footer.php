@@ -54,7 +54,8 @@
     </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" defer></script>
+<?php /* Bootstrap JS servi en local (même version 5.3.8 que le CSS), pas de CDN */ ?>
+<script src="/assets/vendor/bootstrap/5.3.8/js/bootstrap.bundle.min.js" defer></script>
 <script src="/assets/js/api.js" defer></script>
 <script src="/assets/js/script.js" defer></script>
 <script src="/assets/js/menus.js" defer></script>

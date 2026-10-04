@@ -88,7 +88,7 @@
                                 <?php if (!empty($user)): ?>
                                     <a class="btn btn-primary" href="/orders/new?menu=<?= $menu->getId() ?>">Commander</a>
                                 <?php else: ?>
-                                    <a class="btn btn-primary" href="/login">Se connecter pour commander</a>
+                                    <a class="btn btn-primary" href="/login?redirect=<?= $escape(rawurlencode('/orders/new?menu=' . $menu->getId())) ?>">Se connecter pour commander</a>
                                 <?php endif; ?>
                             </div>
                         </div>

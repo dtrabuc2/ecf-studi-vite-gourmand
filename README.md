@@ -13,7 +13,7 @@ Les visiteurs consultent et filtrent les menus. Les clients commandent (livraiso
 | Base NoSQL | MongoDB (extension `mongodb` + bibliothèque `mongodb/mongodb`) |
 | Front | HTML/PHP, Bootstrap 5, JavaScript natif (sans bundler ni npm) |
 | Dépendances Composer | `mongodb/mongodb`, `giggsey/libphonenumber-for-php` (téléphones), `phpmailer/phpmailer` (SMTP) |
-| Bibliothèque front locale | intl-tel-input 29.5.3 (champs téléphone), dans `public/assets/vendor/` |
+| Bibliothèques front locales | Bootstrap JS 5.3.8 (même version que le CSS) et intl-tel-input 29.5.3 (champs téléphone), dans `public/assets/vendor/` |
 
 ## 2. Prérequis
 
@@ -22,7 +22,7 @@ Les visiteurs consultent et filtrent les menus. Les clients commandent (livraiso
 - `allow_url_fopen = On` dans `php.ini` : les appels à l'API Google passent par `file_get_contents`.
 - **Composer 2**.
 - **MariaDB** (10.x ou 11.x) et **MongoDB** (6 ou plus) avec `mongosh`.
-- Une connexion Internet pour Bootstrap JS (chargé depuis jsDelivr), les photos de démonstration (Unsplash) et l'API Google Maps.
+- Une connexion Internet pour les photos de démonstration (Unsplash) et l'API Google Maps (Bootstrap JS est servi en local).
 
 ### Activer l'extension `mongodb` sous Windows
 
@@ -153,7 +153,7 @@ config/            app.php (configuration lue dans .env) et routes.php
 database/          schema.sql, seed.sql, mongodb-init.js
 docs2/             énoncé de l'ECF
 email-templates/   modèle HTML des réponses envoyées depuis la boîte e-mail
-public/            racine web : index.php, .htaccess, assets/ (css, js, vendor/intl-tel-input)
+public/            racine web : index.php, .htaccess, assets/ (css, js, vendor/bootstrap, vendor/intl-tel-input)
 storage/           créé à l'exécution : cache et limitation de débit (ignoré par git)
 public/uploads/    créé à l'exécution : images ajoutées aux galeries (ignoré par git)
 ```

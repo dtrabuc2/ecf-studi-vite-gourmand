@@ -26,6 +26,13 @@ final class AuthController extends BaseController
 
     public function showLogin(): void
     {
+        // lien « Connectez-vous pour commander » : page où revenir après la connexion
+        $redirect = $_GET['redirect'] ?? null;
+
+        if (is_string($redirect)) {
+            Session::rememberReturnUrl($redirect);
+        }
+
         $this->render('auth/login');
     }
 
@@ -58,7 +65,8 @@ final class AuthController extends BaseController
             'last_name' => $user->getLastName(),
         ]);
 
-        $this->redirect('/');
+        // retour à la page demandée avant la connexion (une seule fois), sinon l'accueil
+        $this->redirect(Session::pullReturnUrl('/'));
     }
 
     public function showRegister(): void
@@ -74,10 +82,12 @@ final class AuthController extends BaseController
     {
         $data = $this->collectUserInput();
         $errors = $this->validateRegistrationInput($data);
+        // saisie renvoyée au formulaire en cas d'erreur : jamais le mot de passe en session
+        $keptInput = array_diff_key($data, ['password' => true]);
 
         if ($errors !== []) {
             Session::flash('register_errors', $errors);
-            Session::flash('register_old_input', $data);
+            Session::flash('register_old_input', $keptInput);
             $this->redirect('/register');
         }
 
@@ -95,7 +105,7 @@ final class AuthController extends BaseController
         } catch (Throwable $exception) {
             error_log('Inscription : ' . $exception->getMessage());
             Session::flash('register_errors', ['general' => 'Impossible de créer ce compte.']);
-            Session::flash('register_old_input', $data);
+            Session::flash('register_old_input', $keptInput);
             $this->redirect('/register');
         }
     }

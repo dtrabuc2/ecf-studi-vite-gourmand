@@ -74,7 +74,8 @@ final class AdminController extends BaseController
             'last_name' => $user->getLastName(),
         ]);
 
-        $this->redirect($role === 'admin' ? '/admin/dashboard' : '/admin/orders');
+        // page de l'espace équipe demandée avant la connexion (une seule fois), sinon l'accueil du rôle
+        $this->redirect(Session::pullReturnUrl($role === 'admin' ? '/admin/dashboard' : '/admin/orders'));
     }
 
     public function dashboard(): void

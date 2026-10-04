@@ -111,7 +111,7 @@
                                 <?php if (!empty($user)): ?>
                                     <a class="btn btn-primary" href="/orders/new?menu=<?= $menu->getId() ?>">Commander cette formule</a>
                                 <?php else: ?>
-                                    <a class="btn btn-primary" href="/login">Connectez-vous pour commander</a>
+                                    <a class="btn btn-primary" href="/login?redirect=<?= $escape(rawurlencode('/orders/new?menu=' . $menu->getId())) ?>">Connectez-vous pour commander</a>
                                 <?php endif; ?>
                             </div>
                         </div>

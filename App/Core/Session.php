@@ -77,6 +77,38 @@ final class Session
         return $_SESSION['csrf_token'];
     }
 
+    /**
+     * Garde l'URL demandée par un visiteur, pour l'y renvoyer après la connexion.
+     * Une valeur qui n'est pas un chemin interne est ignorée.
+     */
+    public static function rememberReturnUrl(string $url): void
+    {
+        if (self::isSafeReturnUrl($url)) {
+            $_SESSION['return_url'] = $url;
+        }
+    }
+
+    /**
+     * URL de retour gardée, utilisable une seule fois ; sinon la destination par défaut.
+     */
+    public static function pullReturnUrl(string $default): string
+    {
+        $url = $_SESSION['return_url'] ?? null;
+        unset($_SESSION['return_url']);
+
+        return is_string($url) && self::isSafeReturnUrl($url) ? $url : $default;
+    }
+
+    // anti-redirection ouverte : chemin interne qui commence par "/" mais pas par "//" ni "/\"
+    // (le navigateur les lit comme une autre adresse), sans caractère de contrôle
+    public static function isSafeReturnUrl(string $url): bool
+    {
+        return str_starts_with($url, '/')
+            && !str_starts_with($url, '//')
+            && !str_starts_with($url, '/\\')
+            && preg_match('/[\x00-\x1F\x7F]/', $url) !== 1;
+    }
+
     public static function flash(string $key, mixed $value): void
     {
         $_SESSION['_flash'][$key] = $value;
