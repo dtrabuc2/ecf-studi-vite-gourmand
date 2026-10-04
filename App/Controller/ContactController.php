@@ -3,17 +3,13 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Service\ContactService;
 use App\Service\MailService;
-use App\Service\NotificationService;
 use App\Core\Session;
 
 final class ContactController extends BaseController
 {
     public function __construct(
-        private readonly ContactService $contactService,
-        private readonly MailService $mailService,
-        private readonly NotificationService $notificationService
+        private readonly MailService $mailService
     ) {
     }
 
@@ -50,49 +46,18 @@ final class ContactController extends BaseController
             $this->redirect('/contact');
         }
 
-        try {
-            $messageId = $this->contactService->createMessage($email, $subject, $message);
+        // le message part directement à l'adresse de l'entreprise (MAIL_TO_ADDRESS du .env),
+        // avec l'adresse du visiteur en « Répondre à » : l'équipe répond depuis sa messagerie
+        $companyEmail = $this->mailService->companyAddress();
+        $body = "Message reçu depuis le formulaire de contact.\n\n"
+            . "Email : {$email}\nTitre : {$subject}\n\n{$message}";
 
-            // MAIL_TO_ADDRESS du .env (à défaut MAIL_FROM_ADDRESS).
-            $companyEmail = $this->mailService->companyAddress();
-
-            $body = "Message reçu depuis le formulaire de contact.\n\n"
-                . "Email : {$email}\nTitre : {$subject}\n\n{$message}";
-
-            if (!$this->mailService->send(
-                $companyEmail,
-                'Formulaire de contact : ' . $subject,
-                $body
-            )) {
-                error_log('Impossible d’envoyer le message de contact à ' . $companyEmail);
-            }
-
-            if (Session::id() !== null) {
-                $this->notificationService->notify(
-                    Session::id(),
-                    'contact',
-                    'Message envoyé',
-                    'Votre message de contact #' . $messageId . ' a bien été enregistré.',
-                    null,
-                    null
-                );
-            }
-
-            $this->notificationService->notifyStaff(
-                'contact',
-                'Nouveau message de contact',
-                'Le message « ' . $subject . ' » de ' . $email . ' est disponible dans la boîte de réception.'
-            );
-
-            Session::flash(
-                'contact_success',
-                Session::id() !== null
-                    ? 'Votre message a bien été envoyé. Une confirmation a été enregistrée dans votre espace.'
-                    : 'Votre message a bien été envoyé.'
-            );
-        } catch (\Throwable $exception) {
-            error_log('Contact form error: ' . $exception->getMessage());
-            Session::flash('contact_errors', ['general' => 'Impossible d’enregistrer votre message.']);
+        if ($this->mailService->send($companyEmail, 'Formulaire de contact : ' . $subject, $body, false, $email)) {
+            Session::flash('contact_success', 'Votre message a bien été envoyé. Nous vous répondrons par e-mail.');
+        } else {
+            // sans enregistrement en base, un échec d'envoi doit être visible : on garde la saisie
+            error_log('Impossible d’envoyer le message de contact à ' . $companyEmail);
+            Session::flash('contact_errors', ['general' => 'Votre message n’a pas pu être envoyé. Merci de réessayer plus tard.']);
             Session::flash('contact_old_input', ['email' => $email, 'subject' => $subject, 'message' => $message]);
         }
 
