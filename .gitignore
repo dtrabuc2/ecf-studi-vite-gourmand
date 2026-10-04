@@ -4,10 +4,17 @@ composer.phar
 /vendor/
 # composer.lock est versionné : installation reproductible (mêmes versions partout)
 
-# Environment
+# Environment : secrets (mots de passe base, SMTP, clé Google, comptes DEMO_*) — jamais versionnés
 .env
 .env.*
 !.env.example
+
+# Sauvegardes et exports de base (peuvent contenir des données réelles)
+backups/
+*.sql.gz
+*.dump
+*.bak
+*.old
 
 # Runtime
 storage/
