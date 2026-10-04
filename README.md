@@ -57,55 +57,52 @@ Renseigner ensuite `.env` :
 | `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | Expéditeur des e-mails | `noreply@viteetgourmand.local` |
 | `MAIL_TO_ADDRESS` | Adresse de l'entreprise (contact, nouvelles commandes, devis) | `contact@viteetgourmand.local` |
 
-Pour voir les e-mails en local sans vrai serveur, on peut utiliser Mailpit (SMTP sur le port 1025, interface sur http://localhost:8025).
+Pour voir les e-mails en local sans vrai serveur, on peut utiliser Mailpit (SMTP sur le port 1025, interface sur http://localhost:8025). En ligne, renseignez le serveur SMTP de l'hébergeur. Les messages du formulaire de contact partent à `MAIL_TO_ADDRESS`, avec l'adresse du visiteur en « Répondre à » : l'équipe y répond depuis sa messagerie (webmail de l'hébergeur).
 
 ## 4. Import des bases (dans cet ordre)
 
-### 4.1 MariaDB : `schema.sql` puis `seed.sql`
+### 4.1 MariaDB : `schema.sql`
 
-`schema.sql` **supprime et recrée** toutes les tables (base `viteetgourmand`). `seed.sql` peut être relancé : il ne touche ni aux autres comptes, ni aux commandes, devis ou messages existants. Il remet par contre dans leur état d'origine les 3 comptes de démonstration, les horaires, le catalogue de démonstration (allergènes, plats 1 à 32, menus 1 à 9, leurs compositions et les allergènes des plats), ce qui écrase les modifications faites dans l'admin sur ces éléments. Il ajoute aussi 5 commandes terminées de démonstration (n° 1001 à 1005) si elles n'existent pas.
+`database/schema.sql` est le **fichier unique de référence** : il contient la structure **et** les données de démonstration (3 comptes, horaires, allergènes, 32 plats, 9 menus et leurs compositions, 5 commandes terminées n° 1001 à 1005).
+
+**Attention : l'import supprime et recrée toutes les tables de la base `viteetgourmand`.** Toutes les données existantes sont perdues : sauvegardez d'abord si besoin (phpMyAdmin > Exporter).
+
+**Avec phpMyAdmin** : onglet « Importer », choisir `database/schema.sql`, jeu de caractères `utf-8`, puis « Importer ». Le fichier crée la base `viteetgourmand` s'il le faut.
+
+**En ligne de commande** :
 
 ```bash
-mysql -u root -p -e "source database/schema.sql"
-mysql -u root -p -e "source database/seed.sql"
+mysql -u root -p --default-character-set=utf8mb4 < database/schema.sql
 ```
 
 Sous WAMP, si `mysql` n'est pas dans le PATH (PowerShell, à adapter à votre version) :
 
 ```powershell
-& "C:\wamp64\bin\mariadb\mariadb11.4.9\bin\mysql.exe" -u root -p -e "source database/schema.sql"
-& "C:\wamp64\bin\mariadb\mariadb11.4.9\bin\mysql.exe" -u root -p -e "source database/seed.sql"
+Get-Content database/schema.sql -Raw -Encoding UTF8 | & "C:\wamp64\bin\mariadb\mariadb11.4.9\bin\mysql.exe" -u root -p --default-character-set=utf8mb4
 ```
 
 ### 4.2 MongoDB : `mongodb-init.js`
 
-Le script crée les collections `menu_images`, `comments` et `menu_statistics` et leurs index, puis charge les galeries, les avis et les statistiques. Il ne supprime rien d'autre.
+À lancer **après** `schema.sql`. Comme lui, le script repart de zéro : il **supprime puis recrée** les collections `menu_images`, `comments` et `menu_statistics` et leurs index, puis charge les galeries (18 images), les avis (5) et les statistiques du tableau de bord, alignés sur les données SQL (client n° 3, commandes 1001 à 1005).
 
 **Avec authentification** (configuration de `.env.example`) : créer une fois l'utilisateur applicatif, en se connectant avec un compte administrateur MongoDB :
 
 ```javascript
 // dans mongosh, connecté en administrateur
 use viteetgourmand
-db.createUser({ user: "vgt_app", pwd: "MotDePasseSolide", roles: [{ role: "readWrite", db: "viteetgourmand" }] })
+db.createUser({ user: "vgt_app", pwd: passwordPrompt(), roles: [{ role: "readWrite", db: "viteetgourmand" }] })
 ```
 
-puis lancer le script avec ce compte (et reporter le même mot de passe dans `.env`) :
+`passwordPrompt()` demande le mot de passe au clavier, sans l'écrire dans la commande. Reportez-le ensuite dans `MONGO_PASSWORD` et `MONGO_CONNECTION_STRING` du `.env`, puis lancez le script avec ce compte (`mongosh` demande le mot de passe) :
 
 ```bash
-mongosh "mongodb://vgt_app:MotDePasseSolide@127.0.0.1:27017/viteetgourmand?authSource=viteetgourmand" --file database/mongodb-init.js
+mongosh "mongodb://127.0.0.1:27017/viteetgourmand?authSource=viteetgourmand" -u vgt_app -p --file database/mongodb-init.js
 ```
 
 **Sans authentification** (MongoDB local sans contrôle d'accès) : mettre `MONGO_CONNECTION_STRING=mongodb://127.0.0.1:27017/viteetgourmand` dans `.env`, puis :
 
 ```bash
 mongosh "mongodb://127.0.0.1:27017/viteetgourmand" --file database/mongodb-init.js
-```
-
-Les avis et les statistiques sont rattachés aux commandes 1001 à 1005 du compte `user@viteetgourmand.com`. Sur une base neuve, ce compte a l'identifiant 3. Sinon, récupérer son identifiant (`SELECT id FROM users WHERE email = 'user@viteetgourmand.com';`) et le passer au script :
-
-```powershell
-$env:VG_CLIENT_USER_ID = '4'   # bash : VG_CLIENT_USER_ID=4 mongosh …
-mongosh "…" --file database/mongodb-init.js
 ```
 
 ## 5. Lancer le serveur en local
@@ -126,17 +123,26 @@ Puis ouvrir **http://localhost:8000** (arrêt : `Ctrl+C`). Penser à mettre `APP
 
 Avec Apache (WAMP), faire pointer le DocumentRoot sur `public/` : le fichier `public/.htaccess` redirige les URL vers `index.php` (module `mod_rewrite` requis) et sert les `.mjs` en JavaScript.
 
-## 6. Comptes de test
+## 6. Comptes de démonstration
 
-Créés par `database/seed.sql` (mots de passe conformes à la politique : 10 caractères minimum, majuscule, minuscule, chiffre et caractère spécial).
+Trois comptes sont créés par `database/schema.sql` : un administrateur, un employé (connexion sur `/admin/login`) et un client (connexion sur `/login`).
 
-| Rôle | E-mail | Mot de passe | Connexion |
-|---|---|---|---|
-| Administrateur | `admin@viteetgourmand.com` | `Admin#Vite2026!` | `/admin/login` |
-| Employé | `employee@viteetgourmand.com` | `Employe#Gourmand26` | `/admin/login` |
-| Client | `user@viteetgourmand.com` | `Client#Bordeaux33` | `/login` |
+Leurs identifiants ne sont **pas** dans ce README : ils sont dans le `.env` (non versionné), dans les variables `DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD`, `DEMO_EMPLOYEE_EMAIL` / `DEMO_EMPLOYEE_PASSWORD` et `DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD` (modèle dans `.env.example`).
 
-Ces identifiants sont publics (dépôt) : ils servent uniquement aux démonstrations. Sur une instance exposée, changez-les depuis le profil (« Changer mon mot de passe »).
+### Changer, vérifier ou synchroniser un mot de passe
+
+Ne modifiez jamais un mot de passe directement dans phpMyAdmin : la colonne `password` attend un hash bcrypt, et un mot de passe en clair est refusé à la connexion. Utilisez l'outil fourni (saisie masquée par des `*`) :
+
+```bash
+php scripts/set-password.php <email> --check   # teste un mot de passe, sans rien modifier
+php scripts/set-password.php <email>           # change le mot de passe et déverrouille le compte
+php scripts/set-password.php --sync            # applique les mots de passe DEMO_* du .env
+php scripts/set-password.php --pull            # recopie dans schema.sql les hashes actuels de MariaDB
+```
+
+Pour un compte de démonstration, un changement met à jour **en même temps** la base MariaDB, le hash dans `database/schema.sql` (un réimport garde donc le bon mot de passe) et la variable `DEMO_*_PASSWORD` du `.env`. Si vous modifiez le `.env` à la main, lancez `--sync` pour reporter les mots de passe dans MariaDB et dans `schema.sql`.
+
+Un mot de passe changé **depuis le site** (profil, « Changer mon mot de passe ») est enregistré dans MariaDB : c'est l'Update du CRUD. `database/schema.sql` est le script d'initialisation, l'application ne le réécrit pas. Pour y reporter l'état actuel des comptes de démonstration, lancez `--pull`, puis mettez à jour à la main le mot de passe correspondant dans le `.env` (un hash ne permet pas de retrouver le mot de passe).
 
 ## 7. Arborescence
 
@@ -150,9 +156,9 @@ App/
 ├── Service/       règles métier (commandes, livraison, menus, plats, e-mails, téléphone, mots de passe, cache…)
 └── View/          gabarits PHP (layout, home, auth, order, admin, contact, quote, notification, errors)
 config/            app.php (configuration lue dans .env) et routes.php
-database/          schema.sql, seed.sql, mongodb-init.js
+database/          schema.sql (structure + données), mongodb-init.js
+scripts/           set-password.php (changer ou vérifier un mot de passe en ligne de commande)
 docs2/             énoncé de l'ECF
-email-templates/   modèle HTML des réponses envoyées depuis la boîte e-mail
 public/            racine web : index.php, .htaccess, assets/ (css, js, vendor/bootstrap, vendor/intl-tel-input)
 storage/           créé à l'exécution : cache et limitation de débit (ignoré par git)
 public/uploads/    créé à l'exécution : images ajoutées aux galeries (ignoré par git)
@@ -174,7 +180,7 @@ public/uploads/    créé à l'exécution : images ajoutées aux galeries (ignor
 **Employé**
 - Commandes : filtres, changement de statut (mode de contact obligatoire, motif en cas d'annulation), modification après contact client (historisée), prêt de matériel.
 - Menus (y compris épuisés), composition à partir des plats, galerie d'images ; CRUD des plats et de leurs allergènes.
-- Horaires, avis à valider ou refuser, clients, devis, boîte e-mail.
+- Horaires, avis à valider ou refuser, clients, devis.
 
 **Administrateur** (en plus de tout ce que fait l'employé)
 - Création d'employés (e-mail d'information sans le mot de passe), désactivation et réactivation.
@@ -182,7 +188,7 @@ public/uploads/    créé à l'exécution : images ajoutées aux galeries (ignor
 
 ## 9. Choix techniques : MariaDB et MongoDB
 
-**MariaDB** contient les données structurées et liées entre elles, qui ont besoin d'intégrité (clés étrangères, transactions) : comptes, menus, plats, allergènes et leurs tables de liaison, commandes et historique des statuts, horaires, devis, messages de contact, boîte d'envoi, notifications. Une commande est enregistrée dans une transaction : création, décrémentation du stock et première ligne d'historique, tout ou rien.
+**MariaDB** contient les données structurées et liées entre elles, qui ont besoin d'intégrité (clés étrangères, transactions) : comptes, menus, plats, allergènes et leurs tables de liaison, commandes et historique des statuts, horaires, devis, notifications. Une commande est enregistrée dans une transaction : création, décrémentation du stock et première ligne d'historique, tout ou rien.
 
 **MongoDB** contient des documents indépendants, lus tels quels :
 - `menu_images` : la galerie de chaque menu (URL, texte alternatif, ordre), dont le nombre d'éléments varie ;
@@ -199,3 +205,7 @@ public/uploads/    créé à l'exécution : images ajoutées aux galeries (ignor
 - **Téléphones** : validés avec libphonenumber (France, Espagne, Belgique, Royaume-Uni, Italie) et stockés au format international **E.164** (`+33612345678`).
 - **Session** : cookie `HttpOnly` et `SameSite=Lax`, identifiant régénéré à la connexion ; `APP_DEBUG=false` par défaut (pas de trace d'erreur affichée).
 - **Fichiers envoyés** (galerie) : type vérifié sur le contenu (JPEG, PNG, WebP), 5 Mo maximum, nom aléatoire ; le cache n'accepte aucun objet désérialisé.
+
+## 11. Secrets et fichiers non versionnés
+
+Aucun mot de passe ni clé n'est versionné. Ils vivent uniquement dans le `.env` (ignoré par git, voir `.gitignore`) : base MariaDB, MongoDB, SMTP, clé Google Maps et comptes de démonstration (`DEMO_*`). `.env.example` en donne la liste, avec des valeurs vides. Les mots de passe des comptes sont stockés en base sous forme de hash bcrypt uniquement.

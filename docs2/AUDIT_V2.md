@@ -146,7 +146,7 @@ Vérification : **E2E** = testé par requêtes HTTP réelles · **E2E\*** = test
 | N-05 | majeur | `DeliveryDistanceService` | Le calcul hors Bordeaux n'a jamais été exécuté avec la vraie API (EX-28). |
 | N-06 | mineur | `home/menu_detail.php:114` | Pas de lien « Créer un compte » pour le visiteur (EX-24). |
 | N-07 | mineur | `Middleware/Security.php:16` | CSP `script-src 'unsafe-inline'` alors qu'aucun script ni attribut `on…` n'est inline dans les vues : protection XSS affaiblie sans raison. |
-| N-08 | mineur | `database/mongodb-init.js:33-36` | Index `menu_statistics_menu_period_unique` créé **sans** `unique: true` : le nom promet une unicité que MongoDB n'impose pas. |
+| N-08 | ~~mineur~~ corrigé le 2026-10-04 | `database/mongodb-init.js` | ~~Index `menu_statistics_menu_period_unique` créé sans `unique: true`.~~ L'index est maintenant unique. |
 | N-09 | mineur | seed Mongo, CSP | Photos de démonstration chargées depuis Unsplash : sans Internet (ou si une URL disparaît), plus d'images à la démo. |
 | N-10 | mineur | `public/` | Pas de `favicon.ico` : une 404 à chaque page. |
 | N-11 | mineur | `Middleware/Security.php` | `X-Powered-By: PHP/…` exposé (à couper en production avec `expose_php = Off`). `X-XSS-Protection` est obsolète, sans effet. |
@@ -196,3 +196,8 @@ Vérification : **E2E** = testé par requêtes HTTP réelles · **E2E\*** = test
 6. **Déployer** (EX-57) : choisir l'hébergeur (PHP + MariaDB + MongoDB, éventuellement MongoDB Atlas), `APP_DEBUG=false`, HTTPS, `SESSION_SECURE=true`. Noter chaque étape pour la documentation de déploiement.
 7. **Livrables documentaires**, dans cet ordre : MCD (comparé à l'annexe du PDF), diagrammes de cas d'utilisation et de séquence, documentation technique (dont la justification de N-12 et de la sécurité), maquettes, charte, manuel avec identifiants, gestion de projet et lien vers l'outil, copie.
 8. **Fin du lot 10** : commentaires sur les fichiers restants (N-18).
+
+## 7. Mise à jour du 2026-10-04 : bases de données
+
+- `database/seed.sql` a été **fusionné dans `database/schema.sql`**, qui devient le fichier unique de référence (structure + données, importable directement dans phpMyAdmin). `seed.sql` est supprimé. Import testé deux fois de suite : mêmes données qu'avant (3 comptes avec les mots de passe du README, 9 menus, 32 plats, 10 allergènes, 5 commandes, 10 lignes d'historique, 7 jours d'horaires).
+- `database/mongodb-init.js` repart de zéro (collections supprimées puis recréées), utilise le client fixe n° 3 (plus de variable `VG_CLIENT_USER_ID`) et crée l'index de statistiques en unique (N-08).
