@@ -8,7 +8,10 @@ Application de traiteur : PHP 8.2+ vanilla en MVC maison, MariaDB (PDO) + MongoD
 2. Ne jamais refaire ce qui y est marqué fait sans avoir vérifié dans le code que c'est faux.
 
 ## Règles fixes
-- Stack figée : pas de framework, pas de npm ni de bundler, pas de CDN. Les bibliothèques front sont copiées dans `public/assets/vendor/<lib>/<version>/`.
+- Stack figée : pas de framework, pas de npm ni de bundler. Seul CDN autorisé : Bootstrap JS 5.3.8 sur jsDelivr, avec `integrity` (SRI) et `crossorigin` (`App/View/layout/footer.php`). Les autres bibliothèques front sont copiées dans `public/assets/vendor/<lib>/<version>/`.
+- CSS : une feuille par rôle, chargées dans cet ordre par `layout.php` : `tokens.css` (variables), `base.css`, `components/*.css`, `pages/*.css`, `responsive.css` en dernier. Pas de style dans une autre feuille que celle du composant concerné.
+- CSP : `script-src 'self' https://cdn.jsdelivr.net`, aucun script inline ni attribut `on…` dans les vues.
+- Accessibilité : infobulle d'aide avec `info_tip('texte')` (`App/Core/functions.php`), jamais un `title` seul ; tableau large = `.table-responsive` avec `tabindex="0"`, `role="region"` et `aria-label` ; champ sans libellé visible = libellé `visually-hidden`. Le panneau d'accessibilité est dans `layout/accessibility.php`, `a11y-init.js` et `accessibility.js`.
 - Dépendances Composer : `mongodb/mongodb`, `giggsey/libphonenumber-for-php`, `phpmailer/phpmailer`. Aucune autre sans accord.
 - **git est bloqué sous Windows sur ce poste : ne lance aucune commande git.** L'utilisateur commite lui-même.
 - Code complet et fonctionnel : pas de TODO, pas de stub, pas de placeholder.

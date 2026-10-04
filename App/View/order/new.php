@@ -91,7 +91,7 @@ $defaultGuests = $selectedMenu !== null ? $selectedMenu->getMinPeople() : '';
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                             </div>
                             <div class="modal-body">
-                                <label class="form-label" for="number_of_people">Combien de personnes sont attendues ?</label>
+                                <label class="form-label" for="number_of_people">Combien de personnes sont attendues ?</label><?= info_tip('Au moins le minimum du menu. Remise de 10 % à partir de 5 personnes de plus que ce minimum.') ?>
                                 <input
                                     class="form-control"
                                     id="number_of_people"
@@ -139,7 +139,7 @@ $defaultGuests = $selectedMenu !== null ? $selectedMenu->getMinPeople() : '';
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label" for="contact_phone">Téléphone de contact</label>
+                            <label class="form-label" for="contact_phone">Téléphone de contact</label><?= info_tip('Numéro pour vous joindre le jour de la prestation (France, Espagne, Belgique, Royaume-Uni ou Italie).') ?>
                             <input
                                 class="form-control"
                                 id="contact_phone"
@@ -160,7 +160,7 @@ $defaultGuests = $selectedMenu !== null ? $selectedMenu->getMinPeople() : '';
 
                         <div class="col-12">
                             <fieldset>
-                                <legend class="form-label fw-bold">3. Mode de prestation</legend>
+                                <legend class="form-label fw-bold">3. Mode de prestation <?= info_tip('Livraison gratuite dans Bordeaux, sinon 5 € plus 0,59 € par kilomètre.') ?></legend>
                                 <div class="row g-2">
                                     <?php foreach ([
                                         'delivery' => 'Adresse, ville, code postal et téléphone requis.',
@@ -188,7 +188,7 @@ $defaultGuests = $selectedMenu !== null ? $selectedMenu->getMinPeople() : '';
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label" for="delivery_date">Date de prestation</label>
+                            <label class="form-label" for="delivery_date">Date de prestation</label><?= info_tip('Respectez le délai de commande indiqué dans les conditions du menu.') ?>
                             <input
                                 class="form-control"
                                 id="delivery_date"
@@ -204,7 +204,7 @@ $defaultGuests = $selectedMenu !== null ? $selectedMenu->getMinPeople() : '';
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label" for="delivery_time" id="serviceTimeLabel">Créneau horaire</label>
+                            <label class="form-label" for="delivery_time" id="serviceTimeLabel">Créneau horaire</label><?= info_tip('Créneaux de 15 minutes pendant les horaires d’ouverture du jour choisi.') ?>
                             <select class="form-select" id="delivery_time" name="delivery_time" required disabled>
                                 <option value="">Choisir une date</option>
                             </select>

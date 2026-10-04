@@ -128,7 +128,7 @@
                     <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
                     <?php $fieldPrefix = 'staff'; require dirname(__DIR__) . '/order/_edit_fields.php'; ?>
                     <div class="col-md-4">
-                        <label class="form-label" for="edit_contact_<?= $order->getId() ?>">Mode de contact du client</label>
+                        <label class="form-label" for="edit_contact_<?= $order->getId() ?>">Mode de contact du client</label><?= info_tip('Obligatoire : contactez le client (téléphone ou e-mail) avant de modifier sa commande.') ?>
                         <select class="form-select" id="edit_contact_<?= $order->getId() ?>" name="contact_mode" required>
                             <option value="">Choisir</option>
                             <option value="Téléphone">Téléphone</option>
@@ -158,7 +158,7 @@ if($next): ?>
 <label class="form-label" for="status_<?= $order->getId() ?>">Statut</label>
 <select class="form-select" id="status_<?= $order->getId() ?>" name="status"><?php foreach($next as $s): ?><option value="<?= $s ?>"><?= $escape($labels[$s]) ?></option><?php endforeach; ?></select></div>
 <div class="col-12 col-md-6 col-xl-3">
-<label class="form-label" for="contact_<?= $order->getId() ?>">Mode de contact</label>
+<label class="form-label" for="contact_<?= $order->getId() ?>">Mode de contact</label><?= info_tip('Obligatoire : comment le client a été prévenu (téléphone, e-mail) avant tout changement.') ?>
 <input class="form-control" id="contact_<?= $order->getId() ?>" name="contact_mode" placeholder="Téléphone, email..." required>
 </div>
 <div class="col-12 col-md-6 col-xl-3">
@@ -168,6 +168,6 @@ if($next): ?>
 <div class="col-12 col-md-6 col-xl-3">
 <label class="form-label" for="notes_<?= $order->getId() ?>">Note interne</label>
 <input class="form-control" id="notes_<?= $order->getId() ?>" name="notes" placeholder="Note complémentaire">
-</div><div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="equipment_loaned" value="1" id="equipment_<?= $order->getId() ?>" <?= $order->isEquipmentLoaned() ? "checked" : "" ?>><label class="form-check-label" for="equipment_<?= $order->getId() ?>">Matériel prêté</label></div></div><div class="col-12"><button class="btn btn-outline-primary" type="submit">Mettre à jour</button></div></form>
+</div><div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="equipment_loaned" value="1" id="equipment_<?= $order->getId() ?>" <?= $order->isEquipmentLoaned() ? "checked" : "" ?>><label class="form-check-label" for="equipment_<?= $order->getId() ?>">Matériel prêté</label><?= info_tip('Si coché, la commande passe par « En attente du retour de matériel » : le client a 10 jours ouvrés pour le rendre, sinon 600 € de frais.') ?></div></div><div class="col-12"><button class="btn btn-outline-primary" type="submit">Mettre à jour</button></div></form>
 <?php endif; ?></div></section><?php endforeach; ?>
 <?php if($orders===[]): ?><p class="text-muted">Aucune commande trouvée.</p><?php endif; ?></div></main>

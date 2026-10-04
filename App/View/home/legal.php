@@ -30,7 +30,7 @@ $hostingName = (string) ($hosting['name'] ?? '');
                         </ul>
 
                         <h2 class="h5 mt-4">Conception et développement</h2>
-                        <p>Application réalisée par FastDev dans le cadre du projet ECF.</p>
+                        <p>Application réalisée par Dylan Trabuc dans le cadre du projet ECF.</p>
 
                         <h2 class="h5 mt-4">Hébergement</h2>
                         <?php if ($hostingName !== ''): ?>
@@ -60,13 +60,13 @@ $hostingName = (string) ($hosting['name'] ?? '');
                         <h2 class="h5 mt-4">Données personnelles et cookies</h2>
                         <p>
                             Le traitement des données personnelles (compte, commandes, contact, avis) est décrit dans la
-                            <a href="/confidentialite">politique de confidentialité</a>. Le site n’utilise qu’un cookie de
+                            <a href="/index">politique de confidentialité</a>. Le site n’utilise qu’un cookie de
                             session strictement nécessaire à son fonctionnement (connexion et sécurité des formulaires),
                             sans mesure d’audience ni publicité : aucun consentement préalable n’est donc requis.
                         </p>
 
                         <h2 class="h5 mt-4">Conditions de vente</h2>
-                        <p>Les commandes sont soumises aux <a href="/cgv">conditions générales de vente</a>.</p>
+                        <p>Les commandes sont soumises aux <a href="/index">conditions générales de vente</a>.</p>
 
                         <h2 class="h5 mt-4">Droit applicable</h2>
                         <p>Le site et ces mentions sont soumis au droit français.</p>

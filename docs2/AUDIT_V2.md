@@ -144,8 +144,8 @@ Vérification : **E2E** = testé par requêtes HTTP réelles · **E2E\*** = test
 | N-03 | **majeur** | — | Aucun livrable documentaire (EX-60, 64, 68 à 72). C'est la plus grosse charge de travail restante. |
 | N-04 | majeur | ton poste | Base locale jamais réimportée depuis les corrections : les comptes du README ne fonctionnent pas chez toi. `MAIL_HOST` et `GOOGLE_MAPS_API_KEY` sont vides dans ton `.env` : ni mails ni livraison hors Bordeaux testables. |
 | N-05 | majeur | `DeliveryDistanceService` | Le calcul hors Bordeaux n'a jamais été exécuté avec la vraie API (EX-28). |
-| N-06 | mineur | `home/menu_detail.php:114` | Pas de lien « Créer un compte » pour le visiteur (EX-24). |
-| N-07 | mineur | `Middleware/Security.php:16` | CSP `script-src 'unsafe-inline'` alors qu'aucun script ni attribut `on…` n'est inline dans les vues : protection XSS affaiblie sans raison. |
+| N-06 | mineur | `home/menu_detail.php:114` | Pas de lien « Créer un compte » pour le visiteur (EX-24). **Résolu le 2026-10-04** (voir `CORRECTIONS.md`, partie graphique). |
+| N-07 | mineur | `Middleware/Security.php:16` | CSP `script-src 'unsafe-inline'` alors qu'aucun script ni attribut `on…` n'est inline dans les vues : protection XSS affaiblie sans raison. **Résolu le 2026-10-04** (voir `CORRECTIONS.md`, partie graphique). |
 | N-08 | ~~mineur~~ corrigé le 2026-10-04 | `database/mongodb-init.js` | ~~Index `menu_statistics_menu_period_unique` créé sans `unique: true`.~~ L'index est maintenant unique. |
 | N-09 | mineur | seed Mongo, CSP | Photos de démonstration chargées depuis Unsplash : sans Internet (ou si une URL disparaît), plus d'images à la démo. |
 | N-10 | mineur | `public/` | Pas de `favicon.ico` : une 404 à chaque page. |
@@ -153,7 +153,7 @@ Vérification : **E2E** = testé par requêtes HTTP réelles · **E2E\*** = test
 | N-12 | observation | `MenuStatisticsService` | Les statistiques MongoDB sont calculées en SQL puis copiées dans MongoDB à chaque commande terminée. C'est conforme (le graphique lit MongoDB), mais à justifier dans la doc technique, le jury posera la question. |
 | N-13 | observation | `AdminController::updateOrderStatus` | Mode de contact obligatoire pour **chaque** changement de statut, même « en préparation ». L'énoncé ne l'exige que pour modifier ou annuler. Défendable, mais lourd à l'usage : à justifier ou à alléger. |
 | N-14 | observation | `RateLimiter` | Limitation des connexions par IP : derrière une même IP (salle d'examen, réseau partagé), quelques échecs bloquent tout le monde pendant la fenêtre (constaté pendant les tests : 429). |
-| N-15 | mineur | RGAA | Pas de lien « Aller au contenu ». Aucun audit outillé (contrastes, navigation clavier, lecteur d'écran). |
+| N-15 | mineur | RGAA | Pas de lien « Aller au contenu ». Aucun audit outillé (contrastes, navigation clavier, lecteur d'écran). **Résolu le 2026-10-04** (voir `CORRECTIONS.md`, partie graphique). |
 | N-16 | mineur | `.github/workflows/php.yml` | CI présente uniquement sur `main`, en PHP 8.5 sous Windows, alors que le projet cible PHP 8.2+ : elle ne vérifie jamais `dev`. |
 | N-17 | mineur | RGPD | Consentement à l'inscription non horodaté en base (déjà noté dans `CORRECTIONS.md`). |
 | N-18 | mineur | lot 10 | Commentaires absents sur les fichiers non modifiés ; `layout/flash.php` lit encore la session. |

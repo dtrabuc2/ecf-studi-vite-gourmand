@@ -32,7 +32,7 @@ $errors = is_array($errors ?? null) ? $errors : [];
                             <?php /* téléphone et GSM : le pays se choisit dans la liste d'intl-tel-input (phone-input.js) */ ?>
                             <?php foreach (['phone' => 'Téléphone', 'gsm' => 'GSM'] as $field => $label): ?>
                                 <div class="col-md-6">
-                                    <label class="form-label" for="<?= $escape($field) ?>"><?= $escape($label) ?></label>
+                                    <label class="form-label" for="<?= $escape($field) ?>"><?= $escape($label) ?></label><?= $field === 'gsm' ? info_tip('Numéro de portable : il sert à vous joindre pour vos commandes.') : '' ?>
                                     <input class="form-control <?= isset($errors[$field]) ? 'is-invalid' : '' ?>"
                                            id="<?= $escape($field) ?>" name="<?= $escape($field) ?>" type="tel"
                                            autocomplete="tel" inputmode="tel" data-phone-input
@@ -53,7 +53,7 @@ $errors = is_array($errors ?? null) ? $errors : [];
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label" for="register_password">Mot de passe</label>
+                                <label class="form-label" for="register_password">Mot de passe</label><?= info_tip('Au moins 10 caractères, avec une majuscule, une minuscule, un chiffre et un caractère spécial.') ?>
                                 <input class="form-control <?= isset($errors['password']) ? 'is-invalid' : '' ?>"
                                        id="register_password" name="password" type="password"
                                        autocomplete="new-password" required>

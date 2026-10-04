@@ -11,7 +11,8 @@ $serviceLabels = \App\Core\Labels::SERVICE_TYPE;
                 <p class="text-muted mb-0">Traitez les événements importants et répondez directement au client.</p>
             </div>
             <form method="get" action="/admin/quotes" class="d-flex gap-2">
-                <select class="form-select" name="status">
+                <label class="visually-hidden" for="quoteStatusFilter">Filtrer par statut</label>
+                <select class="form-select" id="quoteStatusFilter" name="status">
                     <option value="">Tous les statuts</option>
                     <?php foreach ($labels as $value => $label): ?>
                         <option value="<?= $escape($value) ?>" <?= ($selectedStatus ?? '') === $value ? 'selected' : '' ?>>

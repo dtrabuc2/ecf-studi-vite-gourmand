@@ -13,7 +13,8 @@ Les visiteurs consultent et filtrent les menus. Les clients commandent (livraiso
 | Base NoSQL | MongoDB (extension `mongodb` + bibliothèque `mongodb/mongodb`) |
 | Front | HTML/PHP, Bootstrap 5, JavaScript natif (sans bundler ni npm) |
 | Dépendances Composer | `mongodb/mongodb`, `giggsey/libphonenumber-for-php` (téléphones), `phpmailer/phpmailer` (SMTP) |
-| Bibliothèques front locales | Bootstrap JS 5.3.8 (même version que le CSS) et intl-tel-input 29.5.3 (champs téléphone), dans `public/assets/vendor/` |
+| Bibliothèques front | Bootstrap CSS 5.3.8 (thème Litera) servi en local, découpé en feuilles par composant dans `public/assets/css/` ; Bootstrap JS 5.3.8 chargé depuis le CDN jsDelivr avec contrôle d'intégrité (SRI) ; intl-tel-input 29.5.3 (champs téléphone) en local dans `public/assets/vendor/` |
+| Accessibilité | Lien « Aller au contenu », panneau « Accessibilité » (taille du texte, contraste renforcé, texte aéré, liens soulignés, animations réduites, réglages gardés dans le navigateur), infobulles d'aide au survol, au clavier et au toucher |
 
 ## 2. Prérequis
 
@@ -22,7 +23,7 @@ Les visiteurs consultent et filtrent les menus. Les clients commandent (livraiso
 - `allow_url_fopen = On` dans `php.ini` : les appels à l'API Google passent par `file_get_contents`.
 - **Composer 2**.
 - **MariaDB** (10.x ou 11.x) et **MongoDB** (6 ou plus) avec `mongosh`.
-- Une connexion Internet pour les photos de démonstration (Unsplash) et l'API Google Maps (Bootstrap JS est servi en local).
+- Une connexion Internet pour les photos de démonstration (Unsplash) et l'API Google Maps et pour Bootstrap JS (CDN jsDelivr).
 
 ### Activer l'extension `mongodb` sous Windows
 
@@ -159,7 +160,7 @@ config/            app.php (configuration lue dans .env) et routes.php
 database/          schema.sql (structure + données), mongodb-init.js
 scripts/           set-password.php (changer ou vérifier un mot de passe en ligne de commande)
 docs2/             énoncé de l'ECF
-public/            racine web : index.php, .htaccess, assets/ (css, js, vendor/bootstrap, vendor/intl-tel-input)
+public/            racine web : index.php, .htaccess, assets/ (css découpé par composant, js, vendor/intl-tel-input)
 storage/           créé à l'exécution : cache et limitation de débit (ignoré par git)
 public/uploads/    créé à l'exécution : images ajoutées aux galeries (ignoré par git)
 ```
@@ -199,7 +200,7 @@ public/uploads/    créé à l'exécution : images ajoutées aux galeries (ignor
 
 - **Requêtes préparées** partout (PDO, préparations natives) ; aucune valeur saisie n'est concaténée dans le SQL.
 - **CSRF** : jeton vérifié sur toutes les requêtes POST (middleware `Security`).
-- **Échappement** de toutes les sorties dans les vues (`$escape()` = `htmlspecialchars`) ; en-têtes de sécurité (CSP, `X-Frame-Options`, `nosniff`…).
+- **Échappement** de toutes les sorties dans les vues (`$escape()` = `htmlspecialchars`) ; en-têtes de sécurité (CSP sans script inline, seul `cdn.jsdelivr.net` est autorisé en plus du site ; `X-Frame-Options`, `nosniff`…). Bootstrap JS est vérifié par son empreinte SRI.
 - **Mots de passe** : bcrypt (coût `PASSWORD_HASH_COST`), politique de robustesse unique, blocage 15 minutes après 5 échecs, limitation des tentatives par adresse IP ; lien de réinitialisation à usage unique valable 1 heure, stocké haché.
 - **Validation côté serveur** de toutes les saisies (le JavaScript ne fait qu'aider) ; prix, remises et frais de livraison recalculés par le serveur.
 - **Téléphones** : validés avec libphonenumber (France, Espagne, Belgique, Royaume-Uni, Italie) et stockés au format international **E.164** (`+33612345678`).

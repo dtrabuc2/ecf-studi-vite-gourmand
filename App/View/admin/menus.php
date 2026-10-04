@@ -36,7 +36,7 @@ $menuFields = static function (string $prefix, ?\App\Entity\Menu $menu) use ($es
         </select>
     </div>
     <div class="col-md-3">
-        <label class="form-label" for="<?= $id('min_people') ?>">Minimum de personnes</label>
+        <label class="form-label" for="<?= $id('min_people') ?>">Minimum de personnes</label><?= info_tip('Le client ne peut pas commander pour moins de personnes.') ?>
         <input class="form-control" id="<?= $id('min_people') ?>" type="number" min="1" name="min_people"
                value="<?= $minPeople ?? '' ?>" required>
     </div>
@@ -56,7 +56,7 @@ $menuFields = static function (string $prefix, ?\App\Entity\Menu $menu) use ($es
         <textarea class="form-control" id="<?= $id('conditions') ?>" name="conditions" required><?= $escape($menu?->getConditions() ?? '') ?></textarea>
     </div>
     <div class="col-md-3">
-        <label class="form-label" for="<?= $id('stock') ?>">Stock (commandes possibles)</label>
+        <label class="form-label" for="<?= $id('stock') ?>">Stock (commandes possibles)</label><?= info_tip('Diminue de 1 à chaque commande. À 0, le menu ne peut plus être commandé.') ?>
         <input class="form-control" id="<?= $id('stock') ?>" type="number" min="0" name="available_stock"
                value="<?= $menu?->getAvailableStock() ?? '' ?>" required>
     </div>

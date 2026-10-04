@@ -262,15 +262,15 @@ INSERT INTO `users`
      `phone`, `gsm`, `address`, `is_active`)
 VALUES
     (1, 'admin@viteetgourmand.com',
-     '$2y$12$ouwlSZwSuH6VMUdRamzjAOFIc1V883G11pSocz5GK/yi6W132.uk6',
+     '$2y$12$y783.RNiQS0sQUikoe0M9eqg5J1lJkED5QCd5HGXNqhLVNUhvTYBa',
      'admin', 'Admin', 'Istrator',
      '+33123456789', '+33612345678', '123 Rue de la Paix', 1),
     (2, 'employee@viteetgourmand.com',
-     '$2y$12$UJeED.NELiQhc61PGs7nZ.Gp3NCae646XKsjhV57p2/r.jagmyS6u',
+     '$2y$12$XQKBOx3D0jT/vHsqaqk74eewcL/52nUOiydaijpWamEd.kWbY3P7.',
      'employee', 'Employé', 'Modèle',
      '+33123456789', '+33612345678', '456 Avenue des Champs', 1),
     (3, 'user@viteetgourmand.com',
-     '$2y$12$0O7wW0SCX24Ok0ee2sHHcOXFWaKCXK84ebISO7whnOZURMNOsKttq',
+     '$2y$12$ab.hW4NX2qeqli4wiXrCH.0u2uX4S9vCf1bAFAZ6//jpAgVZ3jdz6',
      'user', 'Utilisateur', 'Modèle',
      '+33123456789', '+33612345678', '789 Boulevard Saint-Michel', 1)
 ON DUPLICATE KEY UPDATE

@@ -33,15 +33,15 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label" for="filterMinPrice">Prix min.</label>
+                    <label class="form-label" for="filterMinPrice">Prix min.</label><?= info_tip('Prix du menu pour son nombre minimum de personnes, en euros.') ?>
                     <input id="filterMinPrice" name="min_price" class="form-control" type="number" min="0" step="0.01">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label" for="filterMaxPrice">Prix max.</label>
+                    <label class="form-label" for="filterMaxPrice">Prix max.</label><?= info_tip('Les menus plus chers que ce montant sont masqués.') ?>
                     <input id="filterMaxPrice" name="max_price" class="form-control" type="number" min="0" step="0.01">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label" for="filterPeople">Personnes min.</label>
+                    <label class="form-label" for="filterPeople">Personnes min.</label><?= info_tip('Affiche les menus qui peuvent se commander pour ce nombre de personnes.') ?>
                     <input id="filterPeople" name="min_people" class="form-control" type="number" min="1">
                 </div>
                 <div class="col-12 d-flex justify-content-end gap-2">

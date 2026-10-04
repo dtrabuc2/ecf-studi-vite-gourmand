@@ -74,8 +74,8 @@ $oldAllergens = array_map('intval', is_array($oldInput['allergens'] ?? null) ? $
                     <?php if ($inCategory === []): ?>
                         <p class="text-muted mb-0">Aucun plat dans cette catégorie.</p>
                     <?php else: ?>
-                        <div class="table-responsive">
-                            <table class="table align-middle mb-0">
+                        <div class="table-responsive" tabindex="0" role="region" aria-label="Liste des plats (défilable)">
+                            <table class="table table-wide align-middle mb-0">
                                 <thead>
                                     <tr>
                                         <th scope="col">Nom</th>

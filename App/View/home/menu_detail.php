@@ -55,13 +55,13 @@
                             <p class="lead text-muted"><?= $escape($menu->getDescription()) ?></p>
 
                             <dl class="row mt-4">
-                                <dt class="col-sm-5">Prix du menu</dt>
+                                <dt class="col-sm-5">Prix du menu <?= info_tip('Prix pour le nombre minimum de personnes. Au-delà, le prix augmente par personne.') ?></dt>
                                 <dd class="col-sm-7"><?= number_format($menu->getBasePrice(), 2, ',', ' ') ?> €</dd>
-                                <dt class="col-sm-5">Minimum</dt>
+                                <dt class="col-sm-5">Minimum <?= info_tip('Nombre de personnes minimum pour commander ce menu. Remise de 10 % à partir de 5 personnes de plus.') ?></dt>
                                 <dd class="col-sm-7"><?= $menu->getMinPeople() ?> personne<?= $menu->getMinPeople() > 1 ? 's' : '' ?></dd>
                                 <dt class="col-sm-5">Régime alimentaire</dt>
                                 <dd class="col-sm-7"><?= $escape(\App\Core\Labels::dietaryRegime($menu->getDietaryRegime())) ?></dd>
-                                <dt class="col-sm-5">Stock disponible</dt>
+                                <dt class="col-sm-5">Stock disponible <?= info_tip('Nombre de commandes encore possibles pour ce menu.') ?></dt>
                                 <dd class="col-sm-7"><?= $menu->getAvailableStock() ?> commandes</dd>
                             </dl>
 
@@ -112,6 +112,7 @@
                                     <a class="btn btn-primary" href="/orders/new?menu=<?= $menu->getId() ?>">Commander cette formule</a>
                                 <?php else: ?>
                                     <a class="btn btn-primary" href="/login?redirect=<?= $escape(rawurlencode('/orders/new?menu=' . $menu->getId())) ?>">Connectez-vous pour commander</a>
+                                    <a class="btn btn-outline-secondary" href="/register">Créer un compte</a>
                                 <?php endif; ?>
                             </div>
                         </div>

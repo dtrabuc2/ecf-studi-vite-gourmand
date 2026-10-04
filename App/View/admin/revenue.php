@@ -25,22 +25,22 @@
             </div>
         </form>
 
-        <div class="table-responsive card border-0 shadow-sm">
+        <div class="table-responsive card border-0 shadow-sm" tabindex="0" role="region" aria-label="Chiffre d’affaires par menu (défilable)">
             <table class="table mb-0">
                 <caption class="visually-hidden">Commandes terminées et chiffre d'affaires par menu</caption>
                 <thead>
                     <tr>
                         <th scope="col">Menu</th>
-                        <th scope="col">Commandes</th>
-                        <th scope="col">CA</th>
+                        <th scope="col" class="text-end">Commandes</th>
+                        <th scope="col" class="text-end">CA</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($revenue as $row): ?>
                         <tr>
                             <td><?= $escape($row['menu_title']) ?></td>
-                            <td><?= (int) $row['order_count'] ?></td>
-                            <td><?= number_format((float) $row['revenue'], 2, ',', ' ') ?> €</td>
+                            <td class="text-end"><?= (int) $row['order_count'] ?></td>
+                            <td class="text-end text-nowrap"><?= number_format((float) $row['revenue'], 2, ',', ' ') ?> €</td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
