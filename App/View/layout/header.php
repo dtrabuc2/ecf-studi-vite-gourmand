@@ -34,11 +34,9 @@ $isAuthenticated = !empty($user);
 
                 <?php if ($role === 'admin'): ?>
                         <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Administration</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/admin/emails">Emails</a></li>
                     <?php elseif ($role === 'employee'): ?>
                         <li class="nav-item"><a class="nav-link" href="/admin/orders">Commandes</a></li>
                     <li class="nav-item"><a class="nav-link" href="/admin/quotes">Devis</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/admin/emails">Emails</a></li>
                         <li class="nav-item"><a class="nav-link" href="/admin/menus">Menus</a></li>
                         <li class="nav-item"><a class="nav-link" href="/admin/dishes">Plats</a></li>
                         <li class="nav-item"><a class="nav-link" href="/admin/hours">Horaires</a></li>

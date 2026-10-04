@@ -33,9 +33,10 @@ class MailService
     /**
      * Envoie un e-mail.
      *
+     * @param string|null $replyTo adresse utilisée quand le destinataire clique sur « Répondre »
      * @return bool true si le serveur SMTP a accepté le message.
      */
-    public function send(string $to, string $subject, string $body, bool $isHTML = false): bool
+    public function send(string $to, string $subject, string $body, bool $isHTML = false, ?string $replyTo = null): bool
     {
         $host = trim((string) ($this->config['host'] ?? ''));
 
@@ -77,6 +78,10 @@ class MailService
 
             $mailer->setFrom($this->fromAddress(), (string) ($this->config['from_name'] ?? 'Vite & Gourmand'));
             $mailer->addAddress($to);
+
+            if ($replyTo !== null && filter_var($replyTo, FILTER_VALIDATE_EMAIL)) {
+                $mailer->addReplyTo($replyTo);
+            }
             $mailer->Subject = $subject;
             $mailer->isHTML($isHTML);
             $mailer->Body = $body;

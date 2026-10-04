@@ -81,7 +81,6 @@ abstract class BaseController
             'order/index' => 'Mes commandes',
             'order/confirmation' => 'Confirmation de commande',
             'admin/dashboard' => 'Tableau de bord',
-            'admin/emails' => 'Boîte email',
             'admin/orders' => 'Gestion des commandes',
             'admin/quotes' => 'Gestion des devis',
             'admin/dishes' => 'Gestion des plats',
